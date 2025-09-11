@@ -1,0 +1,495 @@
+/** biome-ignore-all lint/suspicious/noDocumentCookie: not available on older browsers */
+import { ToastQueue } from "https://unpkg.com/toast-queue@1.0.0-alpha.4/dist/toast-queue.js";
+
+const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
+
+const toastQueue = new ToastQueue({
+	position: "bottom-start",
+	isMinimized: true,
+	maxVisibleToasts: 7,
+	root: document.body,
+});
+
+// Hello, Opua Opulinski.
+// Hello, Tr. wait im gonna update VS Code
+// Ok, Opua YT.
+
+// Hello Opua Dm (1)
+// TrZip
+
+const elements = {
+	title: document.querySelector("h1"),
+	username: document.getElementById("username"),
+	register: document.getElementById("register"),
+	login: document.getElementById("login"),
+	logout: document.getElementById("logout"),
+	loginForm: document.getElementById("login-form"),
+	userInfo: document.getElementById("user-info"),
+	status: document.getElementById("status"),
+	addPasskeyBtn: document.getElementById("addPasskey"),
+	passkeyStatus: document.getElementById("passkeyStatus"),
+	passkeyList: document.getElementById("passkeyList"),
+};
+
+let authToken = null;
+let currentUser = null;
+
+function checkExistingSession() {
+	const finish = () => {
+		document.querySelector(".loader").style.opacity = "0";
+		setTimeout(() => {
+			document.querySelector(".loader").style.display = "none";
+		}, 150);
+	};
+
+	const token = localStorage.getItem("authToken");
+	if (!token) return;
+
+	document.querySelector(".loader").style.opacity = "0";
+	document.querySelector(".loader").style.display = "flex";
+	setTimeout(() => {
+		document.querySelector(".loader").style.opacity = "1";
+	}, 1);
+
+	fetch("/api/auth/me?requestPreload=1", {
+		headers: { Authorization: `Bearer ${token}` },
+	})
+		.then((response) => response.json())
+		.then((data) => {
+			if (!data.user) return localStorage.removeItem("authToken");
+
+			authToken = token;
+			showUserInfo(data);
+			finish();
+		})
+		.catch(() => {
+			localStorage.removeItem("authToken");
+			finish();
+		});
+}
+
+function showUserInfo(user) {
+	currentUser = user.user;
+	elements.title.textContent = `@${user.user.username}`;
+	elements.loginForm.style.display = "none";
+	elements.userInfo.style.display = "block";
+	loadPasskeys(user.passkeys);
+}
+
+function showLoginForm() {
+	authToken = null;
+	localStorage.removeItem("authToken");
+	elements.loginForm.style.display = "block";
+	elements.userInfo.style.display = "none";
+	elements.username.value = "";
+	elements.title.textContent = "Welcome to Tweetapus";
+}
+
+function setButtonsDisabled(disabled) {
+	elements.register.disabled = disabled;
+	elements.login.disabled = disabled;
+}
+
+async function handleRegistration() {
+	const username = elements.username.value.trim();
+	if (!username) {
+		return elements.username.focus();
+	}
+
+	setButtonsDisabled(true);
+
+	try {
+		const { options, challenge, error } = await (
+			await fetch("/api/auth/generate-registration-options", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ username }),
+			})
+		).json();
+
+		if (error) {
+			toastQueue.add(`<h1>Unable to create account</h1><p>${error}</p>`);
+			return;
+		}
+
+		const registrationResponse = await startRegistration({
+			optionsJSON: options,
+		});
+
+		const verification = await (
+			await fetch("/api/auth/verify-registration", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					username,
+					credential: registrationResponse,
+					challenge,
+				}),
+			})
+		).json();
+
+		if (!verification.verified) {
+			toastQueue.add(
+				`<h1>Unable to create account</h1><p>${verification.error || ""}</p>`,
+			);
+		}
+
+		authToken = verification.token;
+		localStorage.setItem("authToken", authToken);
+
+		document.cookie =
+			"agree=yes; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT";
+		location.href = "/";
+	} catch (error) {
+		if (error.name === "NotAllowedError") return;
+
+		toastQueue.add(
+			`<h1>Unable to create account</h1><p>${error.message || ""}</p>`,
+		);
+	} finally {
+		setButtonsDisabled(false);
+	}
+}
+
+async function handleAuthentication() {
+	setButtonsDisabled(true);
+
+	try {
+		const { options, expectedChallenge, error } = await (
+			await fetch("/api/auth/generate-authentication-options", {
+				method: "POST",
+			})
+		).json();
+
+		if (error) {
+			toastQueue.add(`<h1>Something's not right.</h1><p>${error || ""}</p>`);
+			return;
+		}
+
+		const authenticationResponse = await startAuthentication({
+			optionsJSON: options,
+			mediation: "silent",
+		});
+
+		document.querySelector(".loader").style.display = "flex";
+		document.querySelector(".loader").style.opacity = "0";
+		setTimeout(() => {
+			document.querySelector(".loader").style.opacity = "1";
+		}, 150);
+
+		const verification = await (
+			await fetch("/api/auth/verify-authentication", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					expectedChallenge,
+					credential: authenticationResponse,
+				}),
+			})
+		).json();
+
+		document.querySelector(".loader").style.opacity = "0";
+		setTimeout(() => {
+			document.querySelector(".loader").style.display = "none";
+		}, 150);
+
+		if (verification.verified) {
+			authToken = verification.token;
+			localStorage.setItem("authToken", authToken);
+
+			document.cookie =
+				"agree=yes; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT";
+			location.href = "/";
+		} else {
+			toastQueue.add(
+				`<h1>Something's not right.</h1><p>${verification.error}</p>`,
+			);
+		}
+	} catch (error) {
+		if (error.name === "NotAllowedError") return;
+
+		toastQueue.add(
+			`<h1>Something's not right.</h1><p>${error.message || ""}</p>`,
+		);
+	} finally {
+		setButtonsDisabled(false);
+	}
+}
+
+const escapeHtml = (str) => str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const timeAgo = (input) => {
+	const date = new Date(input).getTime();
+	const now = Date.now();
+	let diff = Math.floor((date - now) / 1000);
+	const past = diff < 0;
+	diff = Math.abs(diff);
+
+	let str;
+	if (diff < 60) str = diff + "s";
+	else if (diff < 3600) str = Math.floor(diff / 60) + "m";
+	else if (diff < 86400) str = Math.floor(diff / 3600) + "h";
+	else if (diff < 604800) str = Math.floor(diff / 86400) + "d";
+	else if (diff < 2419200) str = Math.floor(diff / 604800) + "w";
+	else {
+		const d = new Date(date);
+		if (Math.abs(now - date) < 31536000000) {
+			str = d.toLocaleDateString("en-GB", {
+				day: "2-digit",
+				month: "2-digit",
+			});
+		} else {
+			str = d.toLocaleDateString("en-GB", {
+				day: "2-digit",
+				month: "2-digit",
+				year: "2-digit",
+			});
+		}
+		return str;
+	}
+
+	return past ? str + " ago" : "in " + str;
+};
+
+const apiRequest = async (path, options = {}) => {
+	return await (
+		await fetch(`/api${path}`, {
+			headers: {
+				"Content-Type": options.body ? "application/json" : undefined,
+				...(authToken && { Authorization: `Bearer ${authToken}` }),
+				...options.headers,
+			},
+			...options,
+		})
+	).json();
+};
+
+const loadPasskeys = async (preload) => {
+	if (!authToken || !currentUser) return;
+
+	try {
+		if (preload) return displayPasskeys(preload);
+
+		const { passkeys, error } = await apiRequest("/auth/passkeys");
+
+		if (error) {
+			toastQueue.add(`<h1>Failed to load passkey</h1><p>${error}</p>`);
+			return;
+		}
+
+		displayPasskeys(passkeys);
+	} catch (error) {
+		console.error("Load passkeys error:", error);
+		toastQueue.add(`<h1>Failed to load passkey</h1><p>${error.message}</p>`);
+	}
+};
+
+const displayPasskeys = (passkeys) => {
+	elements.passkeyList.innerHTML = "";
+
+	passkeys.forEach((passkey) => {
+		const element = document.createElement("div");
+		element.className = "passkey-item";
+		element.innerHTML = `
+		<div class="passkey-info">
+			<div class="passkey-name">${escapeHtml(passkey.name)}</div>
+			<div class="passkey-details">
+			created ${timeAgo(passkey.createdAt)}, last used ${
+				passkey.lastUsed ? timeAgo(passkey.lastUsed) : "never"
+			} • ${passkey.backupEligible ? "synced" : "device-bound"}
+			</div>
+		</div>
+		<div class="passkey-actions">
+			<button ${
+				passkeys.length <= 1
+					? 'disabled title="Cannot delete the last passkey"'
+					: ""
+			}><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash2-icon lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+		</div>`;
+
+		elements.passkeyList.appendChild(element);
+
+		element.querySelector(".passkey-name").addEventListener("click", () => {
+			if (element.querySelector(".passkey-name input")) return;
+			handleRenamePasskey(passkey, element);
+		});
+
+		element
+			.querySelector("button")
+			.addEventListener("click", () => handleDeletePasskey(passkey));
+	});
+};
+
+const handleRenamePasskey = (passkey, element) => {
+	const passkeyName = element.querySelector(".passkey-name");
+	passkeyName.innerHTML = `<input type="text" value="${escapeHtml(
+		passkey.name,
+	)}" class="rename-input" maxlength="50" />`;
+	const input = passkeyName.querySelector("input");
+	input.focus();
+	input.select();
+
+	let active = true;
+
+	const save = async () => {
+		const newName = input.value.trim();
+
+		if (!newName || newName === passkey.name || newName.trim().length === 0) {
+			passkeyName.textContent = newName;
+			return;
+		}
+
+		if (newName.length > 50) {
+			toastQueue.add(
+				`<h1>Name too long</h1><p>A passkey's name must be less than 50 characters</p>`,
+			);
+			return;
+		}
+
+		passkeyName.textContent = newName;
+		passkeyName.style.opacity = "0.6";
+		passkeyName.style.pointerEvents = "none";
+
+		active = false;
+
+		const { error, passkeys } = await apiRequest(
+			`/auth/passkeys/${passkey.id}/name`,
+			{
+				method: "PUT",
+				body: JSON.stringify({ name: newName.trim() }),
+			},
+		);
+		passkeyName.style.opacity = "1";
+		passkeyName.style.pointerEvents = "all";
+
+		if (error) {
+			toastQueue.add(`<h1>Unable to rename passkey</h1><p>${error}</p>`);
+			return;
+		}
+		toastQueue.add(`<h1>Name changed successfully!</h1>`);
+
+		loadPasskeys(passkeys);
+	};
+
+	setTimeout(() => {
+		document.addEventListener("click", (e) => {
+			if (!passkeyName.contains(e.target) && input && active) save();
+		});
+	}, 100);
+
+	input.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") {
+			passkeyName.textContent = passkey.name;
+			active = false;
+		}
+
+		if (e.key === "Enter") save();
+	});
+};
+
+const handleDeletePasskey = async (passkey) => {
+	if (
+		!confirm(
+			"Are you sure you want to delete this passkey? This action cannot be undone.",
+		)
+	) {
+		return;
+	}
+
+	const { error, passkeys } = await apiRequest(`/auth/passkeys/${passkey.id}`, {
+		method: "DELETE",
+	});
+
+	if (error) {
+		toastQueue.add(`<h1>Unable to delete passkey</h1><p>${error}</p>`);
+	}
+
+	toastQueue.add(`<h1>Passkey deleted successfully!</h1>`);
+	await loadPasskeys(passkeys);
+};
+
+const handleAddPasskey = async () => {
+	if (!currentUser) return;
+
+	elements.addPasskeyBtn.disabled = true;
+
+	try {
+		const { options, challenge, error } = await apiRequest(
+			"/auth/generate-registration-options",
+			{
+				method: "POST",
+				body: JSON.stringify({ username: currentUser.username }),
+			},
+		);
+
+		if (error) {
+			toastQueue.add(`<h1>Unable to add passkey</h1><p>${error}</p>`);
+			return;
+		}
+
+		const registrationResponse = await startRegistration({
+			optionsJSON: options,
+		});
+
+		const { verified } = await apiRequest("/auth/verify-registration", {
+			method: "POST",
+			body: JSON.stringify({
+				username: currentUser.username,
+				credential: registrationResponse,
+				challenge,
+			}),
+		});
+
+		if (verified) return await loadPasskeys();
+
+		toastQueue.add(`<h1>Unable to add passkey</h1><p>Passkey not verified</p>`);
+	} catch (error) {
+		console.error("Add passkey error:", error);
+
+		if (error.name === "InvalidStateError") {
+			toastQueue.add(
+				`<h1>Passkey already registered</h1><p>You have already added that passkey</p>`,
+			);
+		} else if (error.name !== "NotAllowedError") {
+			toastQueue.add(`<h1>Failed to add passkey</h1><p>${error.message}</p>`);
+		}
+	} finally {
+		elements.addPasskeyBtn.disabled = false;
+	}
+};
+
+elements.register.addEventListener("click", handleRegistration);
+elements.login.addEventListener("click", handleAuthentication);
+elements.addPasskeyBtn?.addEventListener("click", handleAddPasskey);
+elements.username.addEventListener("input", (e) => {
+	e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
+});
+elements.logout.addEventListener("click", () => {
+	showLoginForm();
+	document.cookie = "agree=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+});
+
+elements.username.addEventListener("keypress", (e) => {
+	if (e.key === "Enter") handleRegistration();
+});
+
+checkExistingSession();
+
+document.querySelector(".legal").addEventListener("click", (e) => {
+	e.preventDefault();
+	const iframeWrapper = document.createElement("div");
+	iframeWrapper.classList.add("iframe-wrapper");
+	document.body.appendChild(iframeWrapper);
+
+	iframeWrapper.addEventListener("click", (e) => {
+		if (e.target !== iframeWrapper) iframeWrapper.remove();
+	});
+
+	const iframe = document.createElement("iframe");
+	iframe.src = "/legal";
+	iframeWrapper.appendChild(iframe);
+
+	const closeButton = document.createElement("button");
+	closeButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`;
+	iframeWrapper.appendChild(closeButton);
+});
