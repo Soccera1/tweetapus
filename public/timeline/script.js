@@ -26,7 +26,7 @@ function timeAgo(date) {
 }
 
 (async () => {
-	if (!authToken) return handleLogout();
+	if (!authToken) return document.getElementById("logout").click();
 
 	const response = await fetch("/api/auth/me", {
 		headers: { Authorization: `Bearer ${authToken}` },
