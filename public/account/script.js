@@ -1,14 +1,7 @@
 /** biome-ignore-all lint/suspicious/noDocumentCookie: not available on older browsers */
-import { ToastQueue } from "https://unpkg.com/toast-queue@1.0.0-alpha.4/dist/toast-queue.js";
+import toastQueue from "../../shared/toasts.js";
 
 const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
-
-const toastQueue = new ToastQueue({
-	position: "bottom-start",
-	isMinimized: true,
-	maxVisibleToasts: 7,
-	root: document.body,
-});
 
 const elements = {
 	title: document.querySelector("h1"),

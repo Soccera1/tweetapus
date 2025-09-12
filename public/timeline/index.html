@@ -46,49 +46,55 @@
       </div>
     </nav>
 
-    <svg
-      class="icon"
-      width="48"
-      height="48"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-    >
-      <path
-        d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"
-      />
-    </svg>
+    <div class="timeline">
+      <svg
+        class="icon"
+        width="48"
+        height="48"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path
+          d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"
+        />
+      </svg>
 
-    <h1>
-      <a href="javascript:" class="active">Your feed</a>
-      <a href="javascript:">Following</a>
-    </h1>
+      <h1>
+        <a href="javascript:" class="active">Your feed</a>
+        <a href="javascript:">Following</a>
+      </h1>
 
-    <div class="compose-tweet">
-      <div class="compose-header">
-        <img src="" alt="Your avatar" id="compose-avatar" />
-        <div class="compose-input">
-          <textarea
-            placeholder="What's happening?"
-            maxlength="400"
-            id="tweet-textarea"
-          ></textarea>
-          <div class="compose-footer">
-            <!-- prettier-ignore -->
-            <div class="character-counter">
+      <div class="compose-tweet">
+        <div class="compose-header">
+          <img src="" alt="Your avatar" id="compose-avatar" />
+          <div class="compose-input">
+            <textarea
+              placeholder="What's happening?"
+              maxlength="400"
+              id="tweet-textarea"
+            ></textarea>
+            <div class="compose-footer">
+              <!-- prettier-ignore -->
+              <div class="character-counter">
               <span id="char-count">0</span>/400
             </div>
-            <button id="tweet-button" disabled>Tweet</button>
+              <button id="tweet-button" disabled>Tweet</button>
+            </div>
           </div>
         </div>
       </div>
+
+      <div class="tweets"></div>
     </div>
 
-    <div class="tweets"></div>
+    <div class="tweet">
+      
+    </div>
 
     <script src="/public/shared/darkmode.js" defer></script>
-    <script src="/public/timeline/script.js" defer type="module"></script>
+    <script src="/public/timeline/js/index.js" defer type="module"></script>
 
     <div class="loader">
       <svg
@@ -121,6 +127,4 @@
       </svg>
     </div>
   </body>
-
-  <script></script>
 </html>
