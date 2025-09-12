@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
 const getTweetById = db.query(`
-  SELECT posts.*, users.username, users.name, users.verified 
+  SELECT *
   FROM posts 
   JOIN users ON posts.user_id = users.id 
   WHERE posts.id = ?
@@ -16,28 +16,27 @@ const getTweetById = db.query(`
 
 const getTweetWithThread = db.query(`
   WITH RECURSIVE thread_posts AS (
-    SELECT posts.*, users.username, users.name, users.verified, 0 as level
-    FROM posts 
-    JOIN users ON posts.user_id = users.id 
-    WHERE posts.id = ?
-    
+    SELECT *, 0 AS level
+    FROM posts
+    WHERE id = ?
+
     UNION ALL
-    
-    SELECT p.*, u.username, u.name, u.verified, tp.level + 1
+
+    SELECT p.*, tp.level + 1
     FROM posts p
-    JOIN users u ON p.user_id = u.id
     JOIN thread_posts tp ON p.reply_to = tp.id
     WHERE tp.level < 10
-  )
-  SELECT * FROM thread_posts ORDER BY level ASC, created_at ASC
+)
+SELECT *
+FROM thread_posts
+ORDER BY level ASC, created_at ASC;
 `);
 
 const getTweetReplies = db.query(`
-  SELECT posts.*, users.username, users.name, users.verified 
-  FROM posts 
-  JOIN users ON posts.user_id = users.id 
-  WHERE posts.reply_to = ? 
-  ORDER BY posts.created_at ASC
+  SELECT *
+  FROM posts
+  WHERE reply_to = ?
+  ORDER BY created_at ASC
 `);
 
 const createTweet = db.query(`
@@ -107,8 +106,8 @@ export default new Elysia({ prefix: "/tweets" })
 			const user = getUserByUsername.get(payload.username);
 			if (!user) return { error: "User not found" };
 
-			const { text, content, reply_to } = body;
-			const tweetContent = text || content;
+			const { content, reply_to, source } = body;
+			const tweetContent = content;
 
 			if (!tweetContent || tweetContent.trim().length === 0) {
 				return { error: "Tweet content is required" };
@@ -125,7 +124,7 @@ export default new Elysia({ prefix: "/tweets" })
 				user.id,
 				tweetContent.trim(),
 				reply_to || null,
-				body.source || null,
+				source || null,
 			);
 
 			if (reply_to) {
@@ -147,86 +146,96 @@ export default new Elysia({ prefix: "/tweets" })
 		}
 	})
 	.get("/:id", async ({ params, jwt, headers }) => {
-		try {
-			const { id } = params;
+		const { id } = params;
 
-			const tweet = getTweetById.get(id);
-			if (!tweet) {
-				return { error: "Tweet not found" };
-			}
-
-			const threadPosts = getTweetWithThread.all(id);
-			const replies = getTweetReplies.all(id);
-
-			// Add user interaction status if authenticated
-			let currentUser = null;
-			const authorization = headers.authorization;
-			if (authorization) {
-				try {
-					const payload = await jwt.verify(
-						authorization.replace("Bearer ", ""),
-					);
-					if (payload) {
-						currentUser = getUserByUsername.get(payload.username);
-					}
-				} catch {
-					// Invalid token, continue as unauthenticated
-				}
-			}
-
-			if (currentUser) {
-				// Add like and retweet status for main post and thread posts
-				const allPostIds = [
-					tweet.id,
-					...threadPosts.map((p) => p.id),
-					...replies.map((r) => r.id),
-				];
-				const placeholders = allPostIds.map(() => "?").join(",");
-
-				const getUserLikesQuery = db.query(
-					`SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${placeholders})`,
-				);
-				const getUserRetweetsQuery = db.query(
-					`SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${placeholders})`,
-				);
-
-				const userLikes = getUserLikesQuery.all(currentUser.id, ...allPostIds);
-				const userRetweets = getUserRetweetsQuery.all(
-					currentUser.id,
-					...allPostIds,
-				);
-
-				const likedPosts = new Set(userLikes.map((like) => like.post_id));
-				const retweetedPosts = new Set(
-					userRetweets.map((retweet) => retweet.post_id),
-				);
-
-				// Add status to main tweet
-				tweet.liked_by_user = likedPosts.has(tweet.id);
-				tweet.retweeted_by_user = retweetedPosts.has(tweet.id);
-
-				// Add status to thread posts
-				threadPosts.forEach((post) => {
-					post.liked_by_user = likedPosts.has(post.id);
-					post.retweeted_by_user = retweetedPosts.has(post.id);
-				});
-
-				// Add status to replies
-				replies.forEach((reply) => {
-					reply.liked_by_user = likedPosts.has(reply.id);
-					reply.retweeted_by_user = retweetedPosts.has(reply.id);
-				});
-			}
-
-			return {
-				post: tweet,
-				threadPosts,
-				replies,
-			};
-		} catch (error) {
-			console.error("Tweet fetch error:", error);
-			return { error: "Failed to fetch tweet" };
+		const tweet = getTweetById.get(id);
+		if (!tweet) {
+			return { error: "Tweet not found" };
 		}
+
+		const threadPosts = getTweetWithThread.all(id);
+		const replies = getTweetReplies.all(id);
+
+		let currentUser;
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Unauthorized" };
+
+		try {
+			currentUser = getUserByUsername.get(
+				(await jwt.verify(authorization.replace("Bearer ", ""))).username,
+			);
+		} catch {
+			return { error: "Invalid token" };
+		}
+
+		const allPostIds = [
+			...threadPosts.map((p) => p.id),
+			...replies.map((r) => r.id),
+		];
+		const placeholders = allPostIds.map(() => "?").join(",");
+
+		const getUserLikesQuery = db.query(
+			`SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${placeholders})`,
+		);
+		const getUserRetweetsQuery = db.query(
+			`SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${placeholders})`,
+		);
+
+		const userLikes = getUserLikesQuery.all(currentUser.id, ...allPostIds);
+		const userRetweets = getUserRetweetsQuery.all(
+			currentUser.id,
+			...allPostIds,
+		);
+
+		const likedPosts = new Set(userLikes.map((like) => like.post_id));
+		const retweetedPosts = new Set(
+			userRetweets.map((retweet) => retweet.post_id),
+		);
+
+		tweet.liked_by_user = likedPosts.has(tweet.id);
+		tweet.retweeted_by_user = retweetedPosts.has(tweet.id);
+
+		const allUserIds = [
+			...new Set([
+				tweet.user_id,
+				...threadPosts.map((p) => p.user_id),
+				...replies.map((r) => r.user_id),
+			]),
+		];
+
+		let users = [];
+		if (allUserIds.length > 0) {
+			const placeholders = allUserIds.map(() => "?").join(",");
+			const getUsersQuery = db.query(
+				`SELECT * FROM users WHERE id IN (${placeholders})`,
+			);
+			users = getUsersQuery.all(...allUserIds);
+		}
+
+		const userMap = new Map(users.map((user) => [user.id, user]));
+
+		const processedThreadPosts = threadPosts.map((post) => ({
+			...post,
+			liked_by_user: likedPosts.has(post.id),
+			retweeted_by_user: retweetedPosts.has(post.id),
+			author: userMap.get(post.user_id),
+		}));
+
+		const processedReplies = replies.map((reply) => ({
+			...reply,
+			liked_by_user: likedPosts.has(reply.id),
+			retweeted_by_user: retweetedPosts.has(reply.id),
+			author: userMap.get(reply.user_id),
+		}));
+
+		return {
+			tweet: {
+				...tweet,
+				author: userMap.get(tweet.user_id),
+			},
+			threadPosts: processedThreadPosts,
+			replies: processedReplies,
+		};
 	})
 	.post("/:id/like", async ({ jwt, headers, params }) => {
 		const authorization = headers.authorization;

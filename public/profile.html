@@ -131,11 +131,6 @@
         font-size: 16px;
         margin: 0 0 16px 0;
       }
-      .profile-bio {
-        margin: 0 0 16px 0;
-        font-size: 16px;
-        line-height: 1.4;
-      }
       .profile-meta {
         display: flex;
         flex-wrap: wrap;
@@ -408,7 +403,6 @@
         <div class="profile-info">
           <h2 id="displayName">Display Name</h2>
           <p class="username" id="username">@username</p>
-          <p class="profile-bio" id="bio"></p>
 
           <div class="profile-meta" id="profileMeta"></div>
 
@@ -447,52 +441,11 @@
 
         <form id="editProfileForm">
           <div class="form-group">
-            <label for="editDisplayName">Display Name</label>
+            <label for="editDisplayName">Name</label>
             <input type="text" id="editDisplayName" maxlength="50" />
             <div class="char-count">
               <span id="displayNameCount">0</span>
               /50
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="editBio">Bio</label>
-            <textarea
-              id="editBio"
-              maxlength="160"
-              placeholder="Tell us about yourself"
-            ></textarea>
-            <div class="char-count">
-              <span id="bioCount">0</span>
-              /160
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="editLocation">Location</label>
-            <input
-              type="text"
-              id="editLocation"
-              maxlength="30"
-              placeholder="Where are you?"
-            />
-            <div class="char-count">
-              <span id="locationCount">0</span>
-              /30
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="editWebsite">Website</label>
-            <input
-              type="url"
-              id="editWebsite"
-              maxlength="100"
-              placeholder="https://example.com"
-            />
-            <div class="char-count">
-              <span id="websiteCount">0</span>
-              /100
             </div>
           </div>
 
@@ -541,33 +494,24 @@
         const { user, profile, posts, isFollowing, isOwnProfile } = data;
 
         document.getElementById("headerName").textContent =
-          profile.display_name || user.username;
+          profile.name || user.username;
         document.getElementById("headerPostCount").textContent = `${
-          profile.post_count || 0
+          posts.length || 0
         } posts`;
         document.getElementById("profileAvatar").textContent = (
-          profile.display_name || user.username
+          profile.name || user.username
         )
           .charAt(0)
           .toUpperCase();
         document.getElementById("displayName").textContent =
-          profile.display_name || user.username;
+          profile.name || user.username;
         document.getElementById("username").textContent = `@${user.username}`;
-        document.getElementById("bio").textContent = profile.bio || "";
-        document.getElementById("bio").style.display = profile.bio
-          ? "block"
-          : "none";
         document.getElementById("followingCount").textContent =
           profile.following_count || 0;
         document.getElementById("followerCount").textContent =
           profile.follower_count || 0;
 
         const meta = [];
-        if (profile.location) meta.push(`📍 ${profile.location}`);
-        if (profile.website)
-          meta.push(
-            `🔗 <a href="${profile.website}" target="_blank">${profile.website}</a>`
-          );
         meta.push(
           `📅 Joined ${new Date(user.created_at).toLocaleDateString("en-US", {
             month: "long",
@@ -611,7 +555,7 @@
         <div class="post">
           <div class="post-header">
             <span class="post-author">${
-              post.display_name || post.username
+              post.name || post.username
             }</span>
             <span class="post-username">@${post.username}</span>
             <span class="post-time">·</span>
@@ -715,10 +659,7 @@
 
         const { profile } = currentProfile;
         document.getElementById("editDisplayName").value =
-          profile.display_name || "";
-        document.getElementById("editBio").value = profile.bio || "";
-        document.getElementById("editLocation").value = profile.location || "";
-        document.getElementById("editWebsite").value = profile.website || "";
+          profile.name || "";
 
         updateCharCounts();
         document.getElementById("editModal").classList.add("show");
@@ -731,9 +672,6 @@
       const updateCharCounts = () => {
         const fields = [
           { id: "editDisplayName", countId: "displayNameCount" },
-          { id: "editBio", countId: "bioCount" },
-          { id: "editLocation", countId: "locationCount" },
-          { id: "editWebsite", countId: "websiteCount" },
         ];
 
         fields.forEach((field) => {
@@ -752,10 +690,7 @@
         }
 
         const formData = {
-          display_name: document.getElementById("editDisplayName").value.trim(),
-          bio: document.getElementById("editBio").value.trim(),
-          location: document.getElementById("editLocation").value.trim(),
-          website: document.getElementById("editWebsite").value.trim(),
+          name: document.getElementById("editDisplayName").value.trim(),
         };
 
         try {
@@ -822,7 +757,7 @@
         .getElementById("editProfileForm")
         .addEventListener("submit", saveProfile);
 
-      ["editDisplayName", "editBio", "editLocation", "editWebsite"].forEach(
+      ["editDisplayName"].forEach(
         (id) => {
           document
             .getElementById(id)

@@ -11,7 +11,7 @@ const getProfileByUserId = db.query("SELECT * FROM users WHERE id = ?");
 
 const updateProfile = db.query(`
   UPDATE users
-  SET name = ?, bio = ?, location = ?, website = ?, updated_at = datetime('now')
+  SET name = ?
   WHERE id = ?
 `);
 
@@ -34,14 +34,6 @@ const addFollow = db.query(`
 
 const removeFollow = db.query(`
   DELETE FROM follows WHERE follower_id = ? AND following_id = ?
-`);
-
-const updateFollowerCount = db.query(`
-  UPDATE users SET follower_count = follower_count + ? WHERE user_id = ?
-`);
-
-const updateFollowingCount = db.query(`
-  UPDATE users SET following_count = following_count + ? WHERE user_id = ?
 `);
 
 const getFollowCounts = db.query(`
@@ -103,7 +95,7 @@ export default new Elysia({ prefix: "/profile" })
 							}
 						}
 					}
-				} catch (e) {
+				} catch {
 					// Invalid token, continue as unauthenticated
 				}
 			}
@@ -136,22 +128,10 @@ export default new Elysia({ prefix: "/profile" })
 				return { error: "You can only edit your own profile" };
 			}
 
-			const { display_name, bio, location, website } = body;
+			const { name } = body;
 
-			if (display_name && display_name.length > 50) {
-				return { error: "Display name must be 50 characters or less" };
-			}
-
-			if (bio && bio.length > 160) {
-				return { error: "Bio must be 160 characters or less" };
-			}
-
-			if (location && location.length > 30) {
-				return { error: "Location must be 30 characters or less" };
-			}
-
-			if (website && website.length > 100) {
-				return { error: "Website must be 100 characters or less" };
+			if (name && name.length > 50) {
+				return { error: "Name must be 50 characters or less" };
 			}
 
 			let profile = getProfileByUserId.get(currentUser.id);
@@ -159,13 +139,7 @@ export default new Elysia({ prefix: "/profile" })
 			if (!profile) {
 				return "404";
 			} else {
-				updateProfile.run(
-					display_name || profile.display_name,
-					bio !== undefined ? bio : profile.bio,
-					location !== undefined ? location : profile.location,
-					website !== undefined ? website : profile.website,
-					currentUser.id,
-				);
+				updateProfile.run(name || profile.name, currentUser.id);
 			}
 
 			profile = getProfileByUserId.get(currentUser.id);
@@ -202,9 +176,6 @@ export default new Elysia({ prefix: "/profile" })
 			const followId = Bun.randomUUIDv7();
 			addFollow.run(followId, currentUser.id, targetUser.id);
 
-			updateFollowerCount.run(1, targetUser.id);
-			updateFollowingCount.run(1, currentUser.id);
-
 			return { success: true };
 		} catch (error) {
 			console.error("Follow error:", error);
@@ -232,9 +203,6 @@ export default new Elysia({ prefix: "/profile" })
 			}
 
 			removeFollow.run(currentUser.id, targetUser.id);
-
-			updateFollowerCount.run(-1, targetUser.id);
-			updateFollowingCount.run(-1, currentUser.id);
 
 			return { success: true };
 		} catch (error) {

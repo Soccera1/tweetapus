@@ -1,4 +1,4 @@
-// eslint-ignore
+// biome-ignore-all: not my code !!
 
 var P = Object.defineProperty;
 var z = (i) => {

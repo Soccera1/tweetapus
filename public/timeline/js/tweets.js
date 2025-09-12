@@ -21,7 +21,7 @@ const timeAgo = (date) => {
 	return `${d}/${m}/${y}`;
 };
 
-export const createTweetElement = (tweet) => {
+export const createTweetElement = (tweet, { clickToOpen = true } = {}) => {
 	const tweetEl = document.createElement("div");
 	tweetEl.className = "tweet";
 
@@ -267,9 +267,13 @@ export const createTweetElement = (tweet) => {
 
 	tweetEl.appendChild(tweetInteractionsEl);
 
-	tweetEl.addEventListener("click", () => {
-		openTweet(tweet);
-	});
+	if (clickToOpen) {
+    tweetEl.classList.add("clickable");
+
+		tweetEl.addEventListener("click", () => {
+			openTweet(tweet);
+		});
+	}
 
 	return tweetEl;
 };
