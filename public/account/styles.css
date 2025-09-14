@@ -179,26 +179,6 @@ input#username::placeholder {
   color: var(--text-primary);
 }
 
-.profile-note {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.4;
-
-  a {
-    color: var(--primary);
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-}
-
 .passkey-item {
   display: flex;
   justify-content: space-between;

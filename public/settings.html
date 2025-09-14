@@ -100,19 +100,28 @@
         },
       };
 
-      Object.entries(tabs).forEach(([key, value], i) => {
-        value.el.addEventListener("click", () => {
-          Object.entries(tabs).forEach(([k, v]) => {
-            if (k === key) v.el.classList.add("active");
-            else v.el.classList.remove("active");
-          });
+      function switchTab(tabKey) {
+        Object.entries(tabs).forEach(([k, v]) => {
+          if (k === tabKey) v.el.classList.add("active");
+          else v.el.classList.remove("active");
+        });
+        tabs[tabKey].action();
+      }
 
-          value.action();
+      Object.entries(tabs).forEach(([key, value]) => {
+        value.el.addEventListener("click", () => {
+          switchTab(key);
           window.history.pushState(null, null, `/settings/${key}`);
         });
-
-        if (i === 0) value.el.click();
       });
+
+      const pathParts = window.location.pathname.split("/");
+      let initialTab = pathParts[2];
+      if (!initialTab || !tabs[initialTab]) {
+        initialTab = "main";
+        window.history.replaceState(null, null, "/settings/main");
+      }
+      switchTab(initialTab);
     </script>
   </body>
 </html>

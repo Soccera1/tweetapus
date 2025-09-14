@@ -23,6 +23,7 @@
 - admin dashboard
 - private accounts
 - markdown formatting in tweets
+- woke pronouns
 
 ## others
 
