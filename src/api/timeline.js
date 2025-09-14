@@ -90,10 +90,10 @@ const getTweetAttachments = (tweetId) => {
 
 const getQuotedTweetData = (quoteTweetId, userId) => {
 	if (!quoteTweetId) return null;
-	
+
 	const quotedTweet = getQuotedTweet.get(quoteTweetId);
 	if (!quotedTweet) return null;
-	
+
 	return {
 		...quotedTweet,
 		author: {
@@ -110,7 +110,7 @@ const getQuotedTweetData = (quoteTweetId, userId) => {
 const getTopReplyData = (tweetId, userId) => {
 	const topReply = getTopReply.get(tweetId);
 	if (!topReply) return null;
-	
+
 	return {
 		...topReply,
 		author: {
@@ -186,9 +186,11 @@ export default new Elysia({ prefix: "/timeline" })
 
 		const timeline = posts.map((post) => {
 			const topReply = getTopReplyData(post.id, user.id);
-			const shouldShowTopReply = topReply && post.like_count > 0 && 
-				(topReply.like_count / post.like_count) >= 0.8;
-			
+			const shouldShowTopReply =
+				topReply &&
+				post.like_count > 0 &&
+				topReply.like_count / post.like_count >= 0.8;
+
 			return {
 				...post,
 				author: userMap[post.user_id],

@@ -114,7 +114,7 @@ const renderPosts = async (posts, isReplies = false) => {
 		});
 
 		// Add retweet indicator if this is a retweet
-		if (post.content_type === 'retweet') {
+		if (post.content_type === "retweet") {
 			const retweetIndicator = document.createElement("div");
 			retweetIndicator.className = "retweet-indicator";
 			retweetIndicator.innerHTML = `

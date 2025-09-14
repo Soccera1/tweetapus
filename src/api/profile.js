@@ -105,6 +105,29 @@ const getAttachmentsByPostId = db.query(`
   SELECT * FROM attachments WHERE post_id = ?
 `);
 
+const getTweetAttachments = (tweetId) => {
+	return getAttachmentsByPostId.all(tweetId);
+};
+
+const getQuotedTweetData = (quoteTweetId, userId) => {
+	if (!quoteTweetId) return null;
+
+	const quotedTweet = getQuotedTweet.get(quoteTweetId);
+	if (!quotedTweet) return null;
+
+	return {
+		...quotedTweet,
+		author: {
+			username: quotedTweet.username,
+			name: quotedTweet.name,
+			avatar: quotedTweet.avatar,
+			verified: quotedTweet.verified || false,
+		},
+		poll: getPollDataForTweet(quotedTweet.id, userId),
+		attachments: getTweetAttachments(quotedTweet.id),
+	};
+};
+
 const getPollDataForTweet = (tweetId, userId) => {
 	const poll = getPollByPostId.get(tweetId);
 	if (!poll) return null;
@@ -129,28 +152,10 @@ const getPollDataForTweet = (tweetId, userId) => {
 	};
 };
 
-const getTweetAttachments = (tweetId) => {
-	return getAttachmentsByPostId.all(tweetId);
-};
-
-const getQuotedTweetData = (quoteTweetId, userId) => {
-	if (!quoteTweetId) return null;
-
-	const quotedTweet = getQuotedTweet.get(quoteTweetId);
-	if (!quotedTweet) return null;
-
-	return {
-		...quotedTweet,
-		author: {
-			username: quotedTweet.username,
-			name: quotedTweet.name,
-			avatar: quotedTweet.avatar,
-			verified: quotedTweet.verified || false,
-		},
-		poll: getPollDataForTweet(quotedTweet.id, userId),
-		attachments: getTweetAttachments(quotedTweet.id),
-	};
-};
+// Helper function aliases
+const getPollDataForPost = getPollDataForTweet;
+const getQuotedPostData = getQuotedTweetData;
+const getPostAttachments = getTweetAttachments;
 
 export default new Elysia({ prefix: "/profile" })
 	.use(jwt({ name: "jwt", secret: JWT_SECRET }))
@@ -171,7 +176,10 @@ export default new Elysia({ prefix: "/profile" })
 				return { error: "User not found" };
 			}
 
-			const posts = getUserPostsAndRetweets.all(user.id, user.id);
+			// Get user's posts and retweets separately, then combine
+			const userPosts = getUserPosts.all(user.id);
+			const userRetweets = getUserRetweets.all(user.id);
+			const replies = getUserReplies.all(user.id);
 			const counts = getFollowCounts.get(user.id, user.id, user.id);
 
 			const profile = {
@@ -210,16 +218,87 @@ export default new Elysia({ prefix: "/profile" })
 				}
 			}
 
-			const postsWithPolls = posts.map((post) => ({
+			// Combine and sort by creation time
+			const allContent = [
+				...userPosts.map(post => ({
+					...post,
+					content_type: 'post',
+					sort_date: new Date(post.created_at),
+					author: {
+						username: post.username,
+						name: post.name,
+						avatar: post.avatar,
+						verified: post.verified || false,
+					}
+				})),
+				...userRetweets.map(retweet => ({
+					...retweet,
+					content_type: 'retweet',
+					sort_date: new Date(retweet.retweet_created_at),
+					retweet_created_at: retweet.retweet_created_at,
+					author: {
+						username: retweet.username,
+						name: retweet.name,
+						avatar: retweet.avatar,
+						verified: retweet.verified || false,
+					}
+				}))
+			].sort((a, b) => b.sort_date - a.sort_date).slice(0, 20);
+
+			const posts = allContent.map(post => ({
 				...post,
-				poll: getPollDataForTweet(post.id, currentUserId),
-				quoted_tweet: getQuotedTweetData(post.quote_tweet_id, currentUserId),
-				attachments: getTweetAttachments(post.id),
+				poll: getPollDataForPost(post.id, currentUserId),
+				quoted_tweet: getQuotedPostData(post.quote_tweet_id, currentUserId),
+				attachments: getPostAttachments(post.id),
+				liked_by_user: false, // Will be set below
+				retweeted_by_user: false, // Will be set below
 			}));
+
+			// Get likes and retweets for current user
+			if (currentUserId && allContent.length > 0) {
+				try {
+					const postIds = allContent.map(p => p.id);
+					// Use dynamic query based on actual number of posts
+					const likesQuery = db.query(`
+						SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${postIds.map(() => '?').join(',')})
+					`);
+					const retweetsQuery = db.query(`
+						SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${postIds.map(() => '?').join(',')})
+					`);
+					
+					const likedPosts = likesQuery.all(currentUserId, ...postIds);
+					const retweetedPosts = retweetsQuery.all(currentUserId, ...postIds);
+
+					const likedPostsSet = new Set(likedPosts.map((like) => like.post_id));
+					const retweetedPostsSet = new Set(retweetedPosts.map((retweet) => retweet.post_id));
+
+					posts.forEach((post) => {
+						post.liked_by_user = likedPostsSet.has(post.id);
+						post.retweeted_by_user = retweetedPostsSet.has(post.id);
+					});
+				} catch (e) {
+					// If likes/retweets query fails, continue without them
+					console.warn('Failed to fetch likes/retweets:', e);
+				}
+			}
 
 			return {
 				profile,
-				posts: postsWithPolls,
+				posts,
+				replies: replies.map((reply) => ({
+					...reply,
+					author: {
+						username: reply.username,
+						name: reply.name,
+						avatar: reply.avatar || null,
+						verified: reply.verified || false,
+					},
+					poll: getPollDataForPost(reply.id, currentUserId),
+					quoted_tweet: getQuotedPostData(reply.quote_tweet_id, currentUserId),
+					attachments: getPostAttachments(reply.id),
+					liked_by_user: false,
+					retweeted_by_user: false,
+				})),
 				isFollowing,
 				isOwnProfile,
 			};

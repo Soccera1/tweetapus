@@ -282,7 +282,7 @@ export default new Elysia({ prefix: "/tweets" })
 			// Handle file attachments if provided
 			const attachments = [];
 			if (files && Array.isArray(files)) {
-				files.forEach(file => {
+				files.forEach((file) => {
 					const attachmentId = Bun.randomUUIDv7();
 					const attachment = saveAttachment.get(
 						attachmentId,
@@ -291,7 +291,7 @@ export default new Elysia({ prefix: "/tweets" })
 						file.name,
 						file.type,
 						file.size,
-						file.url
+						file.url,
 					);
 					attachments.push(attachment);
 				});

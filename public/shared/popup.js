@@ -1,18 +1,18 @@
 export function createPopup(options) {
-	const { 
-		onRetweet = () => {}, 
-		onQuote = () => {}, 
+	const {
+		onRetweet = () => {},
+		onQuote = () => {},
 		onCancel = () => {},
 		tweet = null,
-		triggerElement = null
+		triggerElement = null,
 	} = options;
 
 	const overlay = document.createElement("div");
 	overlay.className = "popup-overlay";
-	
+
 	const popup = document.createElement("div");
 	popup.className = "popup";
-	
+
 	popup.innerHTML = `
 		<div class="popup-content">
 			<button class="popup-option" id="retweet-option" type="button">
@@ -49,32 +49,32 @@ export function createPopup(options) {
 		const rect = triggerElement.getBoundingClientRect();
 		const viewportWidth = window.innerWidth;
 		const viewportHeight = window.innerHeight;
-		
+
 		// Default positioning (below and to the right of trigger)
 		let top = rect.bottom + 8;
 		let left = rect.left;
-		
+
 		// Adjust if popup would go off screen
 		const popupWidth = 320; // max-width from CSS
 		const popupHeight = 200; // estimated height
-		
+
 		if (left + popupWidth > viewportWidth) {
 			left = rect.right - popupWidth;
 		}
-		
+
 		if (top + popupHeight > viewportHeight) {
 			top = rect.top - popupHeight - 8;
 		}
-		
-		popup.style.position = 'fixed';
+
+		popup.style.position = "fixed";
 		popup.style.top = `${top}px`;
 		popup.style.left = `${left}px`;
-		popup.style.transform = 'none';
-		
+		popup.style.transform = "none";
+
 		// Remove centering styles from overlay
-		overlay.style.alignItems = 'flex-start';
-		overlay.style.justifyContent = 'flex-start';
-		overlay.style.background = 'transparent';
+		overlay.style.alignItems = "flex-start";
+		overlay.style.justifyContent = "flex-start";
+		overlay.style.background = "transparent";
 	}
 
 	const retweetBtn = popup.querySelector("#retweet-option");
@@ -106,7 +106,7 @@ export function createPopup(options) {
 
 	return {
 		close: closePopup,
-		element: overlay
+		element: overlay,
 	};
 }
 

@@ -19,7 +19,8 @@ export const useComposer = (
 	const attachmentPreview = element.querySelector("#attachment-preview");
 
 	let pollEnabled = false;
-	let pendingFiles = [];	const updateCharacterCount = () => {
+	let pendingFiles = [];
+	const updateCharacterCount = () => {
 		const length = textarea.value.length;
 		charCount.textContent = length;
 
@@ -46,7 +47,7 @@ export const useComposer = (
 
 		pollContainer.querySelector(".poll-options").appendChild(optionDiv);
 
-		if (optionDiv.querySelector(".remove-option")) {
+		if (optionDiv.querySelector(".remove-option")) { // Tr, what should i try to do with flower?
 			optionDiv
 				.querySelector(".remove-option")
 				.addEventListener("click", () => {
@@ -98,19 +99,19 @@ export const useComposer = (
 	const convertToWebP = (file, quality = 0.8) => {
 		return new Promise((resolve, reject) => {
 			// Only convert image files, skip videos
-			if (!file.type.startsWith('image/')) {
+			if (!file.type.startsWith("image/")) {
 				resolve(file);
 				return;
 			}
 
 			// Skip if already WebP
-			if (file.type === 'image/webp') {
+			if (file.type === "image/webp") {
 				resolve(file);
 				return;
 			}
 
-			const canvas = document.createElement('canvas');
-			const ctx = canvas.getContext('2d');
+			const canvas = document.createElement("canvas");
+			const ctx = canvas.getContext("2d");
 			const img = new Image();
 
 			img.onload = () => {
@@ -122,19 +123,27 @@ export const useComposer = (
 				ctx.drawImage(img, 0, 0);
 
 				// Convert to WebP blob
-				canvas.toBlob((blob) => {
-					if (blob) {
-						// Create new file with WebP blob
-						const webpFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), {
-							type: 'image/webp',
-							lastModified: Date.now()
-						});
-						resolve(webpFile);
-					} else {
-						// Fallback to original file if conversion fails
-						resolve(file);
-					}
-				}, 'image/webp', quality);
+				canvas.toBlob(
+					(blob) => {
+						if (blob) {
+							// Create new file with WebP blob
+							const webpFile = new File(
+								[blob],
+								file.name.replace(/\.[^/.]+$/, ".webp"),
+								{
+									type: "image/webp",
+									lastModified: Date.now(),
+								},
+							);
+							resolve(webpFile);
+						} else {
+							// Fallback to original file if conversion fails
+							resolve(file);
+						}
+					},
+					"image/webp",
+					quality,
+				);
 			};
 
 			img.onerror = () => {
@@ -151,27 +160,31 @@ export const useComposer = (
 		try {
 			// Convert to WebP if it's an image
 			const processedFile = await convertToWebP(file);
-			
+
 			// Calculate SHA256 hash on client side
 			const arrayBuffer = await processedFile.arrayBuffer();
-			const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+			const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
 			const hashArray = Array.from(new Uint8Array(hashBuffer));
-			const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+			const hashHex = hashArray
+				.map((b) => b.toString(16).padStart(2, "0"))
+				.join("");
 
 			// Determine file extension
 			const typeMap = {
-				'image/png': '.png',
-				'image/webp': '.webp',
-				'image/avif': '.avif',
-				'image/jpeg': '.jpg',
-				'image/jpg': '.jpg',
-				'image/gif': '.gif',
-				'video/mp4': '.mp4'
+				"image/png": ".png",
+				"image/webp": ".webp",
+				"image/avif": ".avif",
+				"image/jpeg": ".jpg",
+				"image/jpg": ".jpg",
+				"image/gif": ".gif",
+				"video/mp4": ".mp4",
 			};
 
 			const fileExtension = typeMap[processedFile.type];
 			if (!fileExtension) {
-				toastQueue.add(`<h1>Unsupported file type</h1><p>Please use PNG, WEBP, AVIF, JPEG, GIF, or MP4</p>`);
+				toastQueue.add(
+					`<h1>Unsupported file type</h1><p>Please use PNG, WEBP, AVIF, JPEG, GIF, or MP4</p>`,
+				);
 				return null;
 			}
 
@@ -181,14 +194,14 @@ export const useComposer = (
 				type: processedFile.type,
 				size: processedFile.size,
 				url: `/public/uploads/${hashHex}${fileExtension}`,
-				file: processedFile // Keep the processed file for upload
+				file: processedFile, // Keep the processed file for upload
 			};
 
 			pendingFiles.push(fileData);
 			displayAttachmentPreview(fileData);
 			return fileData;
 		} catch (error) {
-			console.error('File processing error:', error);
+			console.error("File processing error:", error);
 			toastQueue.add(`<h1>File processing failed</h1><p>Please try again</p>`);
 			return null;
 		}
@@ -213,10 +226,12 @@ export const useComposer = (
 			`;
 		}
 
-		previewEl.querySelector(".remove-attachment")?.addEventListener("click", () => {
-			pendingFiles = pendingFiles.filter(f => f.hash !== fileData.hash);
-			previewEl.remove();
-		});
+		previewEl
+			.querySelector(".remove-attachment")
+			?.addEventListener("click", () => {
+				pendingFiles = pendingFiles.filter((f) => f.hash !== fileData.hash);
+				previewEl.remove();
+			});
 
 		attachmentPreview.appendChild(previewEl);
 	};
@@ -234,6 +249,53 @@ export const useComposer = (
 			e.target.value = ""; // Reset input
 		});
 	}
+
+	// Add paste support for images
+	textarea.addEventListener("paste", async (e) => {
+		const items = Array.from(e.clipboardData.items);
+		const fileItems = items.filter(item => item.kind === "file");
+		
+		if (fileItems.length > 0) {
+			e.preventDefault();
+			for (const item of fileItems) {
+				const file = item.getAsFile();
+				if (file && (file.type.startsWith("image/") || file.type === "video/mp4")) {
+					await processFileForUpload(file);
+				}
+			}
+		}
+	});
+
+	// Add drag and drop support
+	const handleDragOver = (e) => {
+		e.preventDefault();
+		textarea.classList.add("drag-over");
+	};
+
+	const handleDragLeave = (e) => {
+		e.preventDefault();
+		if (!textarea.contains(e.relatedTarget)) {
+			textarea.classList.remove("drag-over");
+		}
+	};
+
+	const handleDrop = async (e) => {
+		e.preventDefault();
+		textarea.classList.remove("drag-over");
+		
+		const files = Array.from(e.dataTransfer.files);
+		const validFiles = files.filter(file => 
+			file.type.startsWith("image/") || file.type === "video/mp4"
+		);
+		
+		for (const file of validFiles) {
+			await processFileForUpload(file);
+		}
+	};
+
+	textarea.addEventListener("dragover", handleDragOver);
+	textarea.addEventListener("dragleave", handleDragLeave);
+	textarea.addEventListener("drop", handleDrop);
 
 	if (addPollOptionBtn) {
 		addPollOptionBtn.addEventListener("click", () => addPollOption());
@@ -432,7 +494,7 @@ export const createComposer = async ({
 			clickToOpen: false,
 			showTopReply: false,
 			isTopReply: false,
-			size: "preview"
+			size: "preview",
 		});
 		el.querySelector("#quoted-tweet-container").appendChild(quotedTweetEl);
 	}

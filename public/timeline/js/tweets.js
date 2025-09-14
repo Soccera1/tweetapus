@@ -1,8 +1,33 @@
 import confetti from "../../shared/confetti.js";
-import toastQueue from "../../shared/toasts.js";
 import createPopup from "../../shared/popup.js";
+import toastQueue from "../../shared/toasts.js";
 import { authToken } from "./auth.js";
 import openTweet from "./tweet.js";
+
+// Utility function to linkify text content
+const linkifyText = (text) => {
+	// URL regex
+	const urlRegex = /(https?:\/\/[^\s]+)/g;
+	// Mention regex (@username)
+	const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+	
+	let linkedText = text
+		// First handle URLs
+		.replace(urlRegex, (url) => {
+			const cleanUrl = url.replace(/[.,!?;:]$/, ''); // Remove trailing punctuation
+			const trailingPunc = url.slice(cleanUrl.length);
+			try {
+				const hostname = new URL(cleanUrl).hostname;
+				return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="tweet-link">${hostname}</a>${trailingPunc}`;
+			} catch {
+				return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="tweet-link">${cleanUrl}</a>${trailingPunc}`;
+			}
+		})
+		// Then handle mentions
+		.replace(mentionRegex, '<a href="#" class="tweet-mention" data-username="$1">@$1</a>');
+	
+	return linkedText;
+};
 
 const timeAgo = (date) => {
 	const now = new Date();
@@ -214,10 +239,12 @@ export const createTweetElement = (tweet, config = {}) => {
 
 	const tweetEl = document.createElement("div");
 	tweetEl.className = isTopReply ? "tweet top-reply" : "tweet";
-	
+
 	if (size === "preview") {
 		tweetEl.classList.add("tweet-preview");
-		tweetEl.style.pointerEvents = "none";
+		// Don't add pointer-events: none for quoted tweets - we want them clickable
+		// Just add cursor pointer to indicate it's clickable
+		tweetEl.style.cursor = "pointer";
 	}
 
 	const tweetHeaderEl = document.createElement("div");
@@ -304,7 +331,19 @@ export const createTweetElement = (tweet, config = {}) => {
 
 	const tweetContentEl = document.createElement("div");
 	tweetContentEl.className = "tweet-content";
-	tweetContentEl.textContent = tweet.content;
+	tweetContentEl.innerHTML = linkifyText(tweet.content);
+
+	// Add click handlers for mentions
+	tweetContentEl.addEventListener("click", (e) => {
+		if (e.target.classList.contains("tweet-mention")) {
+			e.preventDefault();
+			e.stopPropagation();
+			const username = e.target.dataset.username;
+			import("./profile.js").then(({ default: openProfile }) => {
+				openProfile(username);
+			});
+		}
+	});
 
 	tweetEl.appendChild(tweetContentEl);
 
@@ -320,7 +359,7 @@ export const createTweetElement = (tweet, config = {}) => {
 		const attachmentsEl = document.createElement("div");
 		attachmentsEl.className = "tweet-attachments";
 
-		tweet.attachments.forEach(attachment => {
+		tweet.attachments.forEach((attachment) => {
 			const attachmentEl = document.createElement("div");
 			attachmentEl.className = "tweet-attachment";
 
@@ -341,7 +380,7 @@ export const createTweetElement = (tweet, config = {}) => {
 			clickToOpen: true,
 			showTopReply: false,
 			isTopReply: false,
-			size: "preview"
+			size: "preview",
 		});
 
 		tweetEl.appendChild(quotedTweetEl);
@@ -504,16 +543,22 @@ export const createTweetElement = (tweet, config = {}) => {
 						const newIsRetweeted = result.retweeted;
 						tweetInteractionsRetweetEl.dataset.retweeted = newIsRetweeted;
 
-						const svgPaths = tweetInteractionsRetweetEl.querySelectorAll("svg path");
-						const retweetCountSpan = tweetInteractionsRetweetEl.querySelector(".retweet-count");
+						const svgPaths =
+							tweetInteractionsRetweetEl.querySelectorAll("svg path");
+						const retweetCountSpan =
+							tweetInteractionsRetweetEl.querySelector(".retweet-count");
 						const currentCount = parseInt(retweetCountSpan.textContent);
 
 						if (newIsRetweeted) {
-							svgPaths.forEach((path) => path.setAttribute("stroke", "#00BA7C"));
+							svgPaths.forEach((path) =>
+								path.setAttribute("stroke", "#00BA7C"),
+							);
 							retweetCountSpan.textContent = currentCount + 1;
 							toastQueue.add(`<h1>Tweet retweeted</h1>`);
 						} else {
-							svgPaths.forEach((path) => path.setAttribute("stroke", "currentColor"));
+							svgPaths.forEach((path) =>
+								path.setAttribute("stroke", "currentColor"),
+							);
 							retweetCountSpan.textContent = Math.max(0, currentCount - 1);
 							toastQueue.add(`<h1>Retweet removed</h1>`);
 						}
@@ -580,7 +625,7 @@ export const createTweetElement = (tweet, config = {}) => {
 					console.error("Error creating quote composer:", error);
 					toastQueue.add(`<h1>Error opening quote composer</h1>`);
 				}
-			}
+			},
 		});
 	});
 
@@ -615,7 +660,15 @@ export const createTweetElement = (tweet, config = {}) => {
 	if (clickToOpen) {
 		tweetEl.classList.add("clickable");
 
-		tweetEl.addEventListener("click", () => {
+		tweetEl.addEventListener("click", (e) => {
+			// Prevent opening if clicking on interactive elements
+			if (e.target.closest("button, a, .engagement")) {
+				return;
+			}
+			// For preview tweets, stop propagation to prevent opening parent tweet
+			if (size === "preview") {
+				e.stopPropagation();
+			}
 			openTweet(tweet);
 		});
 	}
