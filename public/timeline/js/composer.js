@@ -23,9 +23,6 @@ export const useComposer = (
 	let pollEnabled = false;
 	let pendingFiles = [];
 
-	// Initialize mention selector
-	const mentionSelector = createMentionSelector(textarea);
-
 	const updateCharacterCount = () => {
 		const length = textarea.value.length;
 		charCount.textContent = length;
@@ -106,19 +103,16 @@ export const useComposer = (
 
 	const convertToWebP = (file, quality = 0.8) => {
 		return new Promise((resolve) => {
-			// Only convert image files, skip videos
 			if (!file.type.startsWith("image/")) {
 				resolve(file);
 				return;
 			}
 
-			// Skip if already WebP
 			if (file.type === "image/webp") {
 				resolve(file);
 				return;
 			}
 
-			// Check if it's a convertible image format
 			if (!isConvertibleImage(file)) {
 				resolve(file);
 				return;
@@ -129,18 +123,14 @@ export const useComposer = (
 			const img = new Image();
 
 			img.onload = () => {
-				// Set canvas dimensions to image dimensions
 				canvas.width = img.width;
 				canvas.height = img.height;
 
-				// Draw image to canvas
 				ctx.drawImage(img, 0, 0);
 
-				// Convert to WebP blob
 				canvas.toBlob(
 					(blob) => {
 						if (blob) {
-							// Create new file with WebP blob
 							const webpFile = new File(
 								[blob],
 								file.name.replace(/\.[^/.]+$/, ".webp"),
@@ -151,10 +141,9 @@ export const useComposer = (
 							);
 							resolve(webpFile);
 						} else {
-							// Fallback to original file if conversion fails
 							resolve(file);
 						}
-						// Clean up object URL
+
 						URL.revokeObjectURL(img.src);
 					},
 					"image/webp",
@@ -163,22 +152,18 @@ export const useComposer = (
 			};
 
 			img.onerror = () => {
-				// Fallback to original file if loading fails
 				URL.revokeObjectURL(img.src);
 				resolve(file);
 			};
 
-			// Load image from file
 			img.src = URL.createObjectURL(file);
 		});
 	};
 
 	const processFileForUpload = async (file) => {
 		try {
-			// Convert to WebP if it's an image
 			const processedFile = await convertToWebP(file);
 
-			// Validate file type client-side for UX
 			const allowedTypes = ["image/webp", "video/mp4"];
 
 			if (!allowedTypes.includes(processedFile.type)) {
@@ -188,7 +173,6 @@ export const useComposer = (
 				return null;
 			}
 
-			// Check file size (100MB hard limit for videos, 10MB for images)
 			const maxSize =
 				processedFile.type === "video/mp4"
 					? 100 * 1024 * 1024
@@ -202,7 +186,6 @@ export const useComposer = (
 				return null;
 			}
 
-			// Create temporary UUID for UI purposes only
 			const tempId = crypto.randomUUID();
 
 			const fileData = {
@@ -211,7 +194,7 @@ export const useComposer = (
 				type: processedFile.type,
 				size: processedFile.size,
 				file: processedFile,
-				uploaded: false, // Will be set to true after server upload
+				uploaded: false,
 			};
 
 			pendingFiles.push(fileData);
@@ -282,7 +265,6 @@ export const useComposer = (
 		}
 	});
 
-	// Add drag and drop support
 	const handleDragOver = (e) => {
 		e.preventDefault();
 		textarea.classList.add("drag-over");
@@ -351,7 +333,6 @@ export const useComposer = (
 		tweetButton.disabled = true;
 
 		try {
-			// Upload files first if any
 			const uploadedFiles = [];
 			for (const fileData of pendingFiles) {
 				const formData = new FormData();
@@ -369,7 +350,6 @@ export const useComposer = (
 				if (uploadResult.success) {
 					uploadedFiles.push(uploadResult.file);
 
-					// Show compression feedback for videos
 					if (
 						uploadResult.file.compressed &&
 						uploadResult.file.compressionRatio > 0
@@ -418,7 +398,6 @@ export const useComposer = (
 			charCount.textContent = "0";
 			textarea.style.height = "25px";
 
-			// Clear attachments
 			pendingFiles = [];
 			attachmentPreview.innerHTML = "";
 
