@@ -3,10 +3,43 @@ import { Elysia, file } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
 import db from "./../db.js";
 import ratelimit from "../helpers/ratelimit.js";
+import { addNotification } from "./notifications.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+const getFollowers = db.query(`
+  SELECT users.id, users.username, users.name, users.avatar, users.verified, users.bio
+  FROM follows
+  JOIN users ON follows.follower_id = users.id
+  WHERE follows.following_id = ?
+  ORDER BY follows.created_at DESC
+  LIMIT 50
+`);
+
+const getFollowing = db.query(`
+  SELECT users.id, users.username, users.name, users.avatar, users.verified, users.bio
+  FROM follows
+  JOIN users ON follows.following_id = users.id
+  WHERE follows.follower_id = ?
+  ORDER BY follows.created_at DESC
+  LIMIT 50
+`);
+
 const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
+
+const searchUsers = db.query(`
+  SELECT id, username, name, avatar, verified
+  FROM users 
+  WHERE username LIKE ? OR name LIKE ?
+  ORDER BY 
+    CASE 
+      WHEN username LIKE ? THEN 1
+      WHEN name LIKE ? THEN 2
+      ELSE 3
+    END,
+    username
+  LIMIT 10
+`);
 
 const updateProfile = db.query(`
   UPDATE users
@@ -220,20 +253,20 @@ export default new Elysia({ prefix: "/profile" })
 
 			// Combine and sort by creation time
 			const allContent = [
-				...userPosts.map(post => ({
+				...userPosts.map((post) => ({
 					...post,
-					content_type: 'post',
+					content_type: "post",
 					sort_date: new Date(post.created_at),
 					author: {
 						username: post.username,
 						name: post.name,
 						avatar: post.avatar,
 						verified: post.verified || false,
-					}
+					},
 				})),
-				...userRetweets.map(retweet => ({
+				...userRetweets.map((retweet) => ({
 					...retweet,
-					content_type: 'retweet',
+					content_type: "retweet",
 					sort_date: new Date(retweet.retweet_created_at),
 					retweet_created_at: retweet.retweet_created_at,
 					author: {
@@ -241,11 +274,13 @@ export default new Elysia({ prefix: "/profile" })
 						name: retweet.name,
 						avatar: retweet.avatar,
 						verified: retweet.verified || false,
-					}
-				}))
-			].sort((a, b) => b.sort_date - a.sort_date).slice(0, 20);
+					},
+				})),
+			]
+				.sort((a, b) => b.sort_date - a.sort_date)
+				.slice(0, 20);
 
-			const posts = allContent.map(post => ({
+			const posts = allContent.map((post) => ({
 				...post,
 				poll: getPollDataForPost(post.id, currentUserId),
 				quoted_tweet: getQuotedPostData(post.quote_tweet_id, currentUserId),
@@ -257,20 +292,22 @@ export default new Elysia({ prefix: "/profile" })
 			// Get likes and retweets for current user
 			if (currentUserId && allContent.length > 0) {
 				try {
-					const postIds = allContent.map(p => p.id);
+					const postIds = allContent.map((p) => p.id);
 					// Use dynamic query based on actual number of posts
 					const likesQuery = db.query(`
-						SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${postIds.map(() => '?').join(',')})
+						SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${postIds.map(() => "?").join(",")})
 					`);
 					const retweetsQuery = db.query(`
-						SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${postIds.map(() => '?').join(',')})
+						SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${postIds.map(() => "?").join(",")})
 					`);
-					
+
 					const likedPosts = likesQuery.all(currentUserId, ...postIds);
 					const retweetedPosts = retweetsQuery.all(currentUserId, ...postIds);
 
 					const likedPostsSet = new Set(likedPosts.map((like) => like.post_id));
-					const retweetedPostsSet = new Set(retweetedPosts.map((retweet) => retweet.post_id));
+					const retweetedPostsSet = new Set(
+						retweetedPosts.map((retweet) => retweet.post_id),
+					);
 
 					posts.forEach((post) => {
 						post.liked_by_user = likedPostsSet.has(post.id);
@@ -278,7 +315,7 @@ export default new Elysia({ prefix: "/profile" })
 					});
 				} catch (e) {
 					// If likes/retweets query fails, continue without them
-					console.warn('Failed to fetch likes/retweets:', e);
+					console.warn("Failed to fetch likes/retweets:", e);
 				}
 			}
 
@@ -402,6 +439,13 @@ export default new Elysia({ prefix: "/profile" })
 			const followId = Bun.randomUUIDv7();
 			addFollow.run(followId, currentUser.id, targetUser.id);
 
+			addNotification(
+				targetUser.id,
+				"follow",
+				`${currentUser.name || currentUser.username} started following you`,
+				currentUser.id,
+			);
+
 			return { success: true };
 		} catch (error) {
 			console.error("Follow error:", error);
@@ -519,6 +563,70 @@ export default new Elysia({ prefix: "/profile" })
 		} catch (error) {
 			console.error("Avatar removal error:", error);
 			return { error: "Failed to remove avatar" };
+		}
+	})
+	.get("/:username/followers", async ({ params, jwt, headers }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			const { username } = params;
+			const user = getUserByUsername.get(username);
+			if (!user) return { error: "User not found" };
+
+			const followers = getFollowers.all(user.id);
+			return { followers };
+		} catch (error) {
+			console.error("Get followers error:", error);
+			return { error: "Failed to get followers" };
+		}
+	})
+	.get("/:username/following", async ({ params, jwt, headers }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			const { username } = params;
+			const user = getUserByUsername.get(username);
+			if (!user) return { error: "User not found" };
+
+			const following = getFollowing.all(user.id);
+			return { following };
+		} catch (error) {
+			console.error("Get following error:", error);
+			return { error: "Failed to get following" };
+		}
+	})
+	.get("/search", async ({ query, jwt, headers }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			const { q } = query;
+			if (!q || q.length < 1) return { users: [] };
+
+			const searchTerm = `%${q}%`;
+			const exactTerm = `${q}%`;
+
+			const users = searchUsers.all(
+				searchTerm,
+				searchTerm,
+				exactTerm,
+				exactTerm,
+			);
+			return { users };
+		} catch (error) {
+			console.error("Search users error:", error);
+			return { error: "Failed to search users" };
 		}
 	});
 

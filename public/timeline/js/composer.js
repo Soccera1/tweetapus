@@ -1,4 +1,5 @@
 import confetti from "../../shared/confetti.js";
+import createMentionSelector from "../../shared/mention-selector.js";
 import toastQueue from "../../shared/toasts.js";
 import getUser, { authToken } from "./auth.js";
 
@@ -20,6 +21,10 @@ export const useComposer = (
 
 	let pollEnabled = false;
 	let pendingFiles = [];
+
+	// Initialize mention selector
+	const mentionSelector = createMentionSelector(textarea);
+
 	const updateCharacterCount = () => {
 		const length = textarea.value.length;
 		charCount.textContent = length;
@@ -47,7 +52,7 @@ export const useComposer = (
 
 		pollContainer.querySelector(".poll-options").appendChild(optionDiv);
 
-		if (optionDiv.querySelector(".remove-option")) { // Tr, what should i try to do with flower?
+		if (optionDiv.querySelector(".remove-option")) {
 			optionDiv
 				.querySelector(".remove-option")
 				.addEventListener("click", () => {
@@ -246,20 +251,22 @@ export const useComposer = (
 			for (const file of files) {
 				await processFileForUpload(file);
 			}
-			e.target.value = ""; // Reset input
+			e.target.value = "";
 		});
 	}
 
-	// Add paste support for images
 	textarea.addEventListener("paste", async (e) => {
 		const items = Array.from(e.clipboardData.items);
-		const fileItems = items.filter(item => item.kind === "file");
-		
+		const fileItems = items.filter((item) => item.kind === "file");
+
 		if (fileItems.length > 0) {
 			e.preventDefault();
 			for (const item of fileItems) {
 				const file = item.getAsFile();
-				if (file && (file.type.startsWith("image/") || file.type === "video/mp4")) {
+				if (
+					file &&
+					(file.type.startsWith("image/") || file.type === "video/mp4")
+				) {
 					await processFileForUpload(file);
 				}
 			}
@@ -282,12 +289,12 @@ export const useComposer = (
 	const handleDrop = async (e) => {
 		e.preventDefault();
 		textarea.classList.remove("drag-over");
-		
+
 		const files = Array.from(e.dataTransfer.files);
-		const validFiles = files.filter(file => 
-			file.type.startsWith("image/") || file.type === "video/mp4"
+		const validFiles = files.filter(
+			(file) => file.type.startsWith("image/") || file.type === "video/mp4",
 		);
-		
+
 		for (const file of validFiles) {
 			await processFileForUpload(file);
 		}

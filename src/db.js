@@ -123,6 +123,17 @@ CREATE TABLE IF NOT EXISTS attachments (
   file_url TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT (datetime('now')),
   FOREIGN KEY (post_id) REFERENCES posts(id)
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  content TEXT NOT NULL,
+  related_id TEXT,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id)
 );`);
 
 export default db;

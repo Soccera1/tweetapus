@@ -11,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
 
 // Ensure uploads directory exists
-const uploadsDir = join(process.cwd(), "public", "uploads");
+const uploadsDir = join(process.cwd(), ".data", "uploads");
 if (!existsSync(uploadsDir)) {
 	mkdirSync(uploadsDir, { recursive: true });
 }
@@ -75,11 +75,17 @@ export default new Elysia({ prefix: "/upload" })
 			hasher.update(arrayBuffer);
 			const fileHash = hasher.digest("hex");
 
-			// Save file with hash as filename
+			// Save file with hash as filename (secure against path traversal)
 			const fileExtension = ALLOWED_TYPES[file.type];
 			const fileName = fileHash + fileExtension;
+			
+			// Validate filename to prevent path traversal
+			if (!/^[a-f0-9]{64}\.(png|webp|avif|jpg|gif|mp4)$/i.test(fileName)) {
+				return { error: "Invalid filename generated" };
+			}
+			
 			const filePath = join(uploadsDir, fileName);
-			const fileUrl = `/public/uploads/${fileName}`;
+			const fileUrl = `/api/uploads/${fileName}`;
 
 			// Write file to disk
 			await Bun.write(filePath, arrayBuffer);

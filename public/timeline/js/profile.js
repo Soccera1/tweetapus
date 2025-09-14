@@ -187,6 +187,14 @@ const renderProfile = (data) => {
 	document.getElementById("profileFollowerCount").textContent =
 		profile.follower_count || 0;
 
+	// Add click handlers for followers/following links
+	document.getElementById("profileFollowersLink").onclick = () => {
+		showFollowersList(profile.username, "followers");
+	};
+	document.getElementById("profileFollowingLink").onclick = () => {
+		showFollowersList(profile.username, "following");
+	};
+
 	const meta = [];
 	if (profile.location) meta.push(`📍 ${escapeHtml(profile.location)}`);
 	if (profile.website) {
@@ -297,6 +305,9 @@ const showEditModal = () => {
 	document.getElementById("editLocation").value = profile.location || "";
 	document.getElementById("editWebsite").value = profile.website || "";
 
+	// Update avatar display
+	updateEditAvatarDisplay();
+
 	updateCharCounts();
 	document.getElementById("editProfileModal").classList.add("show");
 };
@@ -320,6 +331,151 @@ const updateCharCounts = () => {
 			counter.textContent = input.value.length;
 		}
 	});
+};
+
+const updateEditAvatarDisplay = () => {
+	if (!currentProfile) return;
+	
+	const { profile } = currentProfile;
+	const avatarImg = document.getElementById("edit-current-avatar");
+	const removeBtn = document.getElementById("edit-remove-avatar");
+	
+	if (avatarImg) {
+		const avatarSrc = profile.avatar || `https://unavatar.io/${profile.username}`;
+		avatarImg.src = avatarSrc;
+		avatarImg.alt = profile.name || profile.username;
+	}
+	
+	if (removeBtn) {
+		removeBtn.style.display = profile.avatar ? "inline-block" : "none";
+	}
+};
+
+const handleEditAvatarUpload = async (file) => {
+	if (!file) return;
+
+	// Validate file size (5MB max)
+	if (file.size > 5 * 1024 * 1024) {
+		toastQueue.add(
+			`<h1>File too large</h1><p>Please choose an image smaller than 5MB.</p>`,
+		);
+		return;
+	}
+
+	// Validate file type
+	const allowedTypes = [
+		"image/jpeg",
+		"image/jpg",
+		"image/png",
+		"image/gif",
+		"image/webp",
+	];
+	if (!allowedTypes.includes(file.type)) {
+		toastQueue.add(
+			`<h1>Invalid file type</h1><p>Please upload a JPEG, PNG, GIF, or WebP image.</p>`,
+		);
+		return;
+	}
+
+	const changeBtn = document.getElementById("edit-change-avatar");
+	if (changeBtn) {
+		changeBtn.disabled = true;
+		changeBtn.textContent = "Uploading...";
+	}
+
+	try {
+		const formData = new FormData();
+		formData.append("avatar", file);
+
+		const response = await fetch(
+			`/api/profile/${currentProfile.profile.username}/avatar`,
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${authToken}`,
+				},
+				body: formData,
+			},
+		);
+
+		const result = await response.json();
+
+		if (result.success) {
+			currentProfile.profile.avatar = result.avatar;
+			updateEditAvatarDisplay();
+			// Also update the main profile display
+			const profileAvatar = document.getElementById("profileAvatar");
+			if (profileAvatar) {
+				profileAvatar.src = result.avatar;
+			}
+			toastQueue.add(
+				`<h1>Avatar updated!</h1><p>Your profile picture has been changed.</p>`,
+			);
+		} else {
+			toastQueue.add(
+				`<h1>Upload failed</h1><p>${result.error || "Failed to upload avatar"}</p>`,
+			);
+		}
+	} catch (error) {
+		console.error("Avatar upload error:", error);
+		toastQueue.add(
+			`<h1>Network error</h1><p>Failed to upload avatar. Please try again.</p>`,
+		);
+	} finally {
+		if (changeBtn) {
+			changeBtn.disabled = false;
+			changeBtn.textContent = "Change Avatar";
+		}
+	}
+};
+
+const handleEditAvatarRemoval = async () => {
+	const removeBtn = document.getElementById("edit-remove-avatar");
+	if (removeBtn) {
+		removeBtn.disabled = true;
+		removeBtn.textContent = "Removing...";
+	}
+
+	try {
+		const response = await fetch(
+			`/api/profile/${currentProfile.profile.username}/avatar`,
+			{
+				method: "DELETE",
+				headers: {
+					Authorization: `Bearer ${authToken}`,
+				},
+			},
+		);
+
+		const result = await response.json();
+
+		if (result.success) {
+			currentProfile.profile.avatar = null;
+			updateEditAvatarDisplay();
+			// Also update the main profile display
+			const profileAvatar = document.getElementById("profileAvatar");
+			if (profileAvatar) {
+				profileAvatar.src = `https://unavatar.io/${currentProfile.profile.username}`;
+			}
+			toastQueue.add(
+				`<h1>Avatar removed</h1><p>Your profile picture has been reset to default.</p>`,
+			);
+		} else {
+			toastQueue.add(
+				`<h1>Failed to remove avatar</h1><p>${result.error || "An error occurred"}</p>`,
+			);
+		}
+	} catch (error) {
+		console.error("Avatar removal error:", error);
+		toastQueue.add(
+			`<h1>Network error</h1><p>Failed to remove avatar. Please try again.</p>`,
+		);
+	} finally {
+		if (removeBtn) {
+			removeBtn.disabled = false;
+			removeBtn.textContent = "Remove Avatar";
+		}
+	}
 };
 
 const saveProfile = async (event) => {
@@ -398,6 +554,30 @@ document
 	}
 });
 
+// Avatar upload event listeners
+const editChangeAvatarBtn = document.getElementById("edit-change-avatar");
+const editAvatarUpload = document.getElementById("edit-avatar-upload");
+const editRemoveAvatarBtn = document.getElementById("edit-remove-avatar");
+const editAvatarPreview = document.querySelector(".avatar-preview");
+
+editChangeAvatarBtn?.addEventListener("click", () => {
+	editAvatarUpload?.click();
+});
+
+editAvatarPreview?.addEventListener("click", () => {
+	editAvatarUpload?.click();
+});
+
+editAvatarUpload?.addEventListener("change", (e) => {
+	const file = e.target.files[0];
+	if (file) {
+		handleEditAvatarUpload(file);
+	}
+	e.target.value = ""; // Reset input
+});
+
+editRemoveAvatarBtn?.addEventListener("click", handleEditAvatarRemoval);
+
 document.getElementById("editProfileModal").addEventListener("click", (e) => {
 	if (e.target === e.currentTarget) closeEditModal();
 });
@@ -409,5 +589,78 @@ addRoute(
 		openProfile(username);
 	},
 );
+
+async function showFollowersList(username, type) {
+	try {
+		const endpoint = `/api/profile/${username}/${type}`;
+		const { error, followers, following } = await (
+			await fetch(endpoint, {
+				headers: { Authorization: `Bearer ${authToken}` },
+			})
+		).json();
+
+		if (error) {
+			toastQueue.add(
+				`<h1>Error loading ${type}</h1><p>${escapeHtml(error)}</p>`,
+			);
+			return;
+		}
+
+		const users = type === "followers" ? followers : following;
+		const title = type === "followers" ? "Followers" : "Following";
+
+		// Create modal content
+		const modalContent = `
+			<div class="followers-modal">
+				<div class="followers-modal-header">
+					<h2>${title}</h2>
+					<button class="close-btn" onclick="this.closest('.followers-modal').style.display='none'">&times;</button>
+				</div>
+				<div class="followers-list">
+					${
+						users.length === 0
+							? `<div class="empty-followers">No ${type} yet</div>`
+							: users
+									.map(
+										(user) => `
+							<div class="follower-item" data-username="${escapeHtml(user.username)}">
+								<img src="${user.avatar || "/api/avatars/default.png"}" alt="${escapeHtml(user.name)}" class="follower-avatar">
+								<div class="follower-info">
+									<div class="follower-name">${escapeHtml(user.name)}</div>
+									<div class="follower-username">@${escapeHtml(user.username)}</div>
+									${user.bio ? `<div class="follower-bio">${escapeHtml(user.bio)}</div>` : ""}
+								</div>
+							</div>
+						`,
+									)
+									.join("")
+					}
+				</div>
+			</div>
+		`;
+
+		// Show modal
+		const modal = document.createElement("div");
+		modal.className = "modal-overlay";
+		modal.innerHTML = modalContent;
+		modal.onclick = (e) => {
+			if (e.target === modal) modal.remove();
+		};
+
+		document.body.appendChild(modal);
+
+		// Add click handlers to follower items
+		modal.querySelectorAll(".follower-item").forEach((item) => {
+			item.onclick = () => {
+				const username = item.dataset.username;
+				modal.remove();
+				openProfile(username);
+			};
+		});
+	} catch (error) {
+		console.error("Error loading followers:", error);
+		toastQueue.add(`<h1>Error loading ${type}</h1><p>Please try again</p>`);
+	}
+}
 
 export { loadProfile };

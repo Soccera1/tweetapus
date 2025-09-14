@@ -3,6 +3,7 @@ import { Elysia } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
 import db from "./../db.js";
 import ratelimit from "../helpers/ratelimit.js";
+import { addNotification } from "./notifications.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -274,9 +275,27 @@ export default new Elysia({ prefix: "/tweets" })
 			);
 			if (reply_to) {
 				updatePostCounts.run(reply_to);
+				const originalTweet = getTweetById.get(reply_to);
+				if (originalTweet && originalTweet.user_id !== user.id) {
+					addNotification(
+						originalTweet.user_id,
+						"reply",
+						`${user.name || user.username} replied to your tweet`,
+						tweetId,
+					);
+				}
 			}
 			if (quote_tweet_id) {
 				updateQuoteCount.run(1, quote_tweet_id);
+				const quotedTweet = getTweetById.get(quote_tweet_id);
+				if (quotedTweet && quotedTweet.user_id !== user.id) {
+					addNotification(
+						quotedTweet.user_id,
+						"quote",
+						`${user.name || user.username} quoted your tweet`,
+						tweetId,
+					);
+				}
 			}
 
 			// Handle file attachments if provided
@@ -433,6 +452,17 @@ export default new Elysia({ prefix: "/tweets" })
 				const likeId = Bun.randomUUIDv7();
 				addLike.run(likeId, user.id, id);
 				updateLikeCount.run(1, id);
+
+				const tweet = getTweetById.get(id);
+				if (tweet && tweet.user_id !== user.id) {
+					addNotification(
+						tweet.user_id,
+						"like",
+						`${user.name || user.username} liked your tweet`,
+						id,
+					);
+				}
+
 				return { success: true, liked: true };
 			}
 		} catch (error) {
@@ -465,6 +495,16 @@ export default new Elysia({ prefix: "/tweets" })
 				const retweetId = Bun.randomUUIDv7();
 				addRetweet.run(retweetId, user.id, id);
 				updateRetweetCount.run(1, id);
+
+				if (tweet.user_id !== user.id) {
+					addNotification(
+						tweet.user_id,
+						"retweet",
+						`${user.name || user.username} retweeted your tweet`,
+						id,
+					);
+				}
+
 				return { success: true, retweeted: true };
 			}
 		} catch (error) {

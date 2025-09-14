@@ -10,11 +10,11 @@ const linkifyText = (text) => {
 	const urlRegex = /(https?:\/\/[^\s]+)/g;
 	// Mention regex (@username)
 	const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-	
-	let linkedText = text
+
+	const linkedText = text
 		// First handle URLs
 		.replace(urlRegex, (url) => {
-			const cleanUrl = url.replace(/[.,!?;:]$/, ''); // Remove trailing punctuation
+			const cleanUrl = url.replace(/[.,!?;:]$/, ""); // Remove trailing punctuation
 			const trailingPunc = url.slice(cleanUrl.length);
 			try {
 				const hostname = new URL(cleanUrl).hostname;
@@ -24,8 +24,11 @@ const linkifyText = (text) => {
 			}
 		})
 		// Then handle mentions
-		.replace(mentionRegex, '<a href="#" class="tweet-mention" data-username="$1">@$1</a>');
-	
+		.replace(
+			mentionRegex,
+			'<a href="#" class="tweet-mention" data-username="$1">@$1</a>',
+		);
+
 	return linkedText;
 };
 
@@ -255,6 +258,13 @@ export const createTweetElement = (tweet, config = {}) => {
 		tweet.author.avatar || `https://unavatar.io/${tweet.author.username}`;
 	tweetHeaderAvatarEl.alt = tweet.author.name || tweet.author.username;
 	tweetHeaderAvatarEl.loading = "lazy";
+	tweetHeaderAvatarEl.style.cursor = "pointer";
+	tweetHeaderAvatarEl.addEventListener("click", (e) => {
+		e.stopPropagation();
+		import("./profile.js").then(({ default: openProfile }) => {
+			openProfile(tweet.author.username);
+		});
+	});
 
 	tweetHeaderEl.appendChild(tweetHeaderAvatarEl);
 

@@ -13,6 +13,14 @@ const getTimelinePosts = db.query(`
   LIMIT 20
 `);
 
+const getFollowingTimelinePosts = db.query(`
+  SELECT posts.* FROM posts 
+  JOIN follows ON posts.user_id = follows.following_id
+  WHERE follows.follower_id = ? AND posts.reply_to IS NULL
+  ORDER BY posts.created_at DESC 
+  LIMIT 20
+`);
+
 const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
 
 const getPollByPostId = db.query(`
@@ -151,6 +159,81 @@ export default new Elysia({ prefix: "/timeline" })
 		}
 
 		const posts = getTimelinePosts.all();
+
+		const userIds = [...new Set(posts.map((post) => post.user_id))];
+
+		const placeholders = userIds.map(() => "?").join(",");
+		const getUsersQuery = db.query(
+			`SELECT * FROM users WHERE id IN (${placeholders})`,
+		);
+
+		const users = getUsersQuery.all(...userIds);
+
+		const userMap = {};
+		users.forEach((user) => {
+			userMap[user.id] = user;
+		});
+
+		const postIds = posts.map((post) => post.id);
+		const likePlaceholders = postIds.map(() => "?").join(",");
+		const getUserLikesQuery = db.query(
+			`SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${likePlaceholders})`,
+		);
+
+		const userLikes = getUserLikesQuery.all(user.id, ...postIds);
+		const userLikedPosts = new Set(userLikes.map((like) => like.post_id));
+
+		const getUserRetweetsQuery = db.query(
+			`SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${likePlaceholders})`,
+		);
+
+		const userRetweets = getUserRetweetsQuery.all(user.id, ...postIds);
+		const userRetweetedPosts = new Set(
+			userRetweets.map((retweet) => retweet.post_id),
+		);
+
+		const timeline = posts.map((post) => {
+			const topReply = getTopReplyData(post.id, user.id);
+			const shouldShowTopReply =
+				topReply &&
+				post.like_count > 0 &&
+				topReply.like_count / post.like_count >= 0.8;
+
+			return {
+				...post,
+				author: userMap[post.user_id],
+				liked_by_user: userLikedPosts.has(post.id),
+				retweeted_by_user: userRetweetedPosts.has(post.id),
+				poll: getPollDataForTweet(post.id, user.id),
+				quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
+				top_reply: shouldShowTopReply ? topReply : null,
+				attachments: getTweetAttachments(post.id),
+			};
+		});
+
+		return { timeline };
+	})
+	.get("/following", async ({ jwt, headers }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+		let user;
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			user = getUserByUsername.get(payload.username);
+			if (!user) return { error: "User not found" };
+		} catch (e) {
+			console.error(e);
+			return { error: "Authentication failed" };
+		}
+
+		const posts = getFollowingTimelinePosts.all(user.id);
+
+		if (posts.length === 0) {
+			return { timeline: [] };
+		}
 
 		const userIds = [...new Set(posts.map((post) => post.user_id))];
 

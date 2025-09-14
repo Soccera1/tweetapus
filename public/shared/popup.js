@@ -87,17 +87,32 @@ export function createPopup(options) {
 
 	overlay.addEventListener("click", (e) => {
 		if (e.target === overlay) {
-			closePopup();
+			enhancedClosePopup();
 		}
 	});
 
+	// Add ESC key support
+	const handleKeyDown = (e) => {
+		if (e.key === "Escape") {
+			enhancedClosePopup();
+		}
+	};
+
+	document.addEventListener("keydown", handleKeyDown);
+
+	// Enhanced closePopup to remove event listener
+	const enhancedClosePopup = () => {
+		document.removeEventListener("keydown", handleKeyDown);
+		closePopup();
+	};
+
 	retweetBtn.addEventListener("click", () => {
-		overlay.remove();
+		enhancedClosePopup();
 		onRetweet();
 	});
 
 	quoteBtn.addEventListener("click", () => {
-		overlay.remove();
+		enhancedClosePopup();
 		onQuote();
 	});
 
@@ -105,7 +120,7 @@ export function createPopup(options) {
 	document.body.appendChild(overlay);
 
 	return {
-		close: closePopup,
+		close: enhancedClosePopup,
 		element: overlay,
 	};
 }
