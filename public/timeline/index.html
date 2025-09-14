@@ -89,8 +89,143 @@
       <div class="tweets"></div>
     </div>
 
-    <div class="tweet">
-      
+    <div class="tweet"></div>
+
+    <div class="profile">
+      <div class="profile-header">
+          <a href="/" class="back-button"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left-icon lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></a>
+        <div class="profile-header-info">
+          <h1 id="profileHeaderName">Profile</h1>
+          <p class="post-count" id="profileHeaderPostCount">0 posts</p>
+        </div>
+      </div>
+
+      <div id="profileContainer" style="display: none">
+        <div class="profile-banner"></div>
+
+        <div class="profile-card">
+          <img class="profile-avatar" id="profileAvatar" />
+
+          <div class="profile-actions">
+            <button
+              class="profile-btn"
+              id="editProfileBtn"
+              style="display: none"
+            >
+              Edit profile
+            </button>
+            <button
+              class="profile-btn profile-btn-primary"
+              id="followBtn"
+              style="display: none"
+            >
+              Follow
+            </button>
+          </div>
+
+          <div class="profile-info">
+            <h2 id="profileDisplayName">Display Name</h2>
+            <p class="username" id="profileUsername">@username</p>
+            <p class="profile-bio" id="profileBio"></p>
+
+            <div class="profile-meta" id="profileMeta"></div>
+
+            <div class="profile-stats">
+              <a href="javascript:" id="profileFollowingLink">
+                <span class="number" id="profileFollowingCount">0</span>
+                <span class="label">Following</span>
+              </a>
+              <a href="javascript:" id="profileFollowersLink">
+                <span class="number" id="profileFollowerCount">0</span>
+                <span class="label">Followers</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-tabs">
+          <div class="profile-tab-nav">
+            <button class="profile-tab-btn active" data-tab="posts">
+              Posts
+            </button>
+            <button class="profile-tab-btn" data-tab="replies">Replies</button>
+          </div>
+
+          <div class="profile-tab-content">
+            <div id="profilePostsContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="edit-profile-modal" id="editProfileModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Edit Profile</h3>
+          <button class="close-btn" id="closeEditModalBtn">&times;</button>
+        </div>
+
+        <form id="editProfileForm">
+          <div class="form-group">
+            <label for="editDisplayName">Display Name</label>
+            <input type="text" id="editDisplayName" maxlength="50" />
+            <div class="char-count">
+              <span id="displayNameCount">0</span>
+              /50
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editBio">Bio</label>
+            <textarea
+              id="editBio"
+              maxlength="160"
+              placeholder="Tell us about yourself"
+            ></textarea>
+            <div class="char-count">
+              <span id="bioCount">0</span>
+              /160
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editLocation">Location</label>
+            <input
+              type="text"
+              id="editLocation"
+              maxlength="30"
+              placeholder="Where are you?"
+            />
+            <div class="char-count">
+              <span id="locationCount">0</span>
+              /30
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editWebsite">Website</label>
+            <input
+              type="url"
+              id="editWebsite"
+              maxlength="100"
+              placeholder="https://example.com"
+            />
+            <div class="char-count">
+              <span id="websiteCount">0</span>
+              /100
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="profile-btn" id="cancelEditBtn">
+              Cancel
+            </button>
+            <button type="submit" class="profile-btn profile-btn-primary">
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <script src="/public/shared/darkmode.js" defer></script>

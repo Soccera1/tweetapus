@@ -3,6 +3,7 @@ import { authToken } from "./auth.js";
 import { useComposer } from "./composer.js";
 import showPage, { addRoute } from "./pages.js";
 import { addTweetToTimeline } from "./tweets.js";
+import "./profile.js"; // Import to register profile routes
 
 window.onerror = (message, source, lineno, colno) => {
 	toastQueue.add(

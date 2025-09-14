@@ -14,6 +14,15 @@ const updateProfile = db.query(`
   WHERE id = ?
 `);
 
+const getUserReplies = db.query(`
+  SELECT posts.*, users.username, users.name as display_name, users.verified 
+  FROM posts 
+  JOIN users ON posts.user_id = users.id 
+  WHERE posts.user_id = ? AND posts.reply_to IS NOT NULL
+  ORDER BY posts.created_at DESC 
+  LIMIT 20
+`);
+
 const getUserPosts = db.query(`
   SELECT posts.*, users.username, users.name as display_name, users.verified 
   FROM posts 
@@ -108,6 +117,25 @@ export default new Elysia({ prefix: "/profile" })
 		} catch (error) {
 			console.error("Profile fetch error:", error);
 			return { error: "Failed to fetch profile" };
+		}
+	})
+	.get("/:username/replies", async ({ params }) => {
+		try {
+			const { username } = params;
+
+			const user = getUserByUsername.get(username);
+			if (!user) {
+				return { error: "User not found" };
+			}
+
+			const replies = getUserReplies.all(user.id);
+
+			return {
+				replies,
+			};
+		} catch (error) {
+			console.error("Replies fetch error:", error);
+			return { error: "Failed to fetch replies" };
 		}
 	})
 	.put("/:username", async ({ params, jwt, headers, body }) => {

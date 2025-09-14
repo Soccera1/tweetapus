@@ -224,4 +224,5 @@ export default new $({
 	isMinimized: true,
 	maxVisibleToasts: 7,
 	root: document.body,
+  timeout: 3700
 });

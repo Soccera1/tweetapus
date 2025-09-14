@@ -42,6 +42,13 @@ export const createTweetElement = (tweet, { clickToOpen = true } = {}) => {
 	const tweetHeaderNameEl = document.createElement("p");
 	tweetHeaderNameEl.className = "name";
 	tweetHeaderNameEl.textContent = tweet.author.name || tweet.author.username;
+	tweetHeaderNameEl.style.cursor = "pointer";
+	tweetHeaderNameEl.addEventListener("click", (e) => {
+		e.stopPropagation();
+		import("./profile.js").then(({ default: openProfile }) => {
+			openProfile(tweet.author.username);
+		});
+	});
 
 	if (tweet.author.verified) {
 		const svgWrapper = document.createElement("div");
@@ -78,6 +85,13 @@ export const createTweetElement = (tweet, { clickToOpen = true } = {}) => {
 	const tweetHeaderUsernameEl = document.createElement("p");
 	tweetHeaderUsernameEl.className = "username";
 	tweetHeaderUsernameEl.textContent = `@${tweet.author.username} · ${timeAgo(tweet.created_at)}`;
+	tweetHeaderUsernameEl.style.cursor = "pointer";
+	tweetHeaderUsernameEl.addEventListener("click", (e) => {
+		e.stopPropagation();
+		import("./profile.js").then(({ default: openProfile }) => {
+			openProfile(tweet.author.username);
+		});
+	});
 
 	if (tweet.source && source_icons[tweet.source]) {
 		const sourceIconEl = document.createElement("span");
@@ -268,7 +282,7 @@ export const createTweetElement = (tweet, { clickToOpen = true } = {}) => {
 	tweetEl.appendChild(tweetInteractionsEl);
 
 	if (clickToOpen) {
-    tweetEl.classList.add("clickable");
+		tweetEl.classList.add("clickable");
 
 		tweetEl.addEventListener("click", () => {
 			openTweet(tweet);
