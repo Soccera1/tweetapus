@@ -34,10 +34,7 @@ export const useComposer = (element, callback, { replyTo = null } = {}) => {
 		const content = textarea.value.trim();
 
 		if (!content || content.length > 400) {
-			toastQueue.add({
-				message: "Please enter a valid tweet (1-400 characters)",
-				type: "error",
-			});
+			toastQueue.add(`<h1>Invalid tweet</h1><p>Make sure your tweet is 1 to 400 characters long.</p>`);
 			return;
 		}
 
