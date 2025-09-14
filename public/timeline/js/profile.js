@@ -1,8 +1,11 @@
+import {
+	convertToWebPAvatar,
+	isConvertibleImage,
+} from "../../shared/image-utils.js";
 import toastQueue from "../../shared/toasts.js";
 import { authToken } from "./auth.js";
 import switchPage, { addRoute } from "./pages.js";
 import { createTweetElement } from "./tweets.js";
-import { convertToWebPAvatar, isConvertibleImage } from "../../shared/image-utils.js";
 
 let currentProfile = null;
 let currentPosts = [];

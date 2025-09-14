@@ -8,12 +8,12 @@
 export async function convertToWebPAvatar(file, size = 250, quality = 0.8) {
 	return new Promise((resolve, reject) => {
 		// Check if file is already WebP and correct size
-		if (file.type === 'image/webp' && file.size < 1024 * 1024) {
+		if (file.type === "image/webp" && file.size < 1024 * 1024) {
 			// Still process it to ensure it's the right size
 		}
 
-		const canvas = document.createElement('canvas');
-		const ctx = canvas.getContext('2d');
+		const canvas = document.createElement("canvas");
+		const ctx = canvas.getContext("2d");
 		const img = new Image();
 
 		img.onload = () => {
@@ -29,36 +29,42 @@ export async function convertToWebPAvatar(file, size = 250, quality = 0.8) {
 			// Draw the image cropped and resized to square
 			ctx.drawImage(
 				img,
-				sourceX, sourceY, minDimension, minDimension,
-				0, 0, size, size
+				sourceX,
+				sourceY,
+				minDimension,
+				minDimension,
+				0,
+				0,
+				size,
+				size,
 			);
 
 			// Convert to WebP
 			canvas.toBlob(
 				(blob) => {
 					if (!blob) {
-						reject(new Error('Failed to convert image to WebP'));
+						reject(new Error("Failed to convert image to WebP"));
 						return;
 					}
 
 					// Create a new File object with WebP MIME type
-					const webpFile = new File([blob], `${file.name.split('.')[0]}.webp`, {
-						type: 'image/webp',
-						lastModified: Date.now()
+					const webpFile = new File([blob], `${file.name.split(".")[0]}.webp`, {
+						type: "image/webp",
+						lastModified: Date.now(),
 					});
 
 					resolve(webpFile);
 				},
-				'image/webp',
-				quality
+				"image/webp",
+				quality,
 			);
-			
+
 			// Clean up the object URL
 			URL.revokeObjectURL(objectUrl);
 		};
 
 		img.onerror = () => {
-			reject(new Error('Failed to load image'));
+			reject(new Error("Failed to load image"));
 		};
 
 		// Create object URL and load the image
@@ -74,15 +80,15 @@ export async function convertToWebPAvatar(file, size = 250, quality = 0.8) {
  */
 export function isConvertibleImage(file) {
 	const supportedTypes = [
-		'image/jpeg',
-		'image/jpg', 
-		'image/png',
-		'image/gif',
-		'image/webp',
-		'image/bmp',
-		'image/svg+xml'
+		"image/jpeg",
+		"image/jpg",
+		"image/png",
+		"image/gif",
+		"image/webp",
+		"image/bmp",
+		"image/svg+xml",
 	];
-	
+
 	return supportedTypes.includes(file.type);
 }
 

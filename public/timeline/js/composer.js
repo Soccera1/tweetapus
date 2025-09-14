@@ -1,8 +1,8 @@
 import confetti from "../../shared/confetti.js";
+import { isConvertibleImage } from "../../shared/image-utils.js";
 import createMentionSelector from "../../shared/mention-selector.js";
 import toastQueue from "../../shared/toasts.js";
 import getUser, { authToken } from "./auth.js";
-import { isConvertibleImage } from "../../shared/image-utils.js";
 
 export const useComposer = (
 	element,
@@ -179,10 +179,7 @@ export const useComposer = (
 			const processedFile = await convertToWebP(file);
 
 			// Validate file type client-side for UX
-			const allowedTypes = [
-				"image/webp",
-				"video/mp4",
-			];
+			const allowedTypes = ["image/webp", "video/mp4"];
 
 			if (!allowedTypes.includes(processedFile.type)) {
 				toastQueue.add(
@@ -265,10 +262,7 @@ export const useComposer = (
 			e.preventDefault();
 			for (const item of fileItems) {
 				const file = item.getAsFile();
-				if (
-					file &&
-					(isConvertibleImage(file) || file.type === "video/mp4")
-				) {
+				if (file && (isConvertibleImage(file) || file.type === "video/mp4")) {
 					await processFileForUpload(file);
 				}
 			}
