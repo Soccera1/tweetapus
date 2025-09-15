@@ -65,15 +65,63 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) throw new Error("JWT_SECRET environment variable is required");
 
-export default new Elysia({
-	prefix: "/auth",
-})
-	.use(
-		jwt({
-			name: "jwt",
-			secret: JWT_SECRET,
-		}),
-	)
+export default new Elysia({ prefix: "/auth" })
+	.use(jwt({ name: "jwt", secret: JWT_SECRET }))
+
+	// Debug endpoint to check database consistency
+	.get("/debug/users", () => {
+		try {
+			const users = db.query("SELECT id, username FROM users").all();
+			const passkeys = db
+				.query("SELECT cred_id, internal_user_id FROM passkeys")
+				.all();
+
+			return {
+				userCount: users.length,
+				passkeyCount: passkeys.length,
+				users: users.slice(0, 5), // First 5 users
+				orphanedPasskeys: passkeys.filter(
+					(p) => !users.find((u) => u.id === p.internal_user_id),
+				),
+			};
+		} catch (error) {
+			return { error: error.message };
+		}
+	})
+
+	// Repair endpoint to clean up orphaned passkeys
+	.post("/debug/cleanup", () => {
+		try {
+			const orphanedPasskeys = db
+				.query(`
+				SELECT cred_id FROM passkeys 
+				WHERE internal_user_id NOT IN (SELECT id FROM users)
+			`)
+				.all();
+
+			if (orphanedPasskeys.length > 0) {
+				const deleteOrphaned = db.query(
+					"DELETE FROM passkeys WHERE cred_id = ?",
+				);
+
+				let deletedCount = 0;
+				for (const passkey of orphanedPasskeys) {
+					deleteOrphaned.run(passkey.cred_id);
+					deletedCount++;
+				}
+
+				return {
+					success: true,
+					deletedOrphanedPasskeys: deletedCount,
+					deletedCredIds: orphanedPasskeys.map((p) => p.cred_id),
+				};
+			}
+
+			return { success: true, deletedOrphanedPasskeys: 0 };
+		} catch (error) {
+			return { error: error.message };
+		}
+	})
 	.use(
 		rateLimit({
 			duration: 10_000,
@@ -271,6 +319,14 @@ export default new Elysia({
 							.query("SELECT * FROM users WHERE id = ?")
 							.get(existingPasskey.internal_user_id);
 					}
+
+					if (!user) {
+						return {
+							verified: false,
+							error: "User associated with this passkey no longer exists",
+						};
+					}
+
 					return {
 						verified: true,
 						user: { id: user.id, username: user.username },
@@ -382,6 +438,13 @@ export default new Elysia({
 			const user = db
 				.query("SELECT * FROM users WHERE id = ?")
 				.get(passkey.internal_user_id);
+
+			if (!user) {
+				return {
+					verified: false,
+					error: "User associated with this passkey no longer exists",
+				};
+			}
 
 			updatePasskeyCounter(credId, verification.authenticationInfo.newCounter);
 

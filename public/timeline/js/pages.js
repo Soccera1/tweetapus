@@ -4,6 +4,8 @@ const pages = {
 	profile: document.querySelector(".profile"),
 	notifications: document.querySelector(".notifications"),
 	search: document.querySelector(".search-page"),
+	"direct-messages": document.querySelector(".direct-messages"),
+	"dm-conversation": document.querySelector(".dm-conversation"),
 	settings: null,
 };
 const states = {};

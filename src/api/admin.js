@@ -127,13 +127,79 @@ const adminQueries = {
 
 	// New queries for editing functionality
 	getPostById: db.query("SELECT * FROM posts WHERE id = ?"),
-	updatePost: db.query("UPDATE posts SET content = ? WHERE id = ?"),
+	updatePost: db.query(
+		"UPDATE posts SET content = ?, like_count = ?, retweet_count = ?, reply_count = ? WHERE id = ?",
+	),
 	createPostAsUser: db.query(
 		"INSERT INTO posts (id, user_id, content, created_at) VALUES (?, ?, ?, datetime('now'))",
 	),
 	updateUser: db.query(
 		"UPDATE users SET username = ?, name = ?, bio = ?, verified = ? WHERE id = ?",
 	),
+
+	// DM Management queries
+	getAllConversations: db.query(`
+		SELECT c.id, c.created_at,
+			   COUNT(DISTINCT cp.user_id) as participant_count,
+			   COUNT(DISTINCT dm.id) as message_count,
+			   MAX(dm.created_at) as last_message_at
+		FROM conversations c
+		LEFT JOIN conversation_participants cp ON c.id = cp.conversation_id
+		LEFT JOIN dm_messages dm ON c.id = dm.conversation_id
+		GROUP BY c.id
+		ORDER BY last_message_at DESC NULLS LAST
+		LIMIT ? OFFSET ?
+	`),
+	getConversationsCount: db.query(
+		"SELECT COUNT(*) as count FROM conversations",
+	),
+
+	getConversationDetails: db.query(`
+		SELECT c.id, c.created_at,
+			   GROUP_CONCAT(u.username, ', ') as participants,
+			   GROUP_CONCAT(u.name, ', ') as participant_names
+		FROM conversations c
+		JOIN conversation_participants cp ON c.id = cp.conversation_id
+		JOIN users u ON cp.user_id = u.id
+		WHERE c.id = ?
+		GROUP BY c.id
+	`),
+
+	getConversationMessages: db.query(`
+		SELECT dm.id, dm.content, dm.created_at, u.username, u.name, u.avatar
+		FROM dm_messages dm
+		JOIN users u ON dm.sender_id = u.id
+		WHERE dm.conversation_id = ?
+		ORDER BY dm.created_at DESC
+		LIMIT ? OFFSET ?
+	`),
+
+	getConversationMessagesCount: db.query(`
+		SELECT COUNT(*) as count FROM dm_messages WHERE conversation_id = ?
+	`),
+
+	getMessageAttachments: db.query(`
+		SELECT file_name as filename, file_hash FROM dm_attachments WHERE message_id = ?
+	`),
+
+	searchConversationsByUser: db.query(`
+		SELECT c.id, c.created_at,
+			   COUNT(DISTINCT cp.user_id) as participant_count,
+			   COUNT(DISTINCT dm.id) as message_count,
+			   MAX(dm.created_at) as last_message_at,
+			   GROUP_CONCAT(DISTINCT u.username) as participants
+		FROM conversations c
+		JOIN conversation_participants cp ON c.id = cp.conversation_id
+		JOIN users u ON cp.user_id = u.id
+		LEFT JOIN dm_messages dm ON c.id = dm.conversation_id
+		WHERE u.username LIKE ?
+		GROUP BY c.id
+		ORDER BY last_message_at DESC NULLS LAST
+		LIMIT ? OFFSET ?
+	`),
+
+	deleteConversation: db.query("DELETE FROM conversations WHERE id = ?"),
+	deleteMessage: db.query("DELETE FROM dm_messages WHERE id = ?"),
 };
 
 // Middleware to check admin status
@@ -369,7 +435,6 @@ export default new Elysia({ prefix: "/admin" })
 		};
 	})
 
-	// Post management
 	.get("/posts/:id", async ({ params }) => {
 		const post = adminQueries.getPostById.get(params.id);
 		if (!post) {
@@ -386,12 +451,21 @@ export default new Elysia({ prefix: "/admin" })
 				return { error: "Post not found" };
 			}
 
-			adminQueries.updatePost.run(body.content, params.id);
+			adminQueries.updatePost.run(
+				body.content,
+				body.likes,
+				body.retweets,
+				body.replies,
+				params.id,
+			);
 			return { success: true };
 		},
 		{
 			body: t.Object({
 				content: t.String(),
+				likes: t.Optional(t.Number()),
+				retweets: t.Optional(t.Number()),
+				replies: t.Optional(t.Number()),
 			}),
 		},
 	)
@@ -503,4 +577,112 @@ export default new Elysia({ prefix: "/admin" })
 			success: true,
 			token: newToken,
 		};
+	})
+
+	// DM Management endpoints
+	.get("/dms", async ({ query }) => {
+		const page = Math.max(1, Number.parseInt(query.page || "1"));
+		const limit = Math.min(
+			50,
+			Math.max(1, Number.parseInt(query.limit || "20")),
+		);
+		const offset = (page - 1) * limit;
+
+		const conversations = adminQueries.getAllConversations.all(limit, offset);
+		const totalCount = adminQueries.getConversationsCount.get().count;
+
+		return {
+			conversations,
+			pagination: {
+				page,
+				limit,
+				total: totalCount,
+				pages: Math.ceil(totalCount / limit),
+			},
+		};
+	})
+
+	.get("/dms/search", async ({ query }) => {
+		const username = query.username;
+		if (!username) {
+			return { error: "Username parameter required" };
+		}
+
+		const page = Math.max(1, Number.parseInt(query.page || "1"));
+		const limit = Math.min(
+			50,
+			Math.max(1, Number.parseInt(query.limit || "20")),
+		);
+		const offset = (page - 1) * limit;
+
+		const conversations = adminQueries.searchConversationsByUser.all(
+			`%${username}%`,
+			limit,
+			offset,
+		);
+
+		return { conversations };
+	})
+
+	.get("/dms/:id", async ({ params }) => {
+		const conversation = adminQueries.getConversationDetails.get(params.id);
+		if (!conversation) {
+			return { error: "Conversation not found" };
+		}
+
+		return { conversation };
+	})
+
+	.get("/dms/:id/messages", async ({ params, query }) => {
+		const conversation = adminQueries.getConversationDetails.get(params.id);
+		if (!conversation) {
+			return { error: "Conversation not found" };
+		}
+
+		const page = Math.max(1, Number.parseInt(query.page || "1"));
+		const limit = Math.min(
+			100,
+			Math.max(1, Number.parseInt(query.limit || "20")),
+		);
+		const offset = (page - 1) * limit;
+
+		const messages = adminQueries.getConversationMessages.all(
+			params.id,
+			limit,
+			offset,
+		);
+		const totalCount = adminQueries.getConversationMessagesCount.get(
+			params.id,
+		).count;
+
+		// Get attachments for each message
+		for (const message of messages) {
+			message.attachments = adminQueries.getMessageAttachments.all(message.id);
+		}
+
+		return {
+			conversation,
+			messages,
+			pagination: {
+				page,
+				limit,
+				total: totalCount,
+				pages: Math.ceil(totalCount / limit),
+			},
+		};
+	})
+
+	.delete("/dms/:id", async ({ params }) => {
+		const conversation = adminQueries.getConversationDetails.get(params.id);
+		if (!conversation) {
+			return { error: "Conversation not found" };
+		}
+
+		adminQueries.deleteConversation.run(params.id);
+		return { success: true };
+	})
+
+	.delete("/dms/messages/:id", async ({ params }) => {
+		adminQueries.deleteMessage.run(params.id);
+		return { success: true };
 	});

@@ -150,6 +150,9 @@ function createNotificationElement(notification) {
 			<path d="M19 8v6"/>
 			<path d="M22 11h-6"/>
 		</svg>`,
+		dm: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+			<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+		</svg>`,
 	};
 
 	const iconClasses = {
@@ -159,6 +162,7 @@ function createNotificationElement(notification) {
 		follow: "follow-icon",
 		quote: "quote-icon",
 		mention: "mention-icon",
+		dm: "dm-icon",
 	};
 
 	const notificationEl = document.createElement("div");
@@ -232,7 +236,23 @@ function createNotificationElement(notification) {
 
 		if (!relatedId) return;
 
-		if (
+		if (notificationType === "dm") {
+			// Handle DM notifications - open the conversation
+			try {
+				const response = await fetch(`/api/dm/conversations/${relatedId}`, {
+					headers: { Authorization: `Bearer ${authToken}` },
+				});
+
+				if (response.ok) {
+					const data = await response.json();
+					if (data.conversation) {
+						window.location.href = `/dm/${relatedId}`;
+					}
+				}
+			} catch (error) {
+				console.error("Failed to open DM conversation:", error);
+			}
+		} else if (
 			["like", "retweet", "reply", "quote", "mention"].includes(
 				notificationType,
 			)

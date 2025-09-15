@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
 import admin from "./api/admin.js";
 import auth from "./api/auth.js";
+import dm from "./api/dm.js";
 import notifications from "./api/notifications.js";
 import profile, { avatarRoutes } from "./api/profile.js";
 import search from "./api/search.js";
@@ -59,5 +60,6 @@ export default new Elysia({
 	.use(search)
 	.use(upload)
 	.use(notifications)
+	.use(dm)
 	.use(avatarRoutes)
 	.use(uploadRoutes);

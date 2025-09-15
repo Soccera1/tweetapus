@@ -7,6 +7,7 @@ class AdminPanel {
 			users: 1,
 			posts: 1,
 			suspensions: 1,
+			dms: 1,
 		};
 
 		this.init();
@@ -84,6 +85,14 @@ class AdminPanel {
 				this.searchPosts();
 			}
 		});
+
+		document
+			.getElementById("dmSearchInput")
+			.addEventListener("keypress", (e) => {
+				if (e.key === "Enter") {
+					this.searchDMs();
+				}
+			});
 	}
 
 	updateActiveNav(activeLink) {
@@ -115,6 +124,9 @@ class AdminPanel {
 				break;
 			case "suspensions":
 				this.loadSuspensions();
+				break;
+			case "dms":
+				this.loadDMs();
 				break;
 		}
 	}
@@ -1028,6 +1040,321 @@ class AdminPanel {
 		});
 	}
 
+	// DM Management Methods
+	async loadDMs(page = 1) {
+		try {
+			const data = await this.apiCall(`/api/admin/dms?page=${page}&limit=20`);
+			this.currentPage.dms = page;
+			this.renderDMsTable(data.conversations);
+			this.renderDMsPagination(data.pagination);
+		} catch (error) {
+			this.showError("Failed to load DMs");
+		}
+	}
+
+	async searchDMs() {
+		const username = document.getElementById("dmSearchInput").value.trim();
+		if (!username) {
+			this.loadDMs();
+			return;
+		}
+
+		try {
+			const data = await this.apiCall(
+				`/api/admin/dms/search?username=${encodeURIComponent(username)}`,
+			);
+			this.renderDMsTable(data.conversations);
+			document.getElementById("dmsPagination").innerHTML = "";
+		} catch (error) {
+			this.showError("Failed to search DMs");
+		}
+	}
+
+	renderDMsTable(conversations) {
+		const tableHtml = `
+			<div class="table-responsive">
+				<table class="table table-striped">
+					<thead>
+						<tr>
+							<th>Conversation ID</th>
+							<th>Participants</th>
+							<th>Messages</th>
+							<th>Last Activity</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						${conversations
+							.map(
+								(conv) => `
+								<tr>
+									<td>
+										<code class="text-muted">${conv.id.slice(0, 8)}...</code>
+									</td>
+									<td>
+										<span class="badge bg-primary">${conv.participant_count} users</span>
+									</td>
+									<td>
+										<span class="text-muted">${conv.message_count} messages</span>
+									</td>
+									<td>
+										${
+											conv.last_message_at
+												? new Date(conv.last_message_at).toLocaleString()
+												: "No messages"
+										}
+									</td>
+									<td>
+										<button class="btn btn-sm btn-outline-primary" onclick="viewConversation('${conv.id}')">
+											<i class="bi bi-eye"></i>
+											View
+										</button>
+										<button class="btn btn-sm btn-outline-danger" onclick="deleteConversationAdmin('${conv.id}')">
+											<i class="bi bi-trash"></i>
+											Delete
+										</button>
+									</td>
+								</tr>
+							`,
+							)
+							.join("")}
+					</tbody>
+				</table>
+			</div>
+		`;
+
+		document.getElementById("dmsTable").innerHTML = tableHtml;
+	}
+
+	renderDMsPagination(pagination) {
+		if (!pagination || pagination.pages <= 1) {
+			document.getElementById("dmsPagination").innerHTML = "";
+			return;
+		}
+
+		const currentPage = pagination.page;
+		const totalPages = pagination.pages;
+		let paginationHtml = '<ul class="pagination">';
+
+		// Previous button
+		if (currentPage > 1) {
+			paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="adminPanel.loadDMs(${currentPage - 1})">Previous</a></li>`;
+		}
+
+		// Page numbers
+		const startPage = Math.max(1, currentPage - 2);
+		const endPage = Math.min(totalPages, currentPage + 2);
+
+		for (let i = startPage; i <= endPage; i++) {
+			const activeClass = i === currentPage ? "active" : "";
+			paginationHtml += `<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="adminPanel.loadDMs(${i})">${i}</a></li>`;
+		}
+
+		// Next button
+		if (currentPage < totalPages) {
+			paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="adminPanel.loadDMs(${currentPage + 1})">Next</a></li>`;
+		}
+
+		paginationHtml += "</ul>";
+		document.getElementById("dmsPagination").innerHTML = paginationHtml;
+	}
+
+	async viewConversation(conversationId) {
+		try {
+			const [conversationData, messagesData] = await Promise.all([
+				this.apiCall(`/api/admin/dms/${conversationId}`),
+				this.apiCall(
+					`/api/admin/dms/${conversationId}/messages?page=1&limit=50`,
+				),
+			]);
+
+			this.currentConversationId = conversationId;
+			this.renderConversationModal(
+				conversationData.conversation,
+				messagesData.messages,
+				messagesData.pagination,
+			);
+
+			const modal = new bootstrap.Modal(document.getElementById("dmModal"));
+			modal.show();
+		} catch (error) {
+			this.showError("Failed to load conversation");
+		}
+	}
+
+	renderConversationModal(conversation, messages, pagination) {
+		// Render conversation info
+		const infoHtml = `
+			<div class="row">
+				<div class="col-md-6">
+					<h6>Conversation ID</h6>
+					<code>${conversation.id}</code>
+				</div>
+				<div class="col-md-6">
+					<h6>Participants</h6>
+					<p>${conversation.participants}</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-6">
+					<h6>Created</h6>
+					<p>${new Date(conversation.created_at).toLocaleString()}</p>
+				</div>
+				<div class="col-md-6">
+					<h6>Participant Names</h6>
+					<p>${conversation.participant_names}</p>
+				</div>
+			</div>
+		`;
+
+		document.getElementById("dmConversationInfo").innerHTML = infoHtml;
+
+		// Render messages
+		const messagesHtml = messages.length
+			? messages
+					.map(
+						(message) => `
+			<div class="card mb-2">
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-start">
+						<div class="d-flex align-items-center">
+							${
+								message.avatar
+									? `<img src="/api/uploads/${message.avatar}" class="user-avatar me-2" alt="Avatar">`
+									: `<div class="user-avatar me-2 bg-secondary d-flex align-items-center justify-content-center text-white">
+									${message.name ? message.name.charAt(0).toUpperCase() : "?"}
+								</div>`
+							}
+							<div>
+								<strong>${this.escapeHtml(message.name || "Unknown User")}</strong>
+								<small class="text-muted">@${this.escapeHtml(message.username)}</small>
+							</div>
+						</div>
+						<div class="text-end">
+							<small class="text-muted">${new Date(message.created_at).toLocaleString()}</small>
+							<br>
+							<button class="btn btn-sm btn-outline-danger" onclick="deleteMessage('${message.id}')">
+								<i class="bi bi-trash"></i>
+							</button>
+						</div>
+					</div>
+					<div class="mt-2">
+						<p class="mb-1">${this.escapeHtml(message.content)}</p>
+						${
+							message.attachments?.length
+								? message.attachments
+										.map(
+											(att) => `
+								<div class="mt-2">
+									<img src="/api/uploads/${att.file_hash}" class="img-thumbnail" style="max-width: 200px;" alt="${att.filename}">
+									<br><small class="text-muted">${att.filename}</small>
+								</div>
+							`,
+										)
+										.join("")
+								: ""
+						}
+					</div>
+				</div>
+			</div>
+		`,
+					)
+					.join("")
+			: '<p class="text-muted">No messages in this conversation.</p>';
+
+		document.getElementById("dmMessages").innerHTML = messagesHtml;
+
+		// Render pagination if needed
+		if (pagination && pagination.pages > 1) {
+			let paginationHtml = '<ul class="pagination pagination-sm">';
+
+			if (pagination.page > 1) {
+				paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadConversationMessages(${pagination.page - 1})">Previous</a></li>`;
+			}
+
+			const startPage = Math.max(1, pagination.page - 2);
+			const endPage = Math.min(pagination.pages, pagination.page + 2);
+
+			for (let i = startPage; i <= endPage; i++) {
+				const activeClass = i === pagination.page ? "active" : "";
+				paginationHtml += `<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="loadConversationMessages(${i})">${i}</a></li>`;
+			}
+
+			if (pagination.page < pagination.pages) {
+				paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadConversationMessages(${pagination.page + 1})">Next</a></li>`;
+			}
+
+			paginationHtml += "</ul>";
+			document.getElementById("dmMessagesPagination").innerHTML =
+				paginationHtml;
+		} else {
+			document.getElementById("dmMessagesPagination").innerHTML = "";
+		}
+	}
+
+	async deleteConversationAdmin(conversationId) {
+		if (
+			!confirm(
+				"Are you sure you want to delete this conversation? This action cannot be undone.",
+			)
+		) {
+			return;
+		}
+
+		try {
+			await this.apiCall(`/api/admin/dms/${conversationId}`, {
+				method: "DELETE",
+			});
+			this.showSuccess("Conversation deleted successfully");
+			this.loadDMs(this.currentPage.dms || 1);
+		} catch (error) {
+			this.showError("Failed to delete conversation");
+		}
+	}
+
+	async deleteMessageAdmin(messageId) {
+		if (
+			!confirm(
+				"Are you sure you want to delete this message? This action cannot be undone.",
+			)
+		) {
+			return;
+		}
+
+		try {
+			await this.apiCall(`/api/admin/dms/messages/${messageId}`, {
+				method: "DELETE",
+			});
+			this.showSuccess("Message deleted successfully");
+			// Reload the current conversation
+			if (this.currentConversationId) {
+				this.viewConversation(this.currentConversationId);
+			}
+		} catch (error) {
+			this.showError("Failed to delete message");
+		}
+	}
+
+	async loadConversationMessages(page) {
+		if (!this.currentConversationId) return;
+
+		try {
+			const messagesData = await this.apiCall(
+				`/api/admin/dms/${this.currentConversationId}/messages?page=${page}&limit=50`,
+			);
+			const conversationData = await this.apiCall(
+				`/api/admin/dms/${this.currentConversationId}`,
+			);
+			this.renderConversationModal(
+				conversationData.conversation,
+				messagesData.messages,
+				messagesData.pagination,
+			);
+		} catch (error) {
+			this.showError("Failed to load messages");
+		}
+	}
+
 	createToastContainer() {
 		const container = document.createElement("div");
 		container.id = "toastContainer";
@@ -1075,4 +1402,35 @@ function submitSuspension() {
 
 function submitPostEdit() {
 	adminPanel.savePostEdit();
+}
+
+function loadDMs() {
+	adminPanel.loadDMs();
+}
+
+function searchDMs() {
+	adminPanel.searchDMs();
+}
+
+function viewConversation(conversationId) {
+	adminPanel.viewConversation(conversationId);
+}
+
+function deleteConversationAdmin(conversationId) {
+	adminPanel.deleteConversationAdmin(conversationId);
+}
+
+function deleteMessage(messageId) {
+	adminPanel.deleteMessageAdmin(messageId);
+}
+
+function deleteConversation() {
+	if (adminPanel.currentConversationId) {
+		adminPanel.deleteConversationAdmin(adminPanel.currentConversationId);
+		bootstrap.Modal.getInstance(document.getElementById("dmModal")).hide();
+	}
+}
+
+function loadConversationMessages(page) {
+	adminPanel.loadConversationMessages(page);
 }

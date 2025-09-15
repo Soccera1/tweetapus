@@ -2,10 +2,10 @@ import showPage, { addRoute } from "./pages.js";
 
 const settingsPages = [
 	{
-		key: "main",
-		title: "Main",
+		key: "account",
+		title: "Account",
 		content: () => `
-        h
+        <h1>Account Settings</h1>
         `,
 	},
 	{
@@ -25,7 +25,7 @@ const createSettingsPage = () => {
 	const sidebarButtons = settingsPages
 		.map(
 			(page) =>
-				`<button class="settings-tab-btn${page.key === "main" ? " active" : ""}" data-tab="${page.key}">${page.title}</button>`,
+				`<button class="settings-tab-btn${page.key === "account" ? " active" : ""}" data-tab="${page.key}">${page.title}</button>`,
 		)
 		.join("");
 
@@ -175,7 +175,7 @@ const initializeSettings = () => {
 	const switchTab = (tabKey) => {
 		const page = settingsPages.find((p) => p.key === tabKey);
 		if (!page) {
-			window.location.href = "/settings/main";
+			window.location.href = "/settings/account";
 			return;
 		}
 
@@ -209,13 +209,13 @@ const initializeSettings = () => {
 	const pathParts = window.location.pathname.split("/");
 	let initialTab = pathParts[2];
 	if (!initialTab || !settingsPages.find((p) => p.key === initialTab)) {
-		initialTab = "main";
-		window.history.replaceState(null, null, "/settings/main");
+		initialTab = "account";
+		window.history.replaceState(null, null, "/settings/account");
 	}
 	switchTab(initialTab);
 };
 
-export const openSettings = (section = "main") => {
+export const openSettings = (section = "account") => {
 	const page = showPage("settings", {
 		path: `/settings/${section}`,
 		recoverState: () => initializeSettings(),
@@ -233,8 +233,8 @@ addRoute(
 	(pathname) => pathname.startsWith("/settings"),
 	(pathname) => {
 		const pathParts = pathname.split("/");
-		const section = pathParts[2] || "main";
+		const section = pathParts[2] || "account";
 		const validSection = settingsPages.find((p) => p.key === section);
-		openSettings(validSection ? section : "main");
+		openSettings(validSection ? section : "account");
 	},
 );

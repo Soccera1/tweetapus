@@ -152,6 +152,49 @@ CREATE TABLE IF NOT EXISTS suspensions (
   created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (suspended_by) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS conversations (
+  id TEXT PRIMARY KEY,
+  type TEXT DEFAULT 'direct',
+  title TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  updated_at TIMESTAMP DEFAULT (datetime('now', 'utc'))
+);
+
+CREATE TABLE IF NOT EXISTS conversation_participants (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  joined_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  last_read_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE(conversation_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS dm_messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL,
+  sender_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  message_type TEXT DEFAULT 'text',
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  edited_at TIMESTAMP DEFAULT NULL,
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS dm_attachments (
+  id TEXT PRIMARY KEY,
+  message_id TEXT NOT NULL,
+  file_hash TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  file_url TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (message_id) REFERENCES dm_messages(id) ON DELETE CASCADE
 );`);
 
 export default db;

@@ -1,6 +1,7 @@
 import toastQueue from "../../shared/toasts.js";
 import { authToken } from "./auth.js";
 import { createComposer } from "./composer.js";
+import dm from "./dm.js";
 import switchPage, { addRoute, showPage } from "./pages.js";
 import { addTweetToTimeline } from "./tweets.js";
 import "./profile.js";
@@ -112,6 +113,10 @@ window.onunhandledrejection = (event) => {
 
 	await loadTimeline("home");
 	handleUrlParams();
+
+	// Initialize DM functionality
+	dm.connectWebSocket();
+	dm.updateUnreadCount();
 
 	const composer = await createComposer({
 		callback: (tweet) => {
