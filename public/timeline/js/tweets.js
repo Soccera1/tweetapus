@@ -54,7 +54,9 @@ const linkifyText = (text) => {
 				"h6",
 				"ul",
 				"ol",
-				"li"
+				"li",
+				"span",
+				"big",
 			],
 			ALLOWED_ATTR: ["href", "target", "rel", "class"],
 		},
@@ -729,12 +731,7 @@ export const createTweetElement = (tweet, config = {}) => {
 
 		const replyIndicator = document.createElement("div");
 		replyIndicator.className = "reply-indicator";
-		replyIndicator.innerHTML = `
-			<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-				<path d="M7 12L12 7L7 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>
-			<span>Replying to @${tweet.author.username}</span>
-		`;
+		replyIndicator.innerText = `Replying to @${tweet.author.username}`;
 		topReplyEl.insertBefore(replyIndicator, topReplyEl.firstChild);
 
 		tweetEl.appendChild(topReplyEl);

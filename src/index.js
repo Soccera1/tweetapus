@@ -6,6 +6,7 @@ import api from "./api.js";
 new Elysia()
 	.use(staticPlugin())
 	.get("/account", () => file("./public/account/index.html"))
+	.get("/admin", () => file("./public/admin/index.html"))
 	.get("/notifications", ({ cookie, redirect }) => {
 		return cookie.agree?.value === "yes"
 			? file("./public/timeline/index.html")

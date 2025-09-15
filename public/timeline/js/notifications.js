@@ -30,6 +30,7 @@ function displayUnreadCount(count) {
 }
 
 async function openNotifications() {
+	window.scrollTo(0, 0);
 	switchPage("notifications", {
 		path: "/notifications",
 		recoverState: loadNotifications,
