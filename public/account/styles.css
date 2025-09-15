@@ -11,9 +11,6 @@ body {
 
 .tab-navigation {
   display: flex;
-  border-radius: 8px;
-  background: var(--bg-secondary);
-  padding: 4px;
   margin-bottom: 24px;
   width: 100%;
 }

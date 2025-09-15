@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS users (
   post_count INTEGER DEFAULT 0,
   follower_count INTEGER DEFAULT 0,
   following_count INTEGER DEFAULT 0,
-  password_hash TEXT DEFAULT NULL
+  password_hash TEXT DEFAULT NULL,
+  admin BOOLEAN DEFAULT FALSE,
+  suspended BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS passkeys (
@@ -136,6 +138,20 @@ CREATE TABLE IF NOT EXISTS notifications (
   read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS suspensions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  suspended_by TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  severity INTEGER NOT NULL DEFAULT 3,
+  expires_at TIMESTAMP DEFAULT NULL,
+  status TEXT DEFAULT 'active',
+  notes TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (suspended_by) REFERENCES users(id) ON DELETE CASCADE
 );`);
 
 export default db;

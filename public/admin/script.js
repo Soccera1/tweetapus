@@ -1,0 +1,1110 @@
+class AdminPanel {
+	constructor() {
+		this.token = localStorage.getItem("authToken");
+		this.currentUser = null;
+		this.isImpersonating = false;
+		this.currentPage = {
+			users: 1,
+			posts: 1,
+			suspensions: 1,
+		};
+
+		this.init();
+	}
+
+	// Utility method to escape HTML and prevent XSS
+	escapeHtml(text) {
+		if (!text) return "";
+		const div = document.createElement("div");
+		div.textContent = text;
+		return div.innerHTML;
+	}
+
+	async init() {
+		if (!this.token) {
+			location.href = "/";
+			this.redirectToLogin();
+			return;
+		}
+
+		try {
+			const user = await this.getCurrentUser();
+			if (!user || !user.admin) {
+				location.href = "/";
+				return;
+			}
+
+			this.currentUser = user;
+			this.checkImpersonation();
+			this.setupEventListeners();
+			this.loadDashboard();
+		} catch (error) {
+			location.href = "/";
+		}
+	}
+
+	checkImpersonation() {
+		try {
+			const payload = JSON.parse(atob(this.token.split(".")[1]));
+			if (payload.impersonation) {
+				this.isImpersonating = true;
+				this.showImpersonationBanner(payload.username);
+			}
+		} catch (error) {
+			console.log("Not an impersonation token");
+		}
+	}
+
+	showImpersonationBanner(username) {
+		const banner = document.getElementById("impersonationBanner");
+		const userSpan = document.getElementById("impersonatedUser");
+		userSpan.textContent = `@${username}`;
+		banner.classList.remove("d-none");
+	}
+
+	async stopImpersonation() {
+		try {
+			const response = await fetch("/api/admin/stop-impersonation", {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${this.token}`,
+				},
+			});
+
+			const result = await response.json();
+			if (result.success) {
+				this.token = result.token;
+				localStorage.setItem("authToken", this.token);
+				location.reload();
+			} else {
+				this.showError(result.error || "Failed to stop impersonation");
+			}
+		} catch (error) {
+			this.showError("Failed to stop impersonation");
+		}
+	}
+
+	setupEventListeners() {
+		document.querySelectorAll(".nav-link[data-section]").forEach((link) => {
+			link.addEventListener("click", (e) => {
+				e.preventDefault();
+				const section = e.target.dataset.section;
+				this.showSection(section);
+				this.updateActiveNav(e.target);
+			});
+		});
+
+		document.getElementById("userSearch").addEventListener("keypress", (e) => {
+			if (e.key === "Enter") {
+				this.searchUsers();
+			}
+		});
+
+		document.getElementById("postSearch").addEventListener("keypress", (e) => {
+			if (e.key === "Enter") {
+				this.searchPosts();
+			}
+		});
+	}
+
+	updateActiveNav(activeLink) {
+		document.querySelectorAll(".nav-link").forEach((link) => {
+			link.classList.remove("active");
+		});
+		activeLink.classList.add("active");
+	}
+
+	showSection(sectionName) {
+		document.querySelectorAll(".section").forEach((section) => {
+			section.classList.add("d-none");
+		});
+
+		const targetSection = document.getElementById(`${sectionName}-section`);
+		if (targetSection) {
+			targetSection.classList.remove("d-none");
+		}
+
+		switch (sectionName) {
+			case "dashboard":
+				this.loadDashboard();
+				break;
+			case "users":
+				this.loadUsers();
+				break;
+			case "posts":
+				this.loadPosts();
+				break;
+			case "suspensions":
+				this.loadSuspensions();
+				break;
+		}
+	}
+
+	async getCurrentUser() {
+		const response = await fetch("/api/auth/me", {
+			headers: {
+				Authorization: `Bearer ${this.token}`,
+			},
+		});
+
+		if (!response.ok) throw new Error("Failed to get user");
+
+		const data = await response.json();
+		return data.user;
+	}
+
+	async apiCall(endpoint, options = {}) {
+		const defaultOptions = {
+			headers: {
+				Authorization: `Bearer ${this.token}`,
+				"Content-Type": options?.body ? "application/json" : undefined,
+				...options.headers,
+			},
+		};
+
+		const response = await fetch(endpoint, { ...defaultOptions, ...options });
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.error || "API call failed");
+		}
+
+		return data;
+	}
+
+	async loadDashboard() {
+		try {
+			const stats = await this.apiCall("/api/admin/stats");
+			this.renderStats(stats.stats);
+			this.renderRecentActivity(stats.recentActivity);
+		} catch (error) {
+			this.showError("Failed to load dashboard");
+		}
+	}
+
+	renderStats(stats) {
+		const container = document.getElementById("statsCards");
+		container.innerHTML = `
+      <div class="col-md-3">
+        <div class="card stat-card">
+          <div class="card-body text-center">
+            <i class="bi bi-people-fill fs-1"></i>
+            <h3>${stats.users.total}</h3>
+            <p class="mb-0">Total Users</p>
+            <small>Suspended: ${stats.users.suspended} | Verified: ${stats.users.verified}</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card success">
+          <div class="card-body text-center">
+            <i class="bi bi-chat-left-text-fill fs-1"></i>
+            <h3>${stats.posts.total}</h3>
+            <p class="mb-0">Total Posts</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card warning">
+          <div class="card-body text-center">
+            <i class="bi bi-exclamation-triangle-fill fs-1"></i>
+            <h3>${stats.suspensions.active}</h3>
+            <p class="mb-0">Active Suspensions</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card">
+          <div class="card-body text-center">
+            <i class="bi bi-clipboard-check-fill fs-1"></i>
+            <h3>${stats.suspensions.active}</h3>
+            <p class="mb-0">Active Suspensions</p>
+          </div>
+        </div>
+      </div>
+    `;
+	}
+
+	renderRecentActivity(activity) {
+		const usersContainer = document.getElementById("recentUsers");
+		const suspensionsContainer = document.getElementById("recentSuspensions");
+
+		usersContainer.innerHTML = activity.users
+			.map(
+				(user) => `
+      <div class="d-flex align-items-center mb-2">
+        <strong style="cursor: pointer; color: #0d6efd;" onclick="adminPanel.findAndViewUser('${this.escapeHtml(user.username)}')">@${this.escapeHtml(user.username)}</strong>
+        <small class="text-muted ms-auto">${this.formatDate(user.created_at)}</small>
+      </div>
+    `,
+			)
+			.join("");
+
+		suspensionsContainer.innerHTML = activity.suspensions.length
+			? activity.suspensions
+					.map(
+						(suspension) => `
+        <div class="d-flex align-items-center mb-2">
+          <span style="cursor: pointer; color: #0d6efd;" onclick="adminPanel.findAndViewUser('${this.escapeHtml(suspension.username)}')">@${this.escapeHtml(suspension.username)}</span>
+          <small class="text-muted ms-auto">${this.formatDate(suspension.created_at)}</small>
+        </div>
+      `,
+					)
+					.join("")
+			: '<p class="text-muted">No recent suspensions</p>';
+	}
+
+	async loadUsers(page = 1, search = "") {
+		try {
+			const params = new URLSearchParams({ page, limit: 20 });
+			if (search) params.append("search", search);
+
+			const data = await this.apiCall(`/api/admin/users?${params}`);
+			this.renderUsersTable(data.users);
+			this.renderPagination("users", data.pagination);
+			this.currentPage.users = page;
+		} catch (error) {
+			this.showError("Failed to load users");
+		}
+	}
+
+	renderUsersTable(users) {
+		const container = document.getElementById("usersTable");
+
+		container.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Stats</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${users
+							.map(
+								(user) => `
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    ${
+											user.avatar
+												? `<img src="${user.avatar}" class="user-avatar me-2" alt="Avatar">`
+												: `<div class="user-avatar me-2 bg-secondary rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="bi bi-person text-white"></i>
+                      </div>`
+										}
+                    <div>
+                      <strong>@${user.username}</strong>
+                      ${user.name ? `<br><small class="text-muted">${user.name}</small>` : ""}
+                    </div>
+                  </div>
+                </td>
+                                <td>
+                  <small>
+                    Posts: ${user.actual_post_count}<br>
+                    Followers: ${user.actual_follower_count}<br>
+                    Following: ${user.actual_following_count}
+                  </small>
+                </td>
+                <td>
+                  <div class="d-flex flex-column gap-1">
+                    ${user.verified ? '<span class="badge bg-success">Verified</span>' : ""}
+                    ${user.admin ? '<span class="badge bg-primary">Admin</span>' : ""}
+                    ${user.suspended ? '<span class="badge bg-danger">Suspended</span>' : ""}
+                  </div>
+                </td>
+                <td>
+                  <small>${this.formatDate(user.created_at)}</small>
+                </td>
+                <td>
+                  <div class="btn-group-vertical btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" onclick="adminPanel.viewUser('${user.id}')">
+                      <i class="bi bi-eye"></i> View
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="adminPanel.editProfile('${user.id}')">
+                      <i class="bi bi-person-gear"></i> Edit Profile
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="adminPanel.tweetOnBehalf('${user.id}')">
+                      <i class="bi bi-chat-text"></i> Tweet As
+                    </button>
+                    ${
+											!user.admin
+												? `
+                      <button class="btn btn-outline-warning btn-sm" onclick="adminPanel.toggleVerification('${user.id}', ${!user.verified})">
+                        <i class="bi bi-patch-check"></i> ${user.verified ? "Unverify" : "Verify"}
+                      </button>
+                      ${
+												!user.suspended
+													? `
+                        <button class="btn btn-outline-danger btn-sm" onclick="adminPanel.showSuspensionModal('${user.id}')">
+                          <i class="bi bi-exclamation-triangle"></i> Suspend
+                        </button>
+                      `
+													: `
+                        <button class="btn btn-outline-success btn-sm" onclick="adminPanel.unsuspendUser('${user.id}')">
+                          <i class="bi bi-check-circle"></i> Unsuspend
+                        </button>
+                      `
+											}
+                      <button class="btn btn-outline-info btn-sm" onclick="adminPanel.impersonateUser('${user.id}')">
+                        <i class="bi bi-person-fill-gear"></i> Impersonate
+                      </button>
+                      <button class="btn btn-outline-dark btn-sm" onclick="adminPanel.deleteUser('${user.id}', '@${user.username}')">
+                        <i class="bi bi-trash"></i> Delete
+                      </button>
+                    `
+												: ""
+										}
+                  </div>
+                </td>
+              </tr>
+            `,
+							)
+							.join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+	}
+
+	async searchUsers() {
+		const search = document.getElementById("userSearch").value;
+		this.loadUsers(1, search);
+	}
+
+	async loadPosts(page = 1, search = "") {
+		try {
+			const params = new URLSearchParams({ page, limit: 20 });
+			if (search) params.append("search", search);
+
+			const data = await this.apiCall(`/api/admin/posts?${params}`);
+			this.renderPostsTable(data.posts);
+			this.renderPagination("posts", data.pagination);
+			this.currentPage.posts = page;
+		} catch (error) {
+			this.showError("Failed to load posts");
+		}
+	}
+
+	renderPostsTable(posts) {
+		const container = document.getElementById("postsTable");
+
+		container.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Author</th>
+              <th>Content</th>
+              <th>Stats</th>
+              <th>Posted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${posts
+							.map(
+								(post) => `
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    ${
+											post.avatar
+												? `<img src="${post.avatar}" class="user-avatar me-2" alt="Avatar">`
+												: `<div class="user-avatar me-2 bg-secondary rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="bi bi-person text-white"></i>
+                      </div>`
+										}
+                    <div>
+                      <strong>@${post.username}</strong>
+                      ${post.verified ? '<i class="bi bi-patch-check-fill text-primary"></i>' : ""}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
+                    ${post.content.length > 100 ? post.content.substring(0, 100) + "..." : post.content}
+                  </div>
+                </td>
+                <td>
+                  <small>
+                    Likes: ${post.like_count}<br>
+                    Retweets: ${post.retweet_count}<br>
+                    Replies: ${post.reply_count}
+                  </small>
+                </td>
+                <td>
+                  <small>${this.formatDate(post.created_at)}</small>
+                </td>
+                <td>
+                  <div class="btn-group-vertical btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" onclick="adminPanel.editPost('${post.id}')">
+                      <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="adminPanel.deletePost('${post.id}')">
+                      <i class="bi bi-trash"></i> Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `,
+							)
+							.join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+	}
+
+	async searchPosts() {
+		const search = document.getElementById("postSearch").value;
+		this.loadPosts(1, search);
+	}
+
+	async loadSuspensions(page = 1) {
+		try {
+			const params = new URLSearchParams({ page, limit: 20 });
+			const data = await this.apiCall(`/api/admin/suspensions?${params}`);
+			this.renderSuspensionsTable(data.suspensions);
+			this.renderPagination("suspensions", data.pagination);
+			this.currentPage.suspensions = page;
+		} catch (error) {
+			this.showError("Failed to load suspensions");
+		}
+	}
+
+	renderSuspensionsTable(suspensions) {
+		const container = document.getElementById("suspensionsTable");
+
+		if (suspensions.length === 0) {
+			container.innerHTML =
+				'<p class="text-muted text-center">No active suspensions</p>';
+			return;
+		}
+
+		container.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Reason</th>
+              <th>Severity</th>
+              <th>Suspended By</th>
+              <th>Date</th>
+              <th>Expires</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${suspensions
+							.map(
+								(suspension) => `
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    ${
+											suspension.avatar
+												? `<img src="${suspension.avatar}" class="user-avatar me-2" alt="Avatar">`
+												: `<div class="user-avatar me-2 bg-secondary rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="bi bi-person text-white"></i>
+                      </div>`
+										}
+                    <div>
+                      <strong>@${suspension.username}</strong>
+                      ${suspension.name ? `<br><small class="text-muted">${suspension.name}</small>` : ""}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;">
+                    ${suspension.reason}
+                  </div>
+                  ${suspension.notes ? `<small class="text-muted">Notes: ${suspension.notes}</small>` : ""}
+                </td>
+                <td>
+                  <span class="badge ${
+										suspension.severity >= 4
+											? "bg-danger"
+											: suspension.severity >= 3
+												? "bg-warning"
+												: "bg-info"
+									}">
+                    ${suspension.severity}/5
+                  </span>
+                </td>
+                <td>
+                  <small>@${suspension.suspended_by_username}</small>
+                </td>
+                <td>
+                  <small>${this.formatDate(suspension.created_at)}</small>
+                </td>
+                <td>
+                  <small>${
+										suspension.expires_at
+											? this.formatDate(suspension.expires_at)
+											: "Permanent"
+									}</small>
+                </td>
+                <td>
+                  <button class="btn btn-outline-success btn-sm" onclick="adminPanel.unsuspendUser('${suspension.user_id}')">
+                    <i class="bi bi-check-circle"></i> Lift
+                  </button>
+                </td>
+              </tr>
+            `,
+							)
+							.join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+	}
+
+	renderPagination(type, pagination) {
+		const container = document.getElementById(`${type}Pagination`);
+
+		if (pagination.pages <= 1) {
+			container.innerHTML = "";
+			return;
+		}
+
+		container.innerHTML = `
+      <ul class="pagination justify-content-center align-items-center">
+        <li class="page-item ${pagination.page === 1 ? "disabled" : ""}">
+          <a class="page-link" href="#" onclick="adminPanel.load${type.charAt(0).toUpperCase() + type.slice(1)}(${pagination.page - 1})">Previous</a>
+        </li>
+        <li class="page-item">
+          <span class="page-link bg-light">
+            Page <input type="number" min="1" max="${pagination.pages}" value="${pagination.page}" 
+                       style="width: 60px; border: 1px solid #ccc; text-align: center; margin: 0 5px;"
+                       onkeypress="if(event.key === 'Enter') adminPanel.load${type.charAt(0).toUpperCase() + type.slice(1)}(parseInt(this.value))"
+                       onchange="adminPanel.load${type.charAt(0).toUpperCase() + type.slice(1)}(parseInt(this.value))"> of ${pagination.pages}
+          </span>
+        </li>
+        <li class="page-item ${pagination.page === pagination.pages ? "disabled" : ""}">
+          <a class="page-link" href="#" onclick="adminPanel.load${type.charAt(0).toUpperCase() + type.slice(1)}(${pagination.page + 1})">Next</a>
+        </li>
+      </ul>
+    `;
+	}
+
+	async viewUser(userId) {
+		try {
+			const user = await this.apiCall(`/api/admin/users/${userId}`);
+			this.showUserModal(user);
+		} catch (error) {
+			this.showError("Failed to load user details");
+		}
+	}
+
+	showUserModal(userData) {
+		const { user, suspensions, recentPosts } = userData;
+
+		document.getElementById("userModalBody").innerHTML = `
+      <div class="row">
+        <div class="col-md-4 text-center">
+          ${
+						user.avatar
+							? `<img src="${user.avatar}" class="img-fluid rounded-circle mb-3" style="max-width: 150px;" alt="Avatar">`
+							: `<div class="bg-secondary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
+              <i class="bi bi-person text-white" style="font-size: 4rem;"></i>
+            </div>`
+					}
+          <h4>@${user.username}</h4>
+          ${user.name ? `<p class="text-muted">${user.name}</p>` : ""}
+          <div class="d-flex justify-content-center gap-2 mb-3">
+            ${user.verified ? '<span class="badge bg-success">Verified</span>' : ""}
+            ${user.admin ? '<span class="badge bg-primary">Admin</span>' : ""}
+            ${user.suspended ? '<span class="badge bg-danger">Suspended</span>' : ""}
+          </div>
+        </div>
+        <div class="col-md-8">
+          <h5>Account Statistics</h5>
+          <div class="row mb-3">
+            <div class="col-6">
+              <strong>Posts:</strong> ${user.actual_post_count || 0}<br>
+              <strong>Followers:</strong> ${user.actual_follower_count || 0}<br>
+              <strong>Following:</strong> ${user.actual_following_count || 0}
+            </div>
+            <div class="col-6">
+              <strong>Verified:</strong> ${user.verified ? "Yes" : "No"}<br>
+              <strong>Admin:</strong> ${user.admin ? "Yes" : "No"}<br>
+              <strong>Suspended:</strong> ${user.suspended ? "Yes" : "No"}
+            </div>
+          </div>
+          
+          <h5>Recent Posts</h5>
+          <div class="mb-3" style="max-height: 200px; overflow-y: auto;">
+            ${
+							recentPosts && recentPosts.length
+								? recentPosts
+										.map(
+											(post) => `
+              <div class="border-bottom pb-2 mb-2">
+                <small class="text-muted">${this.formatDate(post.created_at)}</small>
+                <p class="mb-1">${post.content}</p>
+                <small>Likes: ${post.like_count} | Retweets: ${post.retweet_count} | Replies: ${post.reply_count}</small>
+              </div>
+            `,
+										)
+										.join("")
+								: '<p class="text-muted">No recent posts</p>'
+						}
+          </div>
+
+          ${
+						suspensions && suspensions.length
+							? `
+            <h5>Suspension History</h5>
+            <div style="max-height: 200px; overflow-y: auto;">
+              ${suspensions
+								.map(
+									(suspension) => `
+                <div class="border-bottom pb-2 mb-2">
+                  <div class="d-flex justify-content-between">
+                    <strong>Severity ${suspension.severity}/5</strong>
+                    <span class="badge ${
+											suspension.status === "active"
+												? "bg-danger"
+												: suspension.status === "lifted"
+													? "bg-success"
+													: "bg-secondary"
+										}">
+                      ${suspension.status}
+                    </span>
+                  </div>
+                  <p class="mb-1">${suspension.reason}</p>
+                  <small class="text-muted">
+                    ${this.formatDate(suspension.created_at)} by ${suspension.suspended_by_username || "Unknown"}
+                    ${suspension.expires_at ? ` | Expires: ${this.formatDate(suspension.expires_at)}` : " | Permanent"}
+                  </small>
+                </div>
+              `,
+								)
+								.join("")}
+            </div>
+          `
+							: ""
+					}
+        </div>
+      </div>
+    `;
+
+		new bootstrap.Modal(document.getElementById("userModal")).show();
+	}
+
+	async toggleVerification(userId, verified) {
+		try {
+			await this.apiCall(`/api/admin/users/${userId}/verify`, {
+				method: "PATCH",
+				body: JSON.stringify({ verified }),
+			});
+
+			this.showSuccess(
+				`User ${verified ? "verified" : "unverified"} successfully`,
+			);
+			this.loadUsers(this.currentPage.users);
+		} catch (error) {
+			this.showError(error.message);
+		}
+	}
+
+	showSuspensionModal(userId) {
+		document.getElementById("suspendUserId").value = userId;
+		document.getElementById("suspensionForm").reset();
+		new bootstrap.Modal(document.getElementById("suspensionModal")).show();
+	}
+
+	async submitSuspension() {
+		const userId = document.getElementById("suspendUserId").value;
+		const reason = document.getElementById("suspensionReason").value;
+		const severity = parseInt(
+			document.getElementById("suspensionSeverity").value,
+		);
+		const duration = document.getElementById("suspensionDuration").value;
+		const notes = document.getElementById("suspensionNotes").value;
+
+		if (!reason.trim()) {
+			this.showError("Suspension reason is required");
+			return;
+		}
+
+		const payload = {
+			reason: reason.trim(),
+			severity,
+		};
+
+		// Only include optional fields if they have values
+		if (duration && duration.trim()) {
+			payload.duration = parseInt(duration);
+		}
+		if (notes && notes.trim()) {
+			payload.notes = notes.trim();
+		}
+
+		try {
+			await this.apiCall(`/api/admin/users/${userId}/suspend`, {
+				method: "POST",
+				body: JSON.stringify(payload),
+			});
+
+			bootstrap.Modal.getInstance(
+				document.getElementById("suspensionModal"),
+			).hide();
+			this.showSuccess("User suspended successfully");
+			this.loadUsers(this.currentPage.users);
+		} catch (error) {
+			this.showError(error.message);
+		}
+	}
+
+	async unsuspendUser(userId) {
+		if (!confirm("Are you sure you want to unsuspend this user?")) return;
+
+		try {
+			await this.apiCall(`/api/admin/users/${userId}/unsuspend`, {
+				method: "POST",
+			});
+
+			this.showSuccess("User unsuspended successfully");
+			// Refresh both users and suspensions if we're on those pages
+			if (this.currentPage.users) this.loadUsers(this.currentPage.users);
+			if (this.currentPage.suspensions)
+				this.loadSuspensions(this.currentPage.suspensions);
+		} catch (error) {
+			this.showError(error.message);
+		}
+	}
+
+	async impersonateUser(userId) {
+		try {
+			const result = await this.apiCall(`/api/admin/impersonate/${userId}`, {
+				method: "POST",
+			});
+
+			this.token = result.token;
+
+			const copyButton = `<button class="btn btn-sm btn-outline-primary ms-2" onclick="navigator.clipboard.writeText('${result.copyLink}').then(() => this.textContent = 'Copied!')">Copy Incognito Link</button>`;
+			this.showSuccess(
+				`To impersonate @${result.user.username}, use: ${copyButton}`,
+				10000,
+			);
+		} catch (error) {
+			this.showError(error.message);
+		}
+	}
+
+	async deleteUser(userId, username) {
+		const confirmation = prompt(`Type "${username}" to confirm deletion:`);
+		if (confirmation !== username) {
+			this.showError("Username confirmation did not match");
+			return;
+		}
+
+		try {
+			await this.apiCall(`/api/admin/users/${userId}`, {
+				method: "DELETE",
+			});
+
+			this.showSuccess("User deleted successfully");
+			this.loadUsers(this.currentPage.users);
+		} catch (error) {
+			this.showError(error.message);
+		}
+	}
+
+	async deletePost(postId) {
+		if (!confirm("Are you sure you want to delete this post?")) return;
+
+		try {
+			await this.apiCall(`/api/admin/posts/${postId}`, {
+				method: "DELETE",
+			});
+
+			this.showSuccess("Post deleted successfully");
+			this.loadPosts(this.currentPage.posts);
+		} catch (error) {
+			this.showError(error.message);
+		}
+	}
+
+	formatDate(dateString) {
+		return new Date(dateString).toLocaleString();
+	}
+
+	findAndViewUser(username) {
+		// Switch to users tab
+		document.querySelector('[data-bs-target="#userManagement"]').click();
+
+		// Focus and set search input
+		const searchInput = document.getElementById("userSearch");
+		searchInput.value = username;
+		searchInput.focus();
+
+		// Trigger search
+		this.searchUsers();
+	}
+
+	async editPost(postId) {
+		try {
+			const post = await this.apiCall(`/api/admin/posts/${postId}`);
+
+			document.getElementById("editPostId").value = post.id;
+			document.getElementById("editPostContent").value = post.content;
+			document.getElementById("editPostLikes").value = post.like_count || 0;
+			document.getElementById("editPostRetweets").value =
+				post.retweet_count || 0;
+			document.getElementById("editPostReplies").value = post.reply_count || 0;
+
+			const modal = new bootstrap.Modal(
+				document.getElementById("editPostModal"),
+			);
+			modal.show();
+		} catch (error) {
+			this.showError("Failed to load post details");
+		}
+	}
+
+	async savePostEdit() {
+		const postId = document.getElementById("editPostId").value;
+		const content = document.getElementById("editPostContent").value;
+		const likes = parseInt(document.getElementById("editPostLikes").value) || 0;
+		const retweets =
+			parseInt(document.getElementById("editPostRetweets").value) || 0;
+		const replies =
+			parseInt(document.getElementById("editPostReplies").value) || 0;
+
+		if (!content.trim()) {
+			this.showError("Post content cannot be empty");
+			return;
+		}
+
+		try {
+			await this.apiCall(`/api/admin/posts/${postId}`, {
+				method: "PATCH",
+				body: JSON.stringify({
+					content: content.trim(),
+					likes,
+					retweets,
+					replies,
+				}),
+			});
+
+			bootstrap.Modal.getInstance(
+				document.getElementById("editPostModal"),
+			).hide();
+			this.showSuccess("Post updated successfully");
+			await this.loadPosts(this.currentPage.posts);
+		} catch (error) {
+			this.showError(error.message);
+		}
+	}
+
+	async editProfile(userId) {
+		try {
+			const userData = await this.apiCall(`/api/admin/users/${userId}`);
+			const user = userData.user;
+
+			document.getElementById("editProfileId").value = user.id;
+			document.getElementById("editProfileUsername").value = user.username;
+			document.getElementById("editProfileName").value = user.name || "";
+			document.getElementById("editProfileBio").value = user.bio || "";
+			document.getElementById("editProfileVerified").checked =
+				user.verified || false;
+			document.getElementById("editProfileAdmin").checked = user.admin || false;
+			document.getElementById("editProfileFollowers").value =
+				user.actual_follower_count || 0;
+			document.getElementById("editProfileFollowing").value =
+				user.actual_following_count || 0;
+
+			const modal = new bootstrap.Modal(
+				document.getElementById("editProfileModal"),
+			);
+			modal.show();
+		} catch (error) {
+			this.showError("Failed to load user details");
+		}
+	}
+
+	async saveProfileEdit() {
+		const userId = document.getElementById("editProfileId").value;
+		const username = document.getElementById("editProfileUsername").value;
+		const name = document.getElementById("editProfileName").value;
+		const bio = document.getElementById("editProfileBio").value;
+		const verified = document.getElementById("editProfileVerified").checked;
+		const admin = document.getElementById("editProfileAdmin").checked;
+		const followers =
+			parseInt(document.getElementById("editProfileFollowers").value) || 0;
+		const following =
+			parseInt(document.getElementById("editProfileFollowing").value) || 0;
+
+		if (!username.trim()) {
+			this.showError("Username cannot be empty");
+			return;
+		}
+
+		try {
+			await this.apiCall(`/api/admin/users/${userId}`, {
+				method: "PATCH",
+				body: JSON.stringify({
+					username: username.trim(),
+					name: name.trim() || null,
+					bio: bio.trim() || null,
+					verified,
+					admin,
+					followers,
+					following,
+				}),
+			});
+
+			bootstrap.Modal.getInstance(
+				document.getElementById("editProfileModal"),
+			).hide();
+			this.showSuccess("Profile updated successfully");
+			await this.loadUsers(this.currentPage.users);
+		} catch (error) {
+			this.showError(error.message);
+		}
+	}
+
+	async tweetOnBehalf(userId) {
+		try {
+			const userData = await this.apiCall(`/api/admin/users/${userId}`);
+			const user = userData.user;
+
+			document.getElementById("tweetUserId").value = user.id;
+			document.getElementById("tweetUserDisplay").textContent =
+				`@${user.username}`;
+			document.getElementById("tweetContent").value = "";
+
+			const modal = new bootstrap.Modal(
+				document.getElementById("tweetOnBehalfModal"),
+			);
+			modal.show();
+		} catch (error) {
+			console.error(error);
+			this.showError("Failed to load user details");
+		}
+	}
+
+	async postTweetOnBehalf() {
+		const userId = document.getElementById("tweetUserId").value;
+		const content = document.getElementById("tweetContent").value;
+
+		if (!content.trim()) {
+			this.showError("Tweet content cannot be empty");
+			return;
+		}
+
+		try {
+			await this.apiCall("/api/admin/tweets", {
+				method: "POST",
+				body: JSON.stringify({
+					content: content.trim(),
+					userId,
+				}),
+			});
+
+			bootstrap.Modal.getInstance(
+				document.getElementById("tweetOnBehalfModal"),
+			).hide();
+			this.showSuccess("Tweet posted successfully");
+			await this.loadPosts(this.currentPage.posts);
+		} catch (error) {
+			this.showError(error.message);
+		}
+	}
+
+	showError(message) {
+		this.showToast(message, "danger");
+	}
+
+	showSuccess(message, duration = 3000) {
+		this.showToast(message, "success", duration);
+	}
+
+	showToast(message, type, duration = 3000) {
+		const toastContainer =
+			document.getElementById("toastContainer") || this.createToastContainer();
+
+		const toast = document.createElement("div");
+		toast.className = `toast align-items-center text-white bg-${type} border-0`;
+		toast.setAttribute("role", "alert");
+		toast.setAttribute("data-bs-delay", duration);
+		toast.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    `;
+
+		toastContainer.appendChild(toast);
+		const bsToast = new bootstrap.Toast(toast);
+		bsToast.show();
+
+		toast.addEventListener("hidden.bs.toast", () => {
+			toast.remove();
+		});
+	}
+
+	createToastContainer() {
+		const container = document.createElement("div");
+		container.id = "toastContainer";
+		container.className = "toast-container position-fixed top-0 end-0 p-3";
+		container.style.zIndex = "9999";
+		document.body.appendChild(container);
+		return container;
+	}
+}
+
+// Global functions for onclick handlers
+const adminPanel = new AdminPanel();
+
+function showSection(section) {
+	adminPanel.showSection(section);
+}
+
+function stopImpersonation() {
+	adminPanel.stopImpersonation();
+}
+
+function searchUsers() {
+	adminPanel.searchUsers();
+}
+
+function searchPosts() {
+	adminPanel.searchPosts();
+}
+
+function loadUsers() {
+	adminPanel.loadUsers();
+}
+
+function loadPosts() {
+	adminPanel.loadPosts();
+}
+
+function loadSuspensions() {
+	adminPanel.loadSuspensions();
+}
+
+function submitSuspension() {
+	adminPanel.submitSuspension();
+}
+
+function submitPostEdit() {
+	adminPanel.savePostEdit();
+}
+
+function submitProfileEdit() {
+	adminPanel.saveProfileEdit();
+}
+
+function submitTweetOnBehalf() {
+	adminPanel.postTweetOnBehalf();
+}

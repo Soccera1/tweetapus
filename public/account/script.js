@@ -27,7 +27,32 @@ const elements = {
 let authToken = null;
 let currentUser = null;
 
+function handleImpersonationToken() {
+	const urlParams = new URLSearchParams(window.location.search);
+	const impersonateToken = urlParams.get("impersonate");
+
+	if (impersonateToken) {
+		localStorage.setItem("authToken", decodeURIComponent(impersonateToken));
+		window.history.replaceState({}, document.title, window.location.pathname);
+		cookieStore.set({
+			name: "agree",
+			value: "yes",
+			expires: new Date("Fri, 31 Dec 9999 23:59:59 GMT"),
+		});
+
+		setTimeout(() => {
+			window.location.href = "/timeline/";
+		}, 500);
+		return true;
+	}
+	return false;
+}
+
 function checkExistingSession() {
+	if (handleImpersonationToken()) {
+		return;
+	}
+
 	const finish = () => {
 		document.querySelector(".loader").style.opacity = "0";
 		setTimeout(() => {

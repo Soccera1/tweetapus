@@ -2,6 +2,12 @@ export const authToken = localStorage.getItem("authToken");
 
 let _user;
 
+// Handle logout from impersonation
+export const exitImpersonation = () => {
+	localStorage.removeItem("authToken");
+	window.location.href = "/admin/";
+};
+
 const closeDropdown = (dropdown) => {
 	if (!dropdown) return;
 	dropdown.classList.remove("open");
@@ -21,14 +27,27 @@ const closeDropdown = (dropdown) => {
 };
 
 (async () => {
-	if (!authToken) {
+	// Check for impersonation token in URL
+	const urlParams = new URLSearchParams(window.location.search);
+	const impersonateToken = urlParams.get("impersonate");
+
+	if (impersonateToken) {
+		localStorage.setItem("authToken", decodeURIComponent(impersonateToken));
+		// Remove the parameter from URL without reload
+		window.history.replaceState({}, document.title, window.location.pathname);
+	}
+
+	if (!authToken && !impersonateToken) {
 		cookieStore.delete("agree");
 		window.location.href = "/";
 		return;
 	}
 
+	const currentToken = impersonateToken
+		? decodeURIComponent(impersonateToken)
+		: authToken;
 	const response = await fetch("/api/auth/me", {
-		headers: { Authorization: `Bearer ${authToken}` },
+		headers: { Authorization: `Bearer ${currentToken}` },
 	});
 
 	const { user, error } = await response.json();

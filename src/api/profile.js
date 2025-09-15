@@ -424,41 +424,36 @@ export default new Elysia({ prefix: "/profile" })
 		const authorization = headers.authorization;
 		if (!authorization) return { error: "Authentication required" };
 
-		try {
-			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-			if (!payload) return { error: "Invalid token" };
+		const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+		if (!payload) return { error: "Invalid token" };
 
-			const currentUser = getUserByUsername.get(payload.username);
-			if (!currentUser) return { error: "User not found" };
+		const currentUser = getUserByUsername.get(payload.username);
+		if (!currentUser) return { error: "User not found" };
 
-			const { username } = params;
-			const targetUser = getUserByUsername.get(username);
-			if (!targetUser) return { error: "User not found" };
+		const { username } = params;
+		const targetUser = getUserByUsername.get(username);
+		if (!targetUser) return { error: "User not found" };
 
-			if (currentUser.id === targetUser.id) {
-				return { error: "You cannot follow yourself" };
-			}
-
-			const existingFollow = getFollowStatus.get(currentUser.id, targetUser.id);
-			if (existingFollow) {
-				return { error: "Already following this user" };
-			}
-
-			const followId = Bun.randomUUIDv7();
-			addFollow.run(followId, currentUser.id, targetUser.id);
-
-			addNotification(
-				targetUser.id,
-				"follow",
-				`@${currentUser.username} started following you`,
-				currentUser.username,
-			);
-
-			return { success: true };
-		} catch (error) {
-			console.error("Follow error:", error);
-			return { error: "Failed to follow user" };
+		if (currentUser.id === targetUser.id) {
+			return { error: "You cannot follow yourself" };
 		}
+
+		const existingFollow = getFollowStatus.get(currentUser.id, targetUser.id);
+		if (existingFollow) {
+			return { error: "Already following this user" };
+		}
+
+		const followId = Bun.randomUUIDv7();
+		addFollow.run(followId, currentUser.id, targetUser.id);
+
+		addNotification(
+			targetUser.id,
+			"follow",
+			`@${currentUser.username} started following you`,
+			currentUser.username,
+		);
+
+		return { success: true };
 	})
 	.delete("/:username/follow", async ({ params, jwt, headers }) => {
 		const authorization = headers.authorization;

@@ -1,8 +1,10 @@
 import { Elysia } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
+import admin from "./api/admin.js";
 import auth from "./api/auth.js";
 import notifications from "./api/notifications.js";
 import profile, { avatarRoutes } from "./api/profile.js";
+import search from "./api/search.js";
 import timeline from "./api/timeline.js";
 import tweet from "./api/tweet.js";
 import upload, { uploadRoutes } from "./api/upload.js";
@@ -20,9 +22,11 @@ export default new Elysia({
 		}),
 	)
 	.use(auth)
+	.use(admin)
 	.use(tweet)
 	.use(profile)
 	.use(timeline)
+	.use(search)
 	.use(upload)
 	.use(notifications)
 	.use(avatarRoutes)

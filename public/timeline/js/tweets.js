@@ -3,7 +3,7 @@ import { marked } from "https://esm.sh/marked@16.3.0";
 import confetti from "../../shared/confetti.js";
 import createPopup from "../../shared/popup.js";
 import toastQueue from "../../shared/toasts.js";
-import { authToken } from "./auth.js";
+import getUser, { authToken } from "./auth.js";
 import openTweet from "./tweet.js";
 
 DOMPurify.addHook("uponSanitizeElement", (node, data) => {
@@ -381,6 +381,94 @@ export const createTweetElement = (tweet, config = {}) => {
 	tweetHeaderInfoEl.appendChild(tweetHeaderUsernameEl);
 
 	tweetHeaderEl.appendChild(tweetHeaderInfoEl);
+
+	// Add delete button for user's own tweets
+	getUser().then((currentUser) => {
+		if (
+			currentUser &&
+			currentUser.id === tweet.author.id &&
+			size !== "preview"
+		) {
+			const deleteButtonEl = document.createElement("button");
+			deleteButtonEl.className = "tweet-delete-btn";
+			deleteButtonEl.innerHTML = `
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<polyline points="3,6 5,6 21,6"></polyline>
+					<path d="m19,6v14a2,2 0,0 1,-2,2H7a2,2 0,0 1,-2,-2V6m3,0V4a2,2 0,0 1,2,-2h4a2,2 0,0 1,2,2v2"></path>
+					<line x1="10" y1="11" x2="10" y2="17"></line>
+					<line x1="14" y1="11" x2="14" y2="17"></line>
+				</svg>
+			`;
+			deleteButtonEl.title = "Delete tweet";
+			deleteButtonEl.style.cssText = `
+				position: absolute;
+				right: 10px;
+				top: 10px;
+				background: none;
+				border: none;
+				color: #777;
+				cursor: pointer;
+				padding: 4px;
+				border-radius: 4px;
+				opacity: 0.7;
+				transition: all 0.2s ease;
+			`;
+
+			deleteButtonEl.addEventListener("mouseover", () => {
+				deleteButtonEl.style.backgroundColor = "#ff4444";
+				deleteButtonEl.style.color = "white";
+				deleteButtonEl.style.opacity = "1";
+			});
+
+			deleteButtonEl.addEventListener("mouseout", () => {
+				deleteButtonEl.style.backgroundColor = "transparent";
+				deleteButtonEl.style.color = "#777";
+				deleteButtonEl.style.opacity = "0.7";
+			});
+
+			deleteButtonEl.addEventListener("click", async (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+
+				if (!confirm("Are you sure you want to delete this tweet?")) {
+					return;
+				}
+
+				try {
+					const response = await fetch(`/api/tweets/${tweet.id}`, {
+						method: "DELETE",
+						headers: { Authorization: `Bearer ${authToken}` },
+					});
+
+					const result = await response.json();
+
+					if (result.success) {
+						tweetEl.style.opacity = "0.5";
+						tweetEl.style.transform = "scale(0.95)";
+						tweetEl.style.transition = "all 0.3s ease";
+
+						setTimeout(() => {
+							tweetEl.remove();
+						}, 300);
+
+						toastQueue.add(`<h1>Tweet deleted successfully</h1>`);
+					} else {
+						toastQueue.add(
+							`<h1>${result.error || "Failed to delete tweet"}</h1>`,
+						);
+					}
+				} catch (error) {
+					console.error("Error deleting tweet:", error);
+					toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+				}
+			});
+
+			// Make tweet container position relative for absolute positioning
+			tweetEl.style.position = "relative";
+			tweetHeaderEl.appendChild(deleteButtonEl);
+		}
+	});
+
 	tweetEl.appendChild(tweetHeaderEl);
 
 	const tweetContentEl = document.createElement("div");

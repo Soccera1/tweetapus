@@ -272,22 +272,16 @@ function createNotificationElement(notification) {
 async function markAllAsRead() {
 	if (!authToken) return;
 
-	try {
-		await fetch("/api/notifications/mark-all-read", {
-			method: "PATCH",
-			headers: { Authorization: `Bearer ${authToken}` },
-		});
+	await fetch("/api/notifications/mark-all-read", {
+		method: "PATCH",
+		headers: { Authorization: `Bearer ${authToken}` },
+	});
 
-		currentNotifications.forEach((notification) => {
-			notification.read = true;
-		});
-		renderNotifications();
-		updateUnreadCount();
-		toastQueue.add(`<h1>All notifications marked as read</h1>`);
-	} catch (error) {
-		console.error("Failed to mark all notifications as read:", error);
-		toastQueue.add(`<h1>Failed to mark notifications as read</h1>`);
-	}
+	currentNotifications.forEach((notification) => {
+		notification.read = true;
+	});
+	renderNotifications();
+	updateUnreadCount();
 }
 
 document
