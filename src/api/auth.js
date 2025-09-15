@@ -561,7 +561,7 @@ export default new Elysia({
 		} catch (error) {
 			return { error: error.message };
 		}
-	})
+	}) // stuck cursor
 	.post("/register-with-password", async ({ body, jwt }) => {
 		try {
 			const { username, password } = body;
