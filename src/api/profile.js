@@ -27,20 +27,6 @@ const getFollowing = db.query(`
 
 const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
 
-const searchUsers = db.query(`
-  SELECT id, username, name, avatar, verified
-  FROM users 
-  WHERE username LIKE ? OR name LIKE ?
-  ORDER BY 
-    CASE 
-      WHEN username LIKE ? THEN 1
-      WHEN name LIKE ? THEN 2
-      ELSE 3
-    END,
-    username
-  LIMIT 10
-`);
-
 const updateProfile = db.query(`
   UPDATE users
   SET name = ?, bio = ?, location = ?, website = ?

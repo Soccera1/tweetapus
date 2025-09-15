@@ -338,6 +338,7 @@ h1 {
   line-height: 1.4;
   overflow: hidden;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
@@ -1866,7 +1867,6 @@ h1 {
   }
 }
 
-/* Retweet Indicator Styles */
 .retweet-indicator {
   display: flex;
   align-items: center;

@@ -102,7 +102,7 @@ function createNotificationElement(notification) {
 		!notification.created_at.endsWith("Z") &&
 		!notification.created_at.includes("+")
 	) {
-		date = new Date(notification.created_at + "Z");
+		date = new Date(`${notification.created_at}Z`);
 	} else {
 		date = new Date(notification.created_at);
 	}

@@ -319,7 +319,7 @@ const timeAgo = (input) => {
 		return str;
 	}
 
-	return past ? str + " ago" : "in " + str;
+	return past ? `${str} ago` : `in ${str}`;
 };
 
 const apiRequest = async (path, options = {}) => {
