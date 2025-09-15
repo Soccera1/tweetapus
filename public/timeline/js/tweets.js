@@ -1,3 +1,4 @@
+import DOMPurify from "https://esm.sh/dompurify@2.4.0";
 import { marked } from "https://esm.sh/marked@16.3.0";
 import confetti from "../../shared/confetti.js";
 import createPopup from "../../shared/popup.js";
@@ -5,19 +6,17 @@ import toastQueue from "../../shared/toasts.js";
 import { authToken } from "./auth.js";
 import openTweet from "./tweet.js";
 
-const escapeHtml = (str) =>
-	str
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
+DOMPurify.addHook("uponSanitizeElement", (node, data) => {
+	if (!data.allowedTags[data.tagName]) {
+		const textNode = document.createTextNode(node.outerHTML);
+		node.parentNode.replaceChild(textNode, node);
+	}
+});
 
 const linkifyText = (text) => {
-	const urlRegex = /(https?:\/\/[^\s]+)/g;
 	const mentionRegex = /@([a-zA-Z0-9_]+)/g;
 
-	const html = marked.parse(text, {
+	const html = marked.parse(text.trim(), {
 		breaks: true,
 		gfm: true,
 		html: false,
@@ -25,50 +24,40 @@ const linkifyText = (text) => {
 		mangle: false,
 	});
 
-	// Parse the HTML and linkify text nodes
-	const parser = new DOMParser();
-	const doc = parser.parseFromString(html, "text/html");
+	const el = document.createElement("div");
+	
+	el.innerHTML = DOMPurify.sanitize(
+		html.replace(
+			mentionRegex,
+			'<a href="javascript:" class="tweet-mention" data-username="$1">@$1</a>',
+		),
+		{
+			ALLOWED_TAGS: [
+				"b",
+				"i",
+				"u",
+				"s",
+				"a",
+				"p",
+				"br",
+				"marquee",
+				"strong",
+				"em",
+				"code",
+				"pre",
+				"blockquote",
+				"h1", "h2", "h3", "h4", "h5", "h6"
+			],
+			ALLOWED_ATTR: ["href", "target", "rel", "class"],
+		},
+	);
 
-	const linkifyNode = (node) => {
-		if (node.nodeType === Node.TEXT_NODE) {
-			let text = node.textContent;
+	el.querySelectorAll("a").forEach((a) => {
+		a.setAttribute("target", "_blank");
+		a.setAttribute("rel", "noopener noreferrer");
+	});
 
-			// Handle mentions
-			text = text.replace(
-				mentionRegex,
-				'<a href="#" class="tweet-mention" data-username="$1">@$1</a>',
-			);
-
-			// Handle URLs
-			text = text.replace(urlRegex, (url) => {
-				const cleanUrl = url.replace(/[.,!?;:]$/, "");
-				const trailingPunc = url.slice(cleanUrl.length);
-				try {
-					const hostname = new URL(cleanUrl).hostname;
-					return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="tweet-link">${hostname}</a>${trailingPunc}`;
-				} catch {
-					return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="tweet-link">${cleanUrl}</a>${trailingPunc}`;
-				}
-			});
-
-			// Replace the text node with HTML
-			const tempDiv = document.createElement("div");
-			tempDiv.innerHTML = text;
-			while (tempDiv.firstChild) {
-				node.parentNode.insertBefore(tempDiv.firstChild, node);
-			}
-			node.parentNode.removeChild(node);
-		} else if (node.nodeType === Node.ELEMENT_NODE) {
-			// Recurse on children
-			for (const child of Array.from(node.childNodes)) {
-				linkifyNode(child);
-			}
-		}
-	};
-
-	linkifyNode(doc.body);
-
-	return doc.body.innerHTML;
+	return el.innerHTML;
 };
 
 const timeAgo = (date) => {
@@ -76,7 +65,7 @@ const timeAgo = (date) => {
 	let dateObj;
 
 	if (typeof date === "string" && !date.endsWith("Z") && !date.includes("+")) {
-		dateObj = new Date(date + "Z");
+		dateObj = new Date(`${date}Z`);
 	} else {
 		dateObj = new Date(date);
 	}
@@ -386,7 +375,7 @@ export const createTweetElement = (tweet, config = {}) => {
 
 	const tweetContentEl = document.createElement("div");
 	tweetContentEl.className = "tweet-content";
-	tweetContentEl.innerHTML = linkifyText(tweet.content);
+	tweetContentEl.innerHTML = linkifyText(tweet.content.trim());
 
 	tweetContentEl.addEventListener("click", (e) => {
 		if (e.target.classList.contains("tweet-mention")) {
@@ -676,49 +665,9 @@ export const createTweetElement = (tweet, config = {}) => {
 	const tweetInteractionsShareEl = document.createElement("button");
 	tweetInteractionsShareEl.className = "engagement";
 	tweetInteractionsShareEl.style.setProperty("--color", "119, 119, 119");
-	tweetInteractionsShareEl.innerHTML = `<svg
-          width="19"
-          height="19"
-          viewBox="0 0 19 19"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M14.25 5.54167C15.6307 5.54167 16.75 4.42235 16.75 3.04167C16.75 1.66099 15.6307 0.541672 14.25 0.541672C12.8693 0.541672 11.75 1.66099 11.75 3.04167C11.75 4.42235 12.8693 5.54167 14.25 5.54167Z"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M4.75 12.6667C6.13069 12.6667 7.25 11.5474 7.25 10.1667C7.25 8.78598 6.13069 7.66667 4.75 7.66667C3.36931 7.66667 2.25 8.78598 2.25 10.1667C2.25 11.5474 3.36931 12.6667 4.75 12.6667Z"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M14.25 18.4583C15.6307 18.4583 16.75 17.339 16.75 15.9583C16.75 14.5777 15.6307 13.4583 14.25 13.4583C12.8693 13.4583 11.75 14.5777 11.75 15.9583C11.75 17.339 12.8693 18.4583 14.25 18.4583Z"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M7.07 8.87L11.94 5.34"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M7.07 11.4625L11.94 14.9925"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>`;
+	tweetInteractionsShareEl.innerHTML = `<svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.3068 16.4011C11.3338 16.4686 11.3809 16.5261 11.4416 16.5661C11.5023 16.606 11.5738 16.6264 11.6465 16.6246C11.7192 16.6227 11.7895 16.5987 11.8481 16.5557C11.9067 16.5127 11.9508 16.4528 11.9744 16.384L16.6056 2.8465C16.6284 2.78337 16.6328 2.71505 16.6182 2.64953C16.6036 2.58402 16.5706 2.52402 16.5231 2.47656C16.4757 2.42909 16.4157 2.39613 16.3502 2.38152C16.2846 2.36691 16.2163 2.37126 16.1532 2.39406L2.61569 7.02531C2.54693 7.04889 2.48703 7.09294 2.44403 7.15155C2.40102 7.21015 2.37698 7.28051 2.37512 7.35318C2.37326 7.42584 2.39367 7.49734 2.43361 7.55807C2.47356 7.6188 2.53112 7.66586 2.59859 7.69293L8.24871 9.95868C8.42733 10.0302 8.58961 10.1371 8.72578 10.2731C8.86194 10.409 8.96918 10.5711 9.04101 10.7496L11.3068 16.4011Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M16.5213 2.47974L8.72656 10.2738" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+`;
 
 	tweetInteractionsShareEl.addEventListener("click", async (e) => {
 		e.preventDefault();
@@ -801,8 +750,21 @@ export const createTweetElement = (tweet, config = {}) => {
 };
 
 export const addTweetToTimeline = (tweet, prepend = false) => {
-	if (!tweet || !tweet.author) {
-		console.error("Invalid tweet object provided to addTweetToTimeline");
+	if (!tweet) {
+		console.error("No tweet provided to addTweetToTimeline");
+		return null;
+	}
+
+	// Handle tweets without author property (fallback)
+	if (!tweet.author && tweet.user) {
+		tweet.author = tweet.user;
+	}
+
+	if (!tweet.author) {
+		console.error(
+			"Invalid tweet object provided to addTweetToTimeline - missing author",
+			tweet,
+		);
 		return null;
 	}
 

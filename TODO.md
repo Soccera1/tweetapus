@@ -2,9 +2,7 @@
 - deleting tweets
 - hashtags
 - blocking
-- fix followings/followers modal
 - reposts showing up in timeline
-- account dropdown actually being a dropdown with profile, bookmarks and sign out button
 - bookmarks
 - gif picker
 - scheduling tweets
@@ -12,13 +10,10 @@
 - tweetapus Gronk ✨
 - better edit profile modal
 - keyboard shortcuts
-- changing handles [TODO]
 - see who liked, retweeted or quoted a tweet
 - encrypted DMs
-- deleting account [TODO]
 - admin dashboard
 - private accounts
-- markdown formatting in tweets
 - woke pronouns
 
 ## others

@@ -301,7 +301,7 @@ document
 
 addRoute((pathname) => pathname === "/notifications", openNotifications);
 
-const pollInterval = setInterval(updateUnreadCount, 30000);
+setInterval(updateUnreadCount, 30000);
 updateUnreadCount();
 
 export default { updateUnreadCount };

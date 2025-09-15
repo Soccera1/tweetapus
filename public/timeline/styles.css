@@ -410,7 +410,7 @@ h1 {
         }
       }
 
-      .quoted-tweet-container {
+      #quoted-tweet-container {
         margin-top: 12px;
       }
 
@@ -724,19 +724,27 @@ h1 {
   .tweet-content {
     font-size: 16px;
     line-height: 1.4;
-    margin-bottom: 8px;
-    white-space: pre-wrap;
     color: var(--text-primary);
 
     p {
       margin: 0;
+
+      &:not(:last-child) {
+        margin-bottom: 8px;
+      }
     }
 
-    .tweet-link,
+    a {
+      color: var(--primary);
+
+      &:hover {
+        text-decoration: none;
+      }
+    }
+
     .tweet-mention {
       color: var(--primary);
       text-decoration: none;
-      transition: color 0.2s;
 
       &:hover {
         text-decoration: underline;
@@ -1601,10 +1609,8 @@ h1 {
 
   .modal-close {
     position: absolute;
-    top: -10px;
-    right: -10px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border-primary);
+    top: 10px;
+    right: 10px;
     border-radius: 50%;
     width: 32px;
     height: 32px;
@@ -1612,6 +1618,8 @@ h1 {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    background-color: transparent;
+    border: none;
     color: var(--text-secondary);
     transition: background-color 0.2s, color 0.2s;
     z-index: 1001;
@@ -1729,19 +1737,6 @@ h1 {
 
   .tweet-content {
     font-size: 14px;
-  }
-
-  .tweet-interactions {
-    gap: 8px;
-
-    button {
-      font-size: 13px;
-
-      svg {
-        width: 16px;
-        height: 16px;
-      }
-    }
   }
 }
 
