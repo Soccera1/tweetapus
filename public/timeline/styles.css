@@ -1304,6 +1304,13 @@ nav {
         margin-bottom: 10px;
       }
 
+      .profile-pronouns {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin: -8px 0 8px 0;
+        font-style: italic;
+      }
+
       .profile-bio {
         margin: 0 0 10px 0;
         font-size: 16px;
@@ -2464,10 +2471,9 @@ nav {
   }
 }
 
-/* Direct Messages Styles */
 .dm-btn {
   position: absolute;
-  right: 80px;
+  right: 90px;
   background-color: transparent;
   border: none;
   cursor: pointer;
@@ -2757,6 +2763,7 @@ nav {
     flex-direction: row-reverse;
 
     .dm-message-content {
+      padding: 12px 16px;
       background-color: var(--primary);
       color: white;
     }
@@ -2773,8 +2780,6 @@ nav {
 
   .dm-message-content {
     flex: 1;
-    background-color: var(--bg-secondary);
-    padding: 12px 16px;
     border-radius: 18px;
     color: var(--text-primary);
     word-wrap: break-word;
@@ -3758,4 +3763,161 @@ nav {
     width: 95%;
     margin: 20px;
   }
+}
+
+/* Interactions Modal Styles */
+.interactions-modal {
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.interactions-modal .modal-header {
+  padding: 20px 20px 0;
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: 0;
+}
+
+.interactions-modal .modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding-bottom: 16px;
+}
+
+.users-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.user-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.user-item:last-child {
+  border-bottom: none;
+}
+
+.user-avatar {
+  margin-right: 12px;
+}
+
+.user-avatar img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.user-username {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.user-time {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* Clickable count styles */
+.clickable-count {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.clickable-count:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Expanded Tweet Stats */
+.expanded-tweet-stats {
+  border-top: 1px solid var(--border-primary);
+  padding: 16px 0 0;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tweet-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.tweet-stat-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.stat-avatars {
+  display: flex;
+  margin-right: 8px;
+}
+
+.stat-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-primary);
+  margin-left: -8px;
+  object-fit: cover;
+}
+
+.stat-avatar:first-child {
+  margin-left: 0;
+}
+
+.stat-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Pinned Tweet Indicator */
+.pinned-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pinned-indicator svg {
+  color: var(--primary);
 }

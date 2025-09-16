@@ -195,6 +195,33 @@ const updateRetweetCount = db.query(`
   UPDATE posts SET retweet_count = retweet_count + ? WHERE id = ?
 `);
 
+const getTweetLikers = db.query(`
+  SELECT u.id, u.username, u.name, u.avatar, u.verified, l.created_at as liked_at
+  FROM likes l
+  JOIN users u ON l.user_id = u.id
+  WHERE l.post_id = ?
+  ORDER BY l.created_at DESC
+  LIMIT ?
+`);
+
+const getTweetRetweeters = db.query(`
+  SELECT u.id, u.username, u.name, u.avatar, u.verified, r.created_at as retweeted_at
+  FROM retweets r
+  JOIN users u ON r.user_id = u.id
+  WHERE r.post_id = ?
+  ORDER BY r.created_at DESC
+  LIMIT ?
+`);
+
+const getTweetQuoters = db.query(`
+  SELECT u.id, u.username, u.name, u.avatar, u.verified, p.created_at as quoted_at, p.id as quote_tweet_id, p.content as quote_content
+  FROM posts p
+  JOIN users u ON p.user_id = u.id
+  WHERE p.quote_tweet_id = ?
+  ORDER BY p.created_at DESC
+  LIMIT ?
+`);
+
 export default new Elysia({ prefix: "/tweets" })
 	.use(jwt({ name: "jwt", secret: JWT_SECRET }))
 	.use(
@@ -300,7 +327,7 @@ export default new Elysia({ prefix: "/tweets" })
 
 			const mentionRegex = /@(\w+)/g;
 			const mentions = new Set();
-			if (tweetContent && typeof tweetContent === 'string') {
+			if (tweetContent && typeof tweetContent === "string") {
 				let match;
 				mentionRegex.lastIndex = 0;
 				match = mentionRegex.exec(tweetContent);
@@ -311,7 +338,8 @@ export default new Elysia({ prefix: "/tweets" })
 			}
 
 			for (const mentionedUsername of mentions) {
-				if (mentionedUsername.toLowerCase() === user.username.toLowerCase()) continue; // Don't notify self-mentions
+				if (mentionedUsername.toLowerCase() === user.username.toLowerCase())
+					continue; // Don't notify self-mentions
 
 				const mentionedUser = getUserByUsername.get(mentionedUsername);
 				if (mentionedUser) {
@@ -597,5 +625,92 @@ export default new Elysia({ prefix: "/tweets" })
 		} catch (error) {
 			console.error("Poll vote error:", error);
 			return { error: "Failed to vote on poll" };
+		}
+	})
+	.get("/:id/likes", async ({ jwt, headers, params, query }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			const user = getUserByUsername.get(payload.username);
+			if (!user) return { error: "User not found" };
+
+			const { id } = params;
+			const { limit = 20 } = query;
+
+			const tweet = getTweetById.get(id);
+			if (!tweet) return { error: "Tweet not found" };
+
+			const likers = getTweetLikers.all(id, parseInt(limit));
+
+			return {
+				success: true,
+				users: likers,
+				type: "likes",
+			};
+		} catch (error) {
+			console.error("Get likers error:", error);
+			return { error: "Failed to get likers" };
+		}
+	})
+	.get("/:id/retweets", async ({ jwt, headers, params, query }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			const user = getUserByUsername.get(payload.username);
+			if (!user) return { error: "User not found" };
+
+			const { id } = params;
+			const { limit = 20 } = query;
+
+			const tweet = getTweetById.get(id);
+			if (!tweet) return { error: "Tweet not found" };
+
+			const retweeters = getTweetRetweeters.all(id, parseInt(limit));
+
+			return {
+				success: true,
+				users: retweeters,
+				type: "retweets",
+			};
+		} catch (error) {
+			console.error("Get retweeters error:", error);
+			return { error: "Failed to get retweeters" };
+		}
+	})
+	.get("/:id/quotes", async ({ jwt, headers, params, query }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			const user = getUserByUsername.get(payload.username);
+			if (!user) return { error: "User not found" };
+
+			const { id } = params;
+			const { limit = 20 } = query;
+
+			const tweet = getTweetById.get(id);
+			if (!tweet) return { error: "Tweet not found" };
+
+			const quoters = getTweetQuoters.all(id, parseInt(limit));
+
+			return {
+				success: true,
+				users: quoters,
+				type: "quotes",
+			};
+		} catch (error) {
+			console.error("Get quoters error:", error);
+			return { error: "Failed to get quoters" };
 		}
 	});

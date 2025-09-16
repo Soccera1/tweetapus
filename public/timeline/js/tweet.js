@@ -38,6 +38,7 @@ export default async function openTweet(
 
 			const tweetEl = createTweetElement(tweet, {
 				clickToOpen: false,
+				showStats: true,
 			});
 			page.appendChild(tweetEl);
 
@@ -80,6 +81,7 @@ export default async function openTweet(
 			threadPostsCache.forEach((reply) => {
 				const postEl = createTweetElement(reply, {
 					clickToOpen: reply.id !== tweet.id,
+					showStats: reply.id === tweet.id,
 				});
 				composer.insertAdjacentElement("beforebegin", postEl);
 			});

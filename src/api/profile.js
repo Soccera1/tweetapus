@@ -29,7 +29,7 @@ const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
 
 const updateProfile = db.query(`
   UPDATE users
-  SET name = ?, bio = ?, location = ?, website = ?
+  SET name = ?, bio = ?, location = ?, website = ?, pronouns = ?
   WHERE id = ?
 `);
 
@@ -75,7 +75,7 @@ const getUserPosts = db.query(`
   FROM posts 
   JOIN users ON posts.user_id = users.id 
   WHERE posts.user_id = ? AND posts.reply_to IS NULL
-  ORDER BY posts.created_at DESC
+  ORDER BY posts.pinned DESC, posts.created_at DESC
 `);
 
 const getUserRetweets = db.query(`
@@ -101,6 +101,38 @@ const addFollow = db.query(`
 
 const removeFollow = db.query(`
 	DELETE FROM follows WHERE follower_id = ? AND following_id = ?
+`);
+
+const getFollowRequest = db.query(`
+  SELECT * FROM follow_requests WHERE requester_id = ? AND target_id = ?
+`);
+
+const createFollowRequest = db.query(`
+  INSERT INTO follow_requests (id, requester_id, target_id) VALUES (?, ?, ?)
+`);
+
+const approveFollowRequest = db.query(`
+  UPDATE follow_requests 
+  SET status = 'approved', responded_at = datetime('now', 'utc')
+  WHERE id = ?
+`);
+
+const denyFollowRequest = db.query(`
+  UPDATE follow_requests 
+  SET status = 'denied', responded_at = datetime('now', 'utc')
+  WHERE id = ?
+`);
+
+const deleteFollowRequest = db.query(`
+  DELETE FROM follow_requests WHERE requester_id = ? AND target_id = ?
+`);
+
+const getPendingFollowRequests = db.query(`
+  SELECT fr.*, u.username, u.name, u.avatar, u.verified, u.bio
+  FROM follow_requests fr
+  JOIN users u ON fr.requester_id = u.id
+  WHERE fr.target_id = ? AND fr.status = 'pending'
+  ORDER BY fr.created_at DESC
 `);
 
 const getFollowCounts = db.query(`
@@ -233,6 +265,7 @@ export default new Elysia({ prefix: "/profile" })
 			let isFollowing = false;
 			let isOwnProfile = false;
 			let currentUserId = null;
+			let followRequestStatus = null;
 
 			const authorization = headers.authorization;
 			if (authorization) {
@@ -251,6 +284,15 @@ export default new Elysia({ prefix: "/profile" })
 									user.id,
 								);
 								isFollowing = !!followStatus;
+
+								// Check for pending follow request
+								if (!isFollowing) {
+									const followRequest = getFollowRequest.get(
+										currentUser.id,
+										user.id,
+									);
+									followRequestStatus = followRequest?.status || null;
+								}
 							}
 						}
 					}
@@ -288,17 +330,45 @@ export default new Elysia({ prefix: "/profile" })
 				.sort((a, b) => b.sort_date - a.sort_date)
 				.slice(0, 20);
 
-			const posts = allContent.map((post) => ({
-				...post,
-				poll: getPollDataForPost(post.id, currentUserId),
-				quoted_tweet: getQuotedPostData(post.quote_tweet_id, currentUserId),
-				attachments: getPostAttachments(post.id),
-				liked_by_user: false, // Will be set below
-				retweeted_by_user: false, // Will be set below
-			}));
+			// If account is private and viewer is not following and not owner, hide posts
+			let posts = [];
+			let processedReplies = [];
+
+			if (user.private && !isFollowing && !isOwnProfile) {
+				posts = [];
+				processedReplies = [];
+			} else {
+				posts = allContent.map((post) => ({
+					...post,
+					poll: getPollDataForPost(post.id, currentUserId),
+					quoted_tweet: getQuotedPostData(post.quote_tweet_id, currentUserId),
+					attachments: getPostAttachments(post.id),
+					liked_by_user: false, // Will be set below
+					retweeted_by_user: false, // Will be set below
+				}));
+
+				processedReplies = replies.map((reply) => ({
+					...reply,
+					author: {
+						username: reply.username,
+						name: reply.name,
+						avatar: reply.avatar || null,
+						verified: reply.verified || false,
+					},
+					poll: getPollDataForPost(reply.id, currentUserId),
+					quoted_tweet: getQuotedPostData(reply.quote_tweet_id, currentUserId),
+					attachments: getPostAttachments(reply.id),
+					liked_by_user: false,
+					retweeted_by_user: false,
+				}));
+			}
 
 			// Get likes and retweets for current user
-			if (currentUserId && allContent.length > 0) {
+			if (
+				currentUserId &&
+				allContent.length > 0 &&
+				(!user.private || isFollowing || isOwnProfile)
+			) {
 				try {
 					const postIds = allContent.map((p) => p.id);
 					// Use dynamic query based on actual number of posts
@@ -330,22 +400,10 @@ export default new Elysia({ prefix: "/profile" })
 			return {
 				profile,
 				posts,
-				replies: replies.map((reply) => ({
-					...reply,
-					author: {
-						username: reply.username,
-						name: reply.name,
-						avatar: reply.avatar || null,
-						verified: reply.verified || false,
-					},
-					poll: getPollDataForPost(reply.id, currentUserId),
-					quoted_tweet: getQuotedPostData(reply.quote_tweet_id, currentUserId),
-					attachments: getPostAttachments(reply.id),
-					liked_by_user: false,
-					retweeted_by_user: false,
-				})),
+				replies: processedReplies,
 				isFollowing,
 				isOwnProfile,
+				followRequestStatus,
 			};
 		} catch (error) {
 			console.error("Profile fetch error:", error);
@@ -387,7 +445,7 @@ export default new Elysia({ prefix: "/profile" })
 				return { error: "You can only edit your own profile" };
 			}
 
-			const { name, bio, location, website } = body;
+			const { name, bio, location, website, pronouns } = body;
 
 			if (name && name.length > 50) {
 				return { error: "Display name must be 50 characters or less" };
@@ -405,11 +463,16 @@ export default new Elysia({ prefix: "/profile" })
 				return { error: "Website must be 100 characters or less" };
 			}
 
+			if (pronouns && pronouns.length > 30) {
+				return { error: "Pronouns must be 30 characters or less" };
+			}
+
 			updateProfile.run(
 				name || currentUser.name,
 				bio !== undefined ? bio : currentUser.bio,
 				location !== undefined ? location : currentUser.location,
 				website !== undefined ? website : currentUser.website,
+				pronouns !== undefined ? pronouns : currentUser.pronouns,
 				currentUser.id,
 			);
 
@@ -443,17 +506,44 @@ export default new Elysia({ prefix: "/profile" })
 			return { error: "Already following this user" };
 		}
 
-		const followId = Bun.randomUUIDv7();
-		addFollow.run(followId, currentUser.id, targetUser.id);
+		const existingRequest = getFollowRequest.get(currentUser.id, targetUser.id);
+		if (existingRequest) {
+			if (existingRequest.status === "pending") {
+				return { error: "Follow request already sent" };
+			}
+			if (existingRequest.status === "denied") {
+				// Allow re-requesting after denial
+				deleteFollowRequest.run(currentUser.id, targetUser.id);
+			}
+		}
 
-		addNotification(
-			targetUser.id,
-			"follow",
-			`@${currentUser.username} started following you`,
-			currentUser.username,
-		);
+		// If target account is private, create follow request
+		if (targetUser.private) {
+			const requestId = Bun.randomUUIDv7();
+			createFollowRequest.run(requestId, currentUser.id, targetUser.id);
 
-		return { success: true };
+			addNotification(
+				targetUser.id,
+				"follow_request",
+				`@${currentUser.username} requested to follow you`,
+				currentUser.username,
+			);
+
+			return { success: true, requestSent: true };
+		} else {
+			// Public account - follow immediately
+			const followId = Bun.randomUUIDv7();
+			addFollow.run(followId, currentUser.id, targetUser.id);
+
+			addNotification(
+				targetUser.id,
+				"follow",
+				`@${currentUser.username} started following you`,
+				currentUser.username,
+			);
+
+			return { success: true, requestSent: false };
+		}
 	})
 	.delete("/:username/follow", async ({ params, jwt, headers }) => {
 		const authorization = headers.authorization;
@@ -471,13 +561,20 @@ export default new Elysia({ prefix: "/profile" })
 			if (!targetUser) return { error: "User not found" };
 
 			const existingFollow = getFollowStatus.get(currentUser.id, targetUser.id);
-			if (!existingFollow) {
-				return { error: "Not following this user" };
+			const existingRequest = getFollowRequest.get(
+				currentUser.id,
+				targetUser.id,
+			);
+
+			if (existingFollow) {
+				removeFollow.run(currentUser.id, targetUser.id);
+				return { success: true, action: "unfollowed" };
+			} else if (existingRequest && existingRequest.status === "pending") {
+				deleteFollowRequest.run(currentUser.id, targetUser.id);
+				return { success: true, action: "request_cancelled" };
+			} else {
+				return { error: "Not following this user and no pending request" };
 			}
-
-			removeFollow.run(currentUser.id, targetUser.id);
-
-			return { success: true };
 		} catch (error) {
 			console.error("Unfollow error:", error);
 			return { error: "Failed to unfollow user" };
@@ -795,6 +892,207 @@ export default new Elysia({ prefix: "/profile" })
 		} catch (error) {
 			console.error("Add password error:", error);
 			return { error: "Failed to add password" };
+		}
+	})
+	.get("/follow-requests", async ({ jwt, headers }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			const currentUser = getUserByUsername.get(payload.username);
+			if (!currentUser) return { error: "User not found" };
+
+			const requests = getPendingFollowRequests.all(currentUser.id);
+			return { requests };
+		} catch (error) {
+			console.error("Get follow requests error:", error);
+			return { error: "Failed to get follow requests" };
+		}
+	})
+	.post(
+		"/follow-requests/:requestId/approve",
+		async ({ params, jwt, headers }) => {
+			const authorization = headers.authorization;
+			if (!authorization) return { error: "Authentication required" };
+
+			try {
+				const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+				if (!payload) return { error: "Invalid token" };
+
+				const currentUser = getUserByUsername.get(payload.username);
+				if (!currentUser) return { error: "User not found" };
+
+				const { requestId } = params;
+				const request = db
+					.query("SELECT * FROM follow_requests WHERE id = ?")
+					.get(requestId);
+
+				if (!request) return { error: "Follow request not found" };
+				if (request.target_id !== currentUser.id)
+					return { error: "Unauthorized" };
+				if (request.status !== "pending")
+					return { error: "Request already processed" };
+
+				// Approve request and create follow relationship
+				approveFollowRequest.run(requestId);
+				const followId = Bun.randomUUIDv7();
+				addFollow.run(followId, request.requester_id, currentUser.id);
+
+				// Notify the requester
+				const requester = db
+					.query("SELECT * FROM users WHERE id = ?")
+					.get(request.requester_id);
+				if (requester) {
+					addNotification(
+						requester.id,
+						"follow_approved",
+						`@${currentUser.username} approved your follow request`,
+						currentUser.username,
+					);
+				}
+
+				return { success: true };
+			} catch (error) {
+				console.error("Approve follow request error:", error);
+				return { error: "Failed to approve follow request" };
+			}
+		},
+	)
+	.post(
+		"/follow-requests/:requestId/deny",
+		async ({ params, jwt, headers }) => {
+			const authorization = headers.authorization;
+			if (!authorization) return { error: "Authentication required" };
+
+			try {
+				const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+				if (!payload) return { error: "Invalid token" };
+
+				const currentUser = getUserByUsername.get(payload.username);
+				if (!currentUser) return { error: "User not found" };
+
+				const { requestId } = params;
+				const request = db
+					.query("SELECT * FROM follow_requests WHERE id = ?")
+					.get(requestId);
+
+				if (!request) return { error: "Follow request not found" };
+				if (request.target_id !== currentUser.id)
+					return { error: "Unauthorized" };
+				if (request.status !== "pending")
+					return { error: "Request already processed" };
+
+				denyFollowRequest.run(requestId);
+
+				return { success: true };
+			} catch (error) {
+				console.error("Deny follow request error:", error);
+				return { error: "Failed to deny follow request" };
+			}
+		},
+	)
+	.patch("/:username/privacy", async ({ params, jwt, headers, body }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			const currentUser = getUserByUsername.get(payload.username);
+			if (!currentUser) return { error: "User not found" };
+
+			const { username } = params;
+			if (currentUser.username !== username) {
+				return { error: "You can only change your own privacy settings" };
+			}
+
+			const { private: isPrivate } = body;
+			if (typeof isPrivate !== "boolean") {
+				return { error: "Private setting must be a boolean value" };
+			}
+
+			db.query("UPDATE users SET private = ? WHERE id = ?").run(
+				isPrivate,
+				currentUser.id,
+			);
+
+			return { success: true, private: isPrivate };
+		} catch (error) {
+			console.error("Update privacy error:", error);
+			return { error: "Failed to update privacy settings" };
+		}
+	})
+	.post("/:username/pin/:tweetId", async ({ params, jwt, headers }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			const currentUser = getUserByUsername.get(payload.username);
+			if (!currentUser) return { error: "User not found" };
+
+			const { username, tweetId } = params;
+			if (currentUser.username !== username) {
+				return { error: "You can only pin your own tweets" };
+			}
+
+			// Check if tweet exists and belongs to user
+			const tweet = db
+				.query("SELECT * FROM posts WHERE id = ? AND user_id = ?")
+				.get(tweetId, currentUser.id);
+			if (!tweet) {
+				return { error: "Tweet not found or doesn't belong to you" };
+			}
+
+			// Check if user already has a pinned tweet
+			const existingPinned = db
+				.query("SELECT * FROM posts WHERE user_id = ? AND pinned = 1")
+				.get(currentUser.id);
+			if (existingPinned) {
+				// Unpin the existing tweet
+				db.query("UPDATE posts SET pinned = 0 WHERE id = ?").run(
+					existingPinned.id,
+				);
+			}
+
+			// Pin the new tweet
+			db.query("UPDATE posts SET pinned = 1 WHERE id = ?").run(tweetId);
+
+			return { success: true };
+		} catch (error) {
+			console.error("Pin tweet error:", error);
+			return { error: "Failed to pin tweet" };
+		}
+	})
+	.delete("/:username/pin/:tweetId", async ({ params, jwt, headers }) => {
+		const authorization = headers.authorization;
+		if (!authorization) return { error: "Authentication required" };
+
+		try {
+			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+			if (!payload) return { error: "Invalid token" };
+
+			const currentUser = getUserByUsername.get(payload.username);
+			if (!currentUser) return { error: "User not found" };
+
+			const { username, tweetId } = params;
+			if (currentUser.username !== username) {
+				return { error: "You can only unpin your own tweets" };
+			}
+
+			// Unpin the tweet
+			db.query("UPDATE posts SET pinned = 0 WHERE id = ?").run(tweetId);
+
+			return { success: true };
+		} catch (error) {
+			console.error("Unpin tweet error:", error);
+			return { error: "Failed to unpin tweet" };
 		}
 	});
 

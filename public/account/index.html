@@ -137,27 +137,13 @@
 
     <div id="user-info" style="display: none">
       <div class="section">
-        <h2>Theme</h2>
-
-        <button class="dark-toggle btn secondary">Toggle dark mode</button>
-
-        <h2>Account Settings</h2>
-
+        <h2>Quick Actions</h2>
         <div class="setting-item">
-          <button class="btn secondary" id="changeUsernameBtn">
-            Change Username
-          </button>
-        </div>
-
-        <div class="setting-item">
-          <button class="btn secondary" id="changePasswordBtn">
-            Change Password
-          </button>
-        </div>
-
-        <div class="setting-item">
-          <button class="btn danger" id="deleteAccountBtn">
-            Delete Account
+          <button
+            class="btn secondary"
+            onclick="window.location.href='/settings'"
+          >
+            Go to Settings
           </button>
         </div>
 
@@ -190,144 +176,6 @@
                 Cancel
               </button>
               <button type="submit" class="btn primary">Sign In</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Change Username Modal -->
-    <div id="changeUsernameModal" class="modal" style="display: none">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Change Username</h2>
-          <button class="close-btn" id="closeUsernameModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form id="changeUsernameForm">
-            <div class="form-group">
-              <label for="newUsername">New Username</label>
-              <div class="username-wrapper">
-                <span inert>@</span>
-                <input
-                  type="text"
-                  id="newUsername"
-                  placeholder="new username"
-                  required
-                />
-              </div>
-              <small>
-                Username must be 3-20 characters and contain only letters,
-                numbers, and underscores.
-              </small>
-            </div>
-            <div class="form-actions">
-              <button
-                type="button"
-                class="btn secondary"
-                id="cancelUsernameChange"
-              >
-                Cancel
-              </button>
-              <button type="submit" class="btn primary">Change Username</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete Account Modal -->
-    <div id="deleteAccountModal" class="modal" style="display: none">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Delete Account</h2>
-          <button class="close-btn" id="closeDeleteModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p>
-            <strong>Warning:</strong>
-            This action cannot be undone. All your tweets, likes, follows, and
-            account data will be permanently deleted.
-          </p>
-          <form id="deleteAccountForm">
-            <div class="form-group">
-              <label for="deleteConfirmation">
-                Type "DELETE MY ACCOUNT" to confirm:
-              </label>
-              <input
-                type="text"
-                id="deleteConfirmation"
-                placeholder="DELETE MY ACCOUNT"
-                required
-              />
-            </div>
-            <div class="form-actions">
-              <button
-                type="button"
-                class="btn secondary"
-                id="cancelAccountDelete"
-              >
-                Cancel
-              </button>
-              <button type="submit" class="btn danger">Delete Account</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Change Password Modal -->
-    <div id="changePasswordModal" class="modal" style="display: none">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Change Password</h2>
-          <button class="close-btn" id="closePasswordModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p id="passwordModalDescription">
-            Set a password for your account to enable traditional
-            username/password login.
-          </p>
-          <form id="changePasswordForm">
-            <div
-              class="form-group"
-              id="currentPasswordGroup"
-              style="display: none"
-            >
-              <label for="current-password">Current Password</label>
-              <input
-                type="password"
-                id="current-password"
-                placeholder="enter your current password"
-                required
-              />
-            </div>
-            <div class="form-group">
-              <label for="new-password">New Password</label>
-              <input
-                type="password"
-                id="new-password"
-                placeholder="enter your new password"
-                minlength="8"
-                required
-              />
-              <small>Password must be at least 8 characters long.</small>
-            </div>
-            <div class="form-actions">
-              <button
-                type="button"
-                class="btn secondary"
-                id="cancelPasswordChange"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                class="btn primary"
-                id="changePasswordSubmit"
-              >
-                Set Password
-              </button>
             </div>
           </form>
         </div>

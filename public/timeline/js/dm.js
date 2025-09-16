@@ -2,6 +2,12 @@ import toastQueue from "../../shared/toasts.js";
 import { authToken } from "./auth.js";
 import switchPage, { addRoute } from "./pages.js";
 
+function sanitizeHTML(str) {
+	const div = document.createElement("div");
+	div.textContent = str;
+	return div.innerHTML;
+}
+
 let currentConversations = [];
 let currentConversation = null;
 let currentMessages = [];
@@ -133,10 +139,15 @@ function renderConversations() {
 function createConversationElement(conversation) {
 	const displayAvatar =
 		conversation.displayAvatar || "/public/shared/default-avatar.png";
-	const displayName = conversation.displayName || "Unknown";
-	const lastMessage = conversation.last_message_content || "No messages yet";
-	const lastSender =
-		conversation.lastMessageSenderName || conversation.last_message_sender;
+	const displayName = sanitizeHTML(conversation.displayName || "Unknown");
+	const lastMessage = sanitizeHTML(
+		conversation.last_message_content || "No messages yet",
+	);
+	const lastSender = sanitizeHTML(
+		conversation.lastMessageSenderName ||
+			conversation.last_message_sender ||
+			"",
+	);
 	const time = conversation.last_message_time
 		? formatTime(new Date(conversation.last_message_time))
 		: "";
@@ -173,12 +184,12 @@ function createConversationElement(conversation) {
       ${avatarHtml}
       <div class="dm-conversation-info">
         <h3 class="dm-conversation-name">
-          ${displayName}
+          ${displayName.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}
           ${isGroup ? '<span class="group-indicator">👥</span>' : ""}
         </h3>
         <p class="dm-last-message">
-          ${lastSender && isGroup ? `<span class="dm-sender">${lastSender}:</span> ` : ""}
-          ${lastMessage}
+          ${lastSender && isGroup ? `<span class="dm-sender">${lastSender.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}:</span> ` : ""}
+          ${lastMessage.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}
         </p>
       </div>
       <div class="dm-conversation-meta">
@@ -297,6 +308,8 @@ function createMessageElement(message, currentUser) {
 	const isOwn = message.username === currentUser;
 	const avatar = message.avatar || "/public/shared/default-avatar.png";
 	const time = formatTime(new Date(message.created_at));
+	const sanitizedContent = sanitizeHTML(message.content || "");
+	const sanitizedName = sanitizeHTML(message.name || message.username);
 
 	const attachmentsHtml =
 		message.attachments?.length > 0
@@ -305,7 +318,7 @@ function createMessageElement(message, currentUser) {
       ${message.attachments
 				.map(
 					(att) => `
-        <img src="${att.file_url}" alt="${att.file_name}" onclick="window.open('${att.file_url}', '_blank')" />
+        <img src="${sanitizeHTML(att.file_url)}" alt="${sanitizeHTML(att.file_name)}" onclick="window.open('${sanitizeHTML(att.file_url)}', '_blank')" />
       `,
 				)
 				.join("")}
@@ -315,9 +328,9 @@ function createMessageElement(message, currentUser) {
 
 	return `
     <div class="dm-message ${isOwn ? "own" : ""}">
-      <img src="${avatar}" alt="${message.name || message.username}" class="dm-message-avatar" />
+      <img src="${avatar}" alt="${sanitizedName}" class="dm-message-avatar" />
       <div class="dm-message-content">
-        ${message.content ? `<p class="dm-message-text">${message.content}</p>` : ""}
+        ${sanitizedContent ? `<p class="dm-message-text">${sanitizedContent}</p>` : ""}
         ${attachmentsHtml}
       </div>
       <div class="dm-message-time">${time}</div>

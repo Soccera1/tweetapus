@@ -109,7 +109,7 @@ const closeDropdown = (dropdown) => {
 		const dropdown = document.getElementById("accountDropdown");
 		closeDropdown(dropdown);
 		import("./settings.js").then(({ openSettings }) => {
-			openSettings("account");
+			openSettings("themes");
 		});
 	});
 

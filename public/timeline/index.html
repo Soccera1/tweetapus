@@ -586,6 +586,7 @@
           <div class="profile-info">
             <h2 id="profileDisplayName">Display Name</h2>
             <p class="username" id="profileUsername">@username</p>
+            <p class="profile-pronouns" id="profilePronouns"></p>
             <p class="profile-bio" id="profileBio"></p>
 
             <div class="profile-meta" id="profileMeta"></div>
@@ -736,6 +737,20 @@
             <div class="char-count">
               <span id="bioCount">0</span>
               /160
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editPronouns">Pronouns</label>
+            <input
+              type="text"
+              id="editPronouns"
+              maxlength="30"
+              placeholder="e.g., she/her, he/him, they/them"
+            />
+            <div class="char-count">
+              <span id="pronounsCount">0</span>
+              /30
             </div>
           </div>
 

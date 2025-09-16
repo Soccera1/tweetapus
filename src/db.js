@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS users (
   following_count INTEGER DEFAULT 0,
   password_hash TEXT DEFAULT NULL,
   admin BOOLEAN DEFAULT FALSE,
-  suspended BOOLEAN DEFAULT FALSE
+  suspended BOOLEAN DEFAULT FALSE,
+  private BOOLEAN DEFAULT FALSE,
+  pronouns TEXT DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS passkeys (
@@ -48,6 +50,18 @@ CREATE TABLE IF NOT EXISTS follows (
   UNIQUE(follower_id, following_id)
 );
 
+CREATE TABLE IF NOT EXISTS follow_requests (
+  id TEXT PRIMARY KEY,
+  requester_id TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  responded_at TIMESTAMP DEFAULT NULL,
+  FOREIGN KEY (requester_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (target_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE(requester_id, target_id)
+);
+
 CREATE TABLE IF NOT EXISTS posts (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
@@ -61,6 +75,7 @@ CREATE TABLE IF NOT EXISTS posts (
   retweet_count INTEGER DEFAULT 0,
   quote_count INTEGER DEFAULT 0,
   source TEXT DEFAULT NULL,
+  pinned BOOLEAN DEFAULT FALSE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE,
   FOREIGN KEY (quote_tweet_id) REFERENCES posts(id) ON DELETE CASCADE

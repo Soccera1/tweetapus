@@ -373,13 +373,7 @@ export default new Elysia({ prefix: "/dm" })
 					.all(id)
 					.filter((p) => p.user_id !== user.id);
 				for (const participant of otherParticipants) {
-					addNotification(
-						participant.user_id,
-						"dm",
-						`${user.name || user.username} sent you a message`,
-						messageId,
-					);
-
+					// Send real-time update via WebSocket
 					broadcastToUser(participant.user_id, {
 						type: "new_message",
 						conversationId: id,

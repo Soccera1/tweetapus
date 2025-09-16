@@ -237,6 +237,11 @@ const renderProfile = (data) => {
 
 	document.getElementById("profileUsername").textContent =
 		`@${profile.username}`;
+	document.getElementById("profilePronouns").textContent =
+		profile.pronouns || "";
+	document.getElementById("profilePronouns").style.display = profile.pronouns
+		? "block"
+		: "none";
 	document.getElementById("profileBio").textContent = profile.bio || "";
 	document.getElementById("profileBio").style.display = profile.bio
 		? "block"
@@ -364,6 +369,7 @@ const showEditModal = () => {
 	const { profile } = currentProfile;
 	document.getElementById("editDisplayName").value = profile.name || "";
 	document.getElementById("editBio").value = profile.bio || "";
+	document.getElementById("editPronouns").value = profile.pronouns || "";
 	document.getElementById("editLocation").value = profile.location || "";
 	document.getElementById("editWebsite").value = profile.website || "";
 
@@ -385,6 +391,7 @@ const updateCharCounts = () => {
 	const fields = [
 		{ id: "editDisplayName", countId: "displayNameCount" },
 		{ id: "editBio", countId: "bioCount" },
+		{ id: "editPronouns", countId: "pronounsCount" },
 		{ id: "editLocation", countId: "locationCount" },
 		{ id: "editWebsite", countId: "websiteCount" },
 	];
@@ -712,6 +719,7 @@ const saveProfile = async (event) => {
 	const formData = {
 		name: document.getElementById("editDisplayName").value.trim(),
 		bio: document.getElementById("editBio").value.trim(),
+		pronouns: document.getElementById("editPronouns").value.trim(),
 		location: document.getElementById("editLocation").value.trim(),
 		website: document.getElementById("editWebsite").value.trim(),
 	};
@@ -770,7 +778,13 @@ document
 	.getElementById("editProfileForm")
 	.addEventListener("submit", saveProfile);
 
-["editDisplayName", "editBio", "editLocation", "editWebsite"].forEach((id) => {
+[
+	"editDisplayName",
+	"editBio",
+	"editPronouns",
+	"editLocation",
+	"editWebsite",
+].forEach((id) => {
 	const element = document.getElementById(id);
 	if (element) {
 		element.addEventListener("input", updateCharCounts);

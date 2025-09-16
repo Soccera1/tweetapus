@@ -6,6 +6,116 @@ import toastQueue from "../../shared/toasts.js";
 import getUser, { authToken } from "./auth.js";
 import openTweet from "./tweet.js";
 
+async function showInteractionUsers(tweetId, interaction, title) {
+	try {
+		const response = await fetch(`/api/tweets/${tweetId}/${interaction}`, {
+			headers: { Authorization: `Bearer ${authToken}` },
+		});
+
+		const data = await response.json();
+
+		if (data.error) {
+			toastQueue.add(`<h1>Error</h1><p>${data.error}</p>`);
+			return;
+		}
+
+		if (!data.users || data.users.length === 0) {
+			toastQueue.add(
+				`<h1>No ${title.toLowerCase()}</h1><p>This tweet hasn't been ${interaction.slice(0, -1)}ed by anyone yet.</p>`,
+			);
+			return;
+		}
+
+		// Create modal
+		const overlay = document.createElement("div");
+		overlay.className = "composer-overlay";
+
+		const modal = document.createElement("div");
+		modal.className = "modal interactions-modal";
+
+		const closeButton = document.createElement("button");
+		closeButton.className = "modal-close";
+		closeButton.innerHTML = `
+			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<line x1="18" y1="6" x2="6" y2="18"></line>
+				<line x1="6" y1="6" x2="18" y2="18"></line>
+			</svg>
+		`;
+
+		closeButton.addEventListener("click", () => overlay.remove());
+
+		const modalHeader = document.createElement("div");
+		modalHeader.className = "modal-header";
+		modalHeader.innerHTML = `<h2>${title}</h2>`;
+
+		const usersList = document.createElement("div");
+		usersList.className = "users-list";
+
+		data.users.forEach((user) => {
+			const userItem = document.createElement("div");
+			userItem.className = "user-item";
+
+			const timeText =
+				interaction === "quotes"
+					? `quoted ${formatInteractionTime(new Date(user.quoted_at))}`
+					: interaction === "likes"
+						? `liked ${formatInteractionTime(new Date(user.liked_at))}`
+						: `retweeted ${formatInteractionTime(new Date(user.retweeted_at))}`;
+
+			userItem.innerHTML = `
+				<div class="user-avatar">
+					<img src="${user.avatar || "/public/shared/default-avatar.png"}" alt="${user.name || user.username}" />
+				</div>
+				<div class="user-info">
+					<div class="user-name">${user.name || user.username}</div>
+					<div class="user-username">@${user.username}</div>
+					<div class="user-time">${timeText}</div>
+				</div>
+			`;
+
+			userItem.addEventListener("click", async () => {
+				overlay.remove();
+				const { default: openProfile } = await import("./profile.js");
+				openProfile(user);
+			});
+
+			usersList.appendChild(userItem);
+		});
+
+		modal.appendChild(closeButton);
+		modal.appendChild(modalHeader);
+		modal.appendChild(usersList);
+		overlay.appendChild(modal);
+		document.body.appendChild(overlay);
+	} catch (error) {
+		console.error("Error fetching interaction users:", error);
+		toastQueue.add(
+			`<h1>Network Error</h1><p>Failed to load ${title.toLowerCase()}.</p>`,
+		);
+	}
+}
+
+function formatInteractionTime(date) {
+	const now = new Date();
+	const diff = now - date;
+	const daysDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+	if (daysDiff === 0) {
+		const hoursDiff = Math.floor(diff / (1000 * 60 * 60));
+		if (hoursDiff === 0) {
+			const minutesDiff = Math.floor(diff / (1000 * 60));
+			return minutesDiff <= 1 ? "now" : `${minutesDiff}m ago`;
+		}
+		return `${hoursDiff}h ago`;
+	} else if (daysDiff === 1) {
+		return "yesterday";
+	} else if (daysDiff < 7) {
+		return `${daysDiff}d ago`;
+	} else {
+		return date.toLocaleDateString([], { month: "short", day: "numeric" });
+	}
+}
+
 DOMPurify.addHook("uponSanitizeElement", (node, data) => {
 	if (!data.allowedTags[data.tagName]) {
 		const textNode = document.createTextNode(node.outerHTML);
@@ -273,6 +383,93 @@ const updatePollDisplay = (pollElement, poll) => {
 	metaContainer.appendChild(pollTimeEl);
 };
 
+async function createExpandedStats(tweetId) {
+	const statsContainer = document.createElement("div");
+	statsContainer.className = "expanded-tweet-stats";
+
+	try {
+		const [likesResponse, retweetsResponse, quotesResponse] = await Promise.all(
+			[
+				fetch(`/api/tweets/${tweetId}/likes?limit=3`, {
+					headers: { Authorization: `Bearer ${authToken}` },
+				}),
+				fetch(`/api/tweets/${tweetId}/retweets?limit=3`, {
+					headers: { Authorization: `Bearer ${authToken}` },
+				}),
+				fetch(`/api/tweets/${tweetId}/quotes?limit=3`, {
+					headers: { Authorization: `Bearer ${authToken}` },
+				}),
+			],
+		);
+
+		const [likesData, retweetsData, quotesData] = await Promise.all([
+			likesResponse.json(),
+			retweetsResponse.json(),
+			quotesResponse.json(),
+		]);
+
+		const stats = [];
+
+		if (likesData.users && likesData.users.length > 0) {
+			stats.push({
+				type: "likes",
+				users: likesData.users,
+			});
+		}
+
+		if (retweetsData.users && retweetsData.users.length > 0) {
+			stats.push({
+				type: "retweets",
+				users: retweetsData.users,
+			});
+		}
+
+		if (quotesData.users && quotesData.users.length > 0) {
+			stats.push({
+				type: "quotes",
+				users: quotesData.users,
+			});
+		}
+
+		stats.forEach((stat) => {
+			const statElement = document.createElement("div");
+			statElement.className = "tweet-stat-item";
+
+			const avatars = stat.users
+				.slice(0, 3)
+				.map(
+					(user) =>
+						`<img src="${user.avatar || "/public/shared/default-avatar.png"}" alt="${user.name || user.username}" class="stat-avatar" />`,
+				)
+				.join("");
+
+			const names = stat.users
+				.slice(0, 2)
+				.map((user) => user.name || user.username)
+				.join(", ");
+			const moreCount = stat.users.length > 2 ? stat.users.length - 2 : 0;
+
+			statElement.innerHTML = `
+				<div class="stat-avatars">${avatars}</div>
+				<div class="stat-text">
+					${names}${moreCount > 0 ? ` and ${moreCount} others` : ""} ${stat.type === "likes" ? "liked" : stat.type === "retweets" ? "retweeted" : "quoted"} this
+				</div>
+			`;
+
+			statElement.addEventListener("click", async () => {
+				const title = stat.type.charAt(0).toUpperCase() + stat.type.slice(1);
+				await showInteractionUsers(tweetId, stat.type, title);
+			});
+
+			statsContainer.appendChild(statElement);
+		});
+	} catch (error) {
+		console.error("Error loading stats:", error);
+	}
+
+	return statsContainer;
+}
+
 export const createTweetElement = (tweet, config = {}) => {
 	if (!tweet || !tweet.author) {
 		console.error("Invalid tweet object provided to createTweetElement");
@@ -284,6 +481,7 @@ export const createTweetElement = (tweet, config = {}) => {
 		showTopReply = false,
 		isTopReply = false,
 		size = "normal",
+		showStats = false,
 	} = config;
 
 	const tweetEl = document.createElement("div");
@@ -382,6 +580,20 @@ export const createTweetElement = (tweet, config = {}) => {
 
 	tweetHeaderEl.appendChild(tweetHeaderInfoEl);
 
+	// Add pinned indicator if tweet is pinned
+	if (tweet.pinned) {
+		const pinnedIndicatorEl = document.createElement("div");
+		pinnedIndicatorEl.className = "pinned-indicator";
+		pinnedIndicatorEl.innerHTML = `
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M12 17v5"></path>
+				<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
+			</svg>
+			<span>Pinned</span>
+		`;
+		tweetEl.appendChild(pinnedIndicatorEl);
+	}
+
 	// Add delete button for user's own tweets
 	getUser().then((currentUser) => {
 		if (
@@ -389,6 +601,99 @@ export const createTweetElement = (tweet, config = {}) => {
 			currentUser.id === tweet.author.id &&
 			size !== "preview"
 		) {
+			// Pin/Unpin button
+			const pinButtonEl = document.createElement("button");
+			pinButtonEl.className = "tweet-pin-btn";
+			pinButtonEl.innerHTML = tweet.pinned
+				? `
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M12 17v5"></path>
+					<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
+				</svg>
+			`
+				: `
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M12 17v5"></path>
+					<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
+				</svg>
+			`;
+			pinButtonEl.title = tweet.pinned ? "Unpin tweet" : "Pin to profile";
+			pinButtonEl.style.cssText = `
+				position: absolute;
+				right: 50px;
+				top: 10px;
+				background: none;
+				border: none;
+				color: ${tweet.pinned ? "#1da1f2" : "#777"};
+				cursor: pointer;
+				padding: 4px;
+				border-radius: 4px;
+				opacity: 0.7;
+				transition: all 0.2s ease;
+			`;
+
+			pinButtonEl.addEventListener("mouseover", () => {
+				pinButtonEl.style.backgroundColor = tweet.pinned
+					? "#1da1f2"
+					: "#1da1f2";
+				pinButtonEl.style.color = "white";
+				pinButtonEl.style.opacity = "1";
+			});
+
+			pinButtonEl.addEventListener("mouseout", () => {
+				pinButtonEl.style.backgroundColor = "transparent";
+				pinButtonEl.style.color = tweet.pinned ? "#1da1f2" : "#777";
+				pinButtonEl.style.opacity = "0.7";
+			});
+
+			pinButtonEl.addEventListener("click", async (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+
+				try {
+					const method = tweet.pinned ? "DELETE" : "POST";
+					const response = await fetch(
+						`/api/profile/${currentUser.username}/pin/${tweet.id}`,
+						{
+							method,
+							headers: { Authorization: `Bearer ${authToken}` },
+						},
+					);
+
+					const result = await response.json();
+
+					if (result.success) {
+						tweet.pinned = !tweet.pinned;
+						pinButtonEl.innerHTML = tweet.pinned
+							? `
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M12 17v5"></path>
+								<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
+							</svg>
+						`
+							: `
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M12 17v5"></path>
+								<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
+							</svg>
+						`;
+						pinButtonEl.title = tweet.pinned ? "Unpin tweet" : "Pin to profile";
+						pinButtonEl.style.color = tweet.pinned ? "#1da1f2" : "#777";
+
+						toastQueue.add(
+							`<h1>Tweet ${tweet.pinned ? "pinned" : "unpinned"} successfully</h1>`,
+						);
+					} else {
+						toastQueue.add(
+							`<h1>${result.error || "Failed to update pin status"}</h1>`,
+						);
+					}
+				} catch (error) {
+					console.error("Error updating pin status:", error);
+					toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+				}
+			});
+
 			const deleteButtonEl = document.createElement("button");
 			deleteButtonEl.className = "tweet-delete-btn";
 			deleteButtonEl.innerHTML = `
@@ -465,6 +770,7 @@ export const createTweetElement = (tweet, config = {}) => {
 
 			// Make tweet container position relative for absolute positioning
 			tweetEl.style.position = "relative";
+			tweetHeaderEl.appendChild(pinButtonEl);
 			tweetHeaderEl.appendChild(deleteButtonEl);
 		}
 	});
@@ -892,6 +1198,15 @@ export const createTweetElement = (tweet, config = {}) => {
 				e.stopPropagation();
 			}
 			openTweet(tweet);
+		});
+	}
+
+	// Add expanded stats for tweets when requested
+	if (showStats) {
+		createExpandedStats(tweet.id).then((statsEl) => {
+			if (statsEl && statsEl.children.length > 0) {
+				tweetEl.appendChild(statsEl);
+			}
 		});
 	}
 

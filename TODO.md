@@ -7,10 +7,19 @@
 - tweetapus Gronk ✨
 - better edit profile modal
 - keyboard shortcuts
-- see who liked, retweeted or quoted a tweet
-- private accounts
-- woke pronouns
-- An algorithm.
+- blocking
+- reposts showing up in timeline
+- bookmarks
+- gif picker
+- scheduling tweets
+- limiting replies
+- tweetapus Gronk ✨
+- better edit profile modal
+- keyboard shortcuts
+- ✅ see who liked, retweeted or quoted a tweet
+- ✅ private accounts
+- ✅ adding pronouns to a profile
+- tweet deleting that ACTUALLY works
 
 ## others
 
