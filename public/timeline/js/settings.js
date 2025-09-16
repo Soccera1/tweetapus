@@ -29,8 +29,8 @@ const createThemesContent = () => {
 	return `
 		<div class="settings-section">
 			<h1>Themes</h1>
-			<div class="setting-group">
-				<h2>Appearance</h2>
+			<div class="setting-group">const showModal = (modal) => { modal.style.display = "flex"; };
+const hideModal = (modal) => { modal.style.display = "none"; };			<h2>Appearance</h2>
 				<div class="setting-item">
 					<label class="setting-label">
 						<span class="setting-title">Theme Mode</span>
@@ -266,440 +266,69 @@ const createSettingsPage = () => {
 
 	const style = document.createElement("style");
 	style.textContent = `
-		.settings {
-			flex-direction: column;
-			min-height: 100vh;
-		}
-
-		.settings-header {
-			display: flex;
-			align-items: center;
-			padding: 20px 0;
-			border-bottom: 1px solid var(--border-primary);
-			margin-bottom: 20px;
-		}
-
-		.back-button {
-			background: none;
-			border: none;
-			color: var(--text-primary);
-			cursor: pointer;
-			padding: 8px;
-			margin-right: 20px;
-			border-radius: 50%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			transition: background-color 0.2s;
-			text-decoration: none;
-		}
-
-		.back-button:hover {
-			background-color: var(--bg-overlay-light);
-		}
-
-		.settings-header-info h1 {
-			margin: 0;
-			font-size: 24px;
-			font-weight: 700;
-			color: var(--text-primary);
-		}
-
-		.settings-body {
-			display: flex;
-			gap: 20px;
-			flex: 1;
-		}
-
-		.settings-sidebar {
-			background-color: var(--bg-secondary);
-			border-radius: 8px;
-			padding: 8px;
-			width: 200px;
-			height: fit-content;
-		}
-
-		.settings-tab-btn {
-			width: 100%;
-			background: transparent;
-			border: none;
-			color: var(--text-primary);
-			text-align: left;
-			padding: 12px 16px;
-			font-size: 16px;
-			cursor: pointer;
-			border-radius: 6px;
-			margin-bottom: 4px;
-			font-family: inherit;
-			font-weight: 400;
-			transition: background-color 0.2s;
-		}
-
-		.settings-tab-btn:hover {
-			background-color: var(--bg-overlay-light);
-		}
-
-		.settings-tab-btn.active {
-			background-color: var(--primary);
-			color: white;
-			font-weight: 500;
-		}
-
-		.settings-content {
-			background-color: var(--bg-secondary);
-			border-radius: 8px;
-			padding: 24px;
-			flex: 1;
-		}
-
-		.settings-section h1 {
-			margin: 0 0 24px 0;
-			font-size: 24px;
-			font-weight: 700;
-			color: var(--text-primary);
-		}
-
-		.setting-group {
-			margin-bottom: 32px;
-		}
-
-		.setting-group h2 {
-			margin: 0 0 16px 0;
-			font-size: 18px;
-			font-weight: 600;
-			color: var(--text-primary);
-		}
-
-		.setting-item {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding: 16px 0;
-			border-bottom: 1px solid var(--border-primary);
-		}
-
-		.setting-item:last-child {
-			border-bottom: none;
-		}
-
-		.setting-label {
-			display: flex;
-			flex-direction: column;
-			gap: 4px;
-		}
-
-		.setting-title {
-			font-size: 16px;
-			font-weight: 500;
-			color: var(--text-primary);
-		}
-
-		.setting-description {
-			font-size: 14px;
-			color: var(--text-secondary);
-		}
-
-		.setting-control {
-			flex-shrink: 0;
-		}
-
-		.theme-mode-picker {
-			display: flex;
-			gap: 8px;
-			background: var(--bg-primary);
-			border: 1px solid var(--border-primary);
-			border-radius: 8px;
-			padding: 4px;
-		}
-
-		.theme-btn {
-			padding: 8px 12px;
-			border: none;
-			background: transparent;
-			color: var(--text-secondary);
-			border-radius: 6px;
-			cursor: pointer;
-			font-size: 14px;
-			transition: all 0.2s;
-		}
-
-		.theme-btn:hover {
-			background: var(--bg-overlay-light);
-			color: var(--text-primary);
-		}
-
-		.theme-btn.active {
-			background: var(--primary);
-			color: white;
-		}
-
-		.accent-color-section {
-			display: flex;
-			flex-direction: column;
-			gap: 12px;
-		}
-
-		.color-presets {
-			display: flex;
-			gap: 8px;
-			align-items: center;
-		}
-
-		.accent-color-picker {
-			display: flex;
-			gap: 8px;
-			align-items: center;
-		}
-
-		.color-option {
-			width: 32px;
-			height: 32px;
-			border-radius: 50%;
-			cursor: pointer;
-			border: 2px solid var(--border-primary);
-			transition: all 0.2s;
-			position: relative;
-		}
-
-		.color-option:hover {
-			transform: scale(1.1);
-			border-color: var(--border-hover);
-		}
-
-		.color-option.active {
-			border-color: var(--text-primary);
-			transform: scale(1.1);
-		}
-
-		.color-option.active::after {
-			content: '✓';
-			position: absolute;
-			top: 50%;
-			left: 50%;
-			transform: translate(-50%, -50%);
-			color: white;
-			font-size: 14px;
-			font-weight: bold;
-			text-shadow: 0 0 2px rgba(0,0,0,0.8);
-		}
-
-		.custom-color-picker {
-			width: 32px;
-			height: 32px;
-			border: 2px solid var(--border-primary);
-			border-radius: 50%;
-			cursor: pointer;
-			padding: 0;
-			background: none;
-			transition: all 0.2s;
-		}
-
-		.custom-color-picker:hover {
-			transform: scale(1.1);
-			border-color: var(--border-hover);
-		}
-
-		.danger-group {
-			border: 1px solid var(--error-color);
-			border-radius: 8px;
-			padding: 16px;
-			background-color: rgba(220, 38, 38, 0.05);
-		}
-
-		.danger-group h2 {
-			color: var(--error-color);
-		}
-
-		.modal {
-			display: none;
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			background-color: var(--bg-overlay);
-			z-index: 1000;
-			align-items: center;
-			justify-content: center;
-		}
-
-		.modal-content {
-			background: var(--bg-primary);
-			border-radius: 12px;
-			width: 90%;
-			max-width: 500px;
-			max-height: 90vh;
-			overflow-y: auto;
-			box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-		}
-
-		.modal-header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			padding: 20px 24px 0 24px;
-			border-bottom: 1px solid var(--border-primary);
-			margin-bottom: 20px;
-		}
-
-		.modal-header h2 {
-			margin: 0;
-			font-size: 20px;
-			font-weight: 600;
-			color: var(--text-primary);
-		}
-
-		.close-btn {
-			background: none;
-			border: none;
-			font-size: 24px;
-			cursor: pointer;
-			color: var(--text-secondary);
-			padding: 0;
-			width: 32px;
-			height: 32px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			border-radius: 50%;
-			transition: background-color 0.2s;
-		}
-
-		.close-btn:hover {
-			background-color: var(--bg-overlay-light);
-		}
-
-		.modal-body {
-			padding: 0 24px 24px 24px;
-		}
-
-		.form-group {
-			margin-bottom: 20px;
-		}
-
-		.form-group label {
-			display: block;
-			margin-bottom: 8px;
-			font-weight: 500;
-			color: var(--text-primary);
-		}
-
-		.form-group input {
-			width: 100%;
-			padding: 12px;
-			border: 1px solid var(--border-input);
-			border-radius: 8px;
-			font-size: 16px;
-			background: var(--bg-primary);
-			color: var(--text-primary);
-			transition: border-color 0.2s;
-			box-sizing: border-box;
-		}
-
-		.form-group input:focus {
-			outline: none;
-			border-color: var(--primary);
-		}
-
-		.form-group small {
-			display: block;
-			margin-top: 4px;
-			color: var(--text-secondary);
-			font-size: 14px;
-		}
-
-		.username-wrapper {
-			display: flex;
-			align-items: center;
-			border: 1px solid var(--border-input);
-			border-radius: 8px;
-			overflow: hidden;
-		}
-
-		.username-wrapper span {
-			padding: 12px 8px 12px 12px;
-			background: var(--bg-secondary);
-			color: var(--text-secondary);
-			font-size: 16px;
-		}
-
-		.username-wrapper input {
-			border: none;
-			flex: 1;
-		}
-
-		.form-actions {
-			display: flex;
-			gap: 12px;
-			justify-content: flex-end;
-			margin-top: 24px;
-		}
-
-		.btn {
-			padding: 10px 20px;
-			border-radius: 8px;
-			font-size: 16px;
-			font-weight: 500;
-			cursor: pointer;
-			border: 1px solid transparent;
-			transition: all 0.2s;
-		}
-
-		.btn.primary {
-			background: var(--primary);
-			color: white;
-		}
-
-		.btn.primary:hover {
-			background: var(--primary-hover);
-		}
-
-		.btn.secondary {
-			background: transparent;
-			color: var(--btn-secondary-color);
-			border-color: var(--btn-secondary-border);
-		}
-
-		.btn.secondary:hover {
-			background: var(--btn-secondary-hover-bg);
-			border-color: var(--btn-secondary-hover-border);
-		}
-
-		.btn.danger {
-			background: var(--error-color);
-			color: white;
-		}
-
-		.btn.danger:hover {
-			background: #b91c1c;
-		}
-
+		.settings { flex-direction: column; min-height: 100vh; }
+		.settings-header { display: flex; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--border-primary); margin-bottom: 20px; }
+		.back-button { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 8px; margin-right: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; text-decoration: none; }
+		.back-button:hover { background-color: var(--bg-overlay-light); }
+		.settings-header-info h1 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-primary); }
+		.settings-body { display: flex; gap: 20px; flex: 1; }
+		.settings-sidebar { background-color: var(--bg-secondary); border-radius: 8px; padding: 8px; width: 200px; height: fit-content; }
+		.settings-tab-btn { width: 100%; background: transparent; border: none; color: var(--text-primary); text-align: left; padding: 12px 16px; font-size: 16px; cursor: pointer; border-radius: 6px; margin-bottom: 4px; font-family: inherit; font-weight: 400; transition: background-color 0.2s; }
+		.settings-tab-btn:hover { background-color: var(--bg-overlay-light); }
+		.settings-tab-btn.active { background-color: var(--primary); color: white; font-weight: 500; }
+		.settings-content { background-color: var(--bg-secondary); border-radius: 8px; padding: 24px; flex: 1; }
+		.settings-section h1 { margin: 0 0 24px 0; font-size: 24px; font-weight: 700; color: var(--text-primary); }
+		.setting-group { margin-bottom: 32px; }
+		.setting-group h2 { margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: var(--text-primary); }
+		.setting-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border-primary); }
+		.setting-item:last-child { border-bottom: none; }
+		.setting-label { display: flex; flex-direction: column; gap: 4px; }
+		.setting-title { font-size: 16px; font-weight: 500; color: var(--text-primary); }
+		.setting-description { font-size: 14px; color: var(--text-secondary); }
+		.setting-control { flex-shrink: 0; }
+		.theme-mode-picker { display: flex; gap: 8px; background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 4px; }
+		.theme-btn { padding: 8px 12px; border: none; background: transparent; color: var(--text-secondary); border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+		.theme-btn:hover { background: var(--bg-overlay-light); color: var(--text-primary); }
+		.theme-btn.active { background: var(--primary); color: white; }
+		.accent-color-section { display: flex; flex-direction: column; gap: 12px; }
+		.color-presets { display: flex; gap: 8px; align-items: center; }
+		.color-option { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-primary); transition: all 0.2s; position: relative; }
+		.color-option:hover { transform: scale(1.1); border-color: var(--border-hover); }
+		.color-option.active { border-color: var(--text-primary); transform: scale(1.1); }
+		.color-option.active::after { content: '✓'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 14px; font-weight: bold; text-shadow: 0 0 2px rgba(0,0,0,0.8); }
+		.custom-color-picker { width: 32px; height: 32px; border: 2px solid var(--border-primary); border-radius: 50%; cursor: pointer; padding: 0; background: none; transition: all 0.2s; }
+		.custom-color-picker:hover { transform: scale(1.1); border-color: var(--border-hover); }
+		.danger-group { border: 1px solid var(--error-color); border-radius: 8px; padding: 16px; background-color: rgba(220, 38, 38, 0.05); }
+		.danger-group h2 { color: var(--error-color); }
+		.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-overlay); z-index: 1000; align-items: center; justify-content: center; }
+		.modal-content { background: var(--bg-primary); border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+		.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px 0 24px; border-bottom: 1px solid var(--border-primary); margin-bottom: 20px; }
+		.modal-header h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--text-primary); }
+		.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; }
+		.close-btn:hover { background-color: var(--bg-overlay-light); }
+		.modal-body { padding: 0 24px 24px 24px; }
+		.form-group { margin-bottom: 20px; }
+		.form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-primary); }
+		.form-group input { width: 100%; padding: 12px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 16px; background: var(--bg-primary); color: var(--text-primary); transition: border-color 0.2s; box-sizing: border-box; }
+		.form-group input:focus { outline: none; border-color: var(--primary); }
+		.form-group small { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 14px; }
+		.username-wrapper { display: flex; align-items: center; border: 1px solid var(--border-input); border-radius: 8px; overflow: hidden; }
+		.username-wrapper span { padding: 12px 8px 12px 12px; background: var(--bg-secondary); color: var(--text-secondary); font-size: 16px; }
+		.username-wrapper input { border: none; flex: 1; }
+		.form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+		.btn { padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+		.btn.primary { background: var(--primary); color: white; }
+		.btn.primary:hover { background: var(--primary-hover); }
+		.btn.secondary { background: transparent; color: var(--btn-secondary-color); border-color: var(--btn-secondary-border); }
+		.btn.secondary:hover { background: var(--btn-secondary-hover-bg); border-color: var(--btn-secondary-hover-border); }
+		.btn.danger { background: var(--error-color); color: white; }
+		.btn.danger:hover { background: #b91c1c; }
 		@media (max-width: 768px) {
-			.settings-body {
-				flex-direction: column;
-			}
-
-			.settings-sidebar {
-				width: 100%;
-				display: flex;
-				overflow-x: auto;
-				gap: 8px;
-			}
-
-			.settings-tab-btn {
-				white-space: nowrap;
-				margin-bottom: 0;
-			}
-
-			.setting-item {
-				flex-direction: column;
-				align-items: stretch;
-				gap: 12px;
-			}
-
-			.accent-color-picker {
-				justify-content: center;
-			}
+			.settings-body { flex-direction: column; }
+			.settings-sidebar { width: 100%; display: flex; overflow-x: auto; gap: 8px; }
+			.settings-tab-btn { white-space: nowrap; margin-bottom: 0; }
+			.setting-item { flex-direction: column; align-items: stretch; gap: 12px; }
+			.color-presets { justify-content: center; }
 		}
 	`;
 
@@ -865,8 +494,86 @@ const setupSettingsEventHandlers = async () => {
 	});
 
 	loadCurrentAccentColor();
+	loadCurrentThemeMode();
+
+	document.addEventListener("input", (event) => {
+		if (event.target.id === "newUsername") {
+			event.target.value = event.target.value
+				.toLowerCase()
+				.replace(/[^a-z0-9_]/g, "");
+		}
+		if (event.target.id === "customColorPicker") {
+			handleCustomColorChange(event.target.value);
+		}
+	});
 };
 
+const handleThemeModeChange = (theme) => {
+	const root = document.documentElement;
+	const themeBtns = document.querySelectorAll(".theme-btn");
+
+	themeBtns.forEach((btn) => btn.classList.remove("active"));
+	document.querySelector(`[data-theme="${theme}"]`).classList.add("active");
+
+	if (theme === "auto") {
+		localStorage.removeItem("theme");
+		const systemDark = window.matchMedia(
+			"(prefers-color-scheme: dark)",
+		).matches;
+		if (systemDark) {
+			root.classList.add("dark");
+		} else {
+			root.classList.remove("dark");
+		}
+	} else if (theme === "dark") {
+		root.classList.add("dark");
+		localStorage.setItem("theme", "dark");
+	} else {
+		root.classList.remove("dark");
+		localStorage.setItem("theme", "light");
+	}
+
+	toastQueue.add(`<h1>Theme Changed</h1><p>Switched to ${theme} mode</p>`);
+};
+
+const handleCustomColorChange = (color) => {
+	const root = document.documentElement;
+	root.style.setProperty("--primary", color);
+
+	const rgb = hexToRgb(color);
+	if (rgb) {
+		root.style.setProperty("--primary-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+	}
+
+	const hoverColor = adjustBrightness(color, -10);
+	const focusColor = adjustBrightness(color, -20);
+
+	root.style.setProperty("--primary-hover", hoverColor);
+	root.style.setProperty("--primary-focus", focusColor);
+
+	localStorage.setItem("accentColor", color);
+
+	document.querySelectorAll(".color-option").forEach((option) => {
+		option.classList.remove("active");
+	});
+
+	toastQueue.add(
+		`<h1>Custom Color Applied</h1><p>Your custom accent color has been set</p>`,
+	);
+};
+
+const loadCurrentThemeMode = () => {
+	const savedTheme = localStorage.getItem("theme");
+
+	let currentTheme = "auto";
+	if (savedTheme === "dark") currentTheme = "dark";
+	else if (savedTheme === "light") currentTheme = "light";
+
+	const themeBtn = document.querySelector(`[data-theme="${currentTheme}"]`);
+	if (themeBtn) {
+		themeBtn.classList.add("active");
+	}
+};
 const handleAccentColorChange = (colorOption) => {
 	const color = colorOption.dataset.color;
 	const root = document.documentElement;
@@ -932,23 +639,14 @@ const hexToRgb = (hex) => {
 const adjustBrightness = (hex, percent) => {
 	const rgb = hexToRgb(hex);
 	if (!rgb) return hex;
-
-	const adjust = (color) => {
-		const newColor = Math.round(color + (color * percent) / 100);
-		return Math.max(0, Math.min(255, newColor));
-	};
-
-	const r = adjust(rgb.r).toString(16).padStart(2, "0");
-	const g = adjust(rgb.g).toString(16).padStart(2, "0");
-	const b = adjust(rgb.b).toString(16).padStart(2, "0");
-
-	return `#${r}${g}${b}`;
+	const adjust = (color) =>
+		Math.max(0, Math.min(255, Math.round(color + (color * percent) / 100)));
+	return `#${adjust(rgb.r).toString(16).padStart(2, "0")}${adjust(rgb.g).toString(16).padStart(2, "0")}${adjust(rgb.b).toString(16).padStart(2, "0")}`;
 };
 
 const showModal = (modal) => {
 	modal.style.display = "flex";
 };
-
 const hideModal = (modal) => {
 	modal.style.display = "none";
 };
