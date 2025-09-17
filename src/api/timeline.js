@@ -7,16 +7,18 @@ import ratelimit from "../helpers/ratelimit.js";
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const getTimelinePosts = db.query(`
-  SELECT * FROM posts 
-  WHERE reply_to IS NULL 
-  ORDER BY created_at DESC 
+  SELECT posts.* FROM posts 
+  LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
+  WHERE posts.reply_to IS NULL AND blocks.id IS NULL
+  ORDER BY posts.created_at DESC 
   LIMIT 20
 `);
 
 const getFollowingTimelinePosts = db.query(`
   SELECT posts.* FROM posts 
   JOIN follows ON posts.user_id = follows.following_id
-  WHERE follows.follower_id = ? AND posts.reply_to IS NULL
+  LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
+  WHERE follows.follower_id = ? AND posts.reply_to IS NULL AND blocks.id IS NULL
   ORDER BY posts.created_at DESC 
   LIMIT 20
 `);
@@ -159,7 +161,7 @@ export default new Elysia({ prefix: "/timeline" })
 			return { error: "Authentication failed" };
 		}
 
-		const posts = getTimelinePosts.all();
+		const posts = getTimelinePosts.all(user.id);
 
 		const userIds = [...new Set(posts.map((post) => post.user_id))];
 
@@ -193,6 +195,15 @@ export default new Elysia({ prefix: "/timeline" })
 			userRetweets.map((retweet) => retweet.post_id),
 		);
 
+		const getUserBookmarksQuery = db.query(
+			`SELECT post_id FROM bookmarks WHERE user_id = ? AND post_id IN (${likePlaceholders})`,
+		);
+
+		const userBookmarks = getUserBookmarksQuery.all(user.id, ...postIds);
+		const userBookmarkedPosts = new Set(
+			userBookmarks.map((bookmark) => bookmark.post_id),
+		);
+
 		const timeline = posts.map((post) => {
 			const topReply = getTopReplyData(post.id, user.id);
 			const shouldShowTopReply =
@@ -203,6 +214,7 @@ export default new Elysia({ prefix: "/timeline" })
 			if (topReply) {
 				topReply.liked_by_user = userLikedPosts.has(topReply.id);
 				topReply.retweeted_by_user = userRetweetedPosts.has(topReply.id);
+				topReply.bookmarked_by_user = userBookmarkedPosts.has(topReply.id);
 			}
 
 			return {
@@ -210,6 +222,7 @@ export default new Elysia({ prefix: "/timeline" })
 				author: userMap[post.user_id],
 				liked_by_user: userLikedPosts.has(post.id),
 				retweeted_by_user: userRetweetedPosts.has(post.id),
+				bookmarked_by_user: userBookmarkedPosts.has(post.id),
 				poll: getPollDataForTweet(post.id, user.id),
 				quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
 				top_reply: shouldShowTopReply ? topReply : null,
@@ -235,7 +248,7 @@ export default new Elysia({ prefix: "/timeline" })
 			return { error: "Authentication failed" };
 		}
 
-		const posts = getFollowingTimelinePosts.all(user.id);
+		const posts = getFollowingTimelinePosts.all(user.id, user.id);
 
 		if (posts.length === 0) {
 			return { timeline: [] };
@@ -273,6 +286,15 @@ export default new Elysia({ prefix: "/timeline" })
 			userRetweets.map((retweet) => retweet.post_id),
 		);
 
+		const getUserBookmarksQuery = db.query(
+			`SELECT post_id FROM bookmarks WHERE user_id = ? AND post_id IN (${likePlaceholders})`,
+		);
+
+		const userBookmarks = getUserBookmarksQuery.all(user.id, ...postIds);
+		const userBookmarkedPosts = new Set(
+			userBookmarks.map((bookmark) => bookmark.post_id),
+		);
+
 		const timeline = posts.map((post) => {
 			const topReply = getTopReplyData(post.id, user.id);
 			const shouldShowTopReply =
@@ -283,6 +305,7 @@ export default new Elysia({ prefix: "/timeline" })
 			if (topReply) {
 				topReply.liked_by_user = userLikedPosts.has(topReply.id);
 				topReply.retweeted_by_user = userRetweetedPosts.has(topReply.id);
+				topReply.bookmarked_by_user = userBookmarkedPosts.has(topReply.id);
 			}
 
 			return {
@@ -290,6 +313,7 @@ export default new Elysia({ prefix: "/timeline" })
 				author: userMap[post.user_id],
 				liked_by_user: userLikedPosts.has(post.id),
 				retweeted_by_user: userRetweetedPosts.has(post.id),
+				bookmarked_by_user: userBookmarkedPosts.has(post.id),
 				poll: getPollDataForTweet(post.id, user.id),
 				quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
 				top_reply: shouldShowTopReply ? topReply : null,

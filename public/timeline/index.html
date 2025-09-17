@@ -16,6 +16,21 @@
   </head>
   <body>
     <nav>
+      <button class="home-btn" id="homeBtn">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9,22 9,12 15,12 15,22" />
+        </svg>
+      </button>
       <button class="search-btn" id="searchBtn">
         <svg
           width="24"
@@ -91,6 +106,7 @@
       <div class="account-dropdown" id="accountDropdown" style="display: none">
         <ul>
           <li><a href="#" id="myProfileLink">My Profile</a></li>
+          <li><a href="#" id="bookmarksLink">Bookmarks</a></li>
           <li><a href="#" id="settingsLink">Settings</a></li>
           <li><a href="/account">Manage passkeys</a></li>
           <li><a href="#" id="signOutLink">Sign Out</a></li>
@@ -213,9 +229,9 @@
       </div>
     </div>
 
-    <div class="notifications">
-      <div class="notifications-header">
-        <a href="/" class="back-button">
+    <div class="bookmarks-page">
+      <div class="bookmarks-header">
+        <button class="back-button" onclick="history.back()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -230,7 +246,55 @@
             <path d="m12 19-7-7 7-7" />
             <path d="M19 12H5" />
           </svg>
-        </a>
+        </button>
+        <div class="bookmarks-header-info">
+          <h1>Bookmarks</h1>
+          <p>Tweets you've saved for later</p>
+        </div>
+      </div>
+
+      <div class="bookmarks-content">
+        <div class="bookmarks-empty" id="bookmarksEmpty" style="display: none">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 19 19"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M3.95833 16.625L9.5 12.2917L15.0417 16.625V4.75C15.0417 4.33008 14.8749 3.92735 14.5779 3.63041C14.281 3.33348 13.8783 3.16667 13.4583 3.16667H5.54167C5.12174 3.16667 4.71901 3.33348 4.42208 3.63041C4.12514 3.92735 3.95833 4.33008 3.95833 4.75V16.625Z"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <h3>Save Tweets for later</h3>
+          <p>When you bookmark Tweets, they'll show up here.</p>
+        </div>
+
+        <div class="bookmarks-list" id="bookmarksList"></div>
+      </div>
+    </div>
+
+    <div class="notifications">
+      <div class="notifications-header">
+        <button class="back-button" onclick="history.back()">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.25"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+          </svg>
+        </button>
         <div class="notifications-header-info">
           <h1>Notifications</h1>
           <button class="mark-all-read-btn" id="markAllReadBtn">
@@ -244,7 +308,7 @@
 
     <div class="direct-messages">
       <div class="dm-header">
-        <a href="/" class="back-button">
+        <button class="back-button" onclick="history.back()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -259,7 +323,7 @@
             <path d="m12 19-7-7 7-7" />
             <path d="M19 12H5" />
           </svg>
-        </a>
+        </button>
         <div class="dm-header-info">
           <h1>Messages</h1>
           <button class="new-message-btn" id="newMessageBtn">
@@ -537,7 +601,7 @@
 
     <div class="profile">
       <div class="profile-header">
-        <a href="/" class="back-button">
+        <button class="back-button" onclick="history.back()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -553,7 +617,7 @@
             <path d="m12 19-7-7 7-7" />
             <path d="M19 12H5" />
           </svg>
-        </a>
+        </button>
         <div class="profile-header-info">
           <h1 id="profileHeaderName">Profile</h1>
           <p class="post-count" id="profileHeaderPostCount">0 posts</p>
@@ -581,6 +645,24 @@
             >
               Follow
             </button>
+            <div class="profile-dropdown" id="profileDropdown" style="display: none">
+              <button class="profile-btn profile-btn-secondary profile-dropdown-btn" id="profileDropdownBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="1"/>
+                  <circle cx="12" cy="5" r="1"/>
+                  <circle cx="12" cy="19" r="1"/>
+                </svg>
+              </button>
+              <div class="dropdown-menu" id="profileDropdownMenu">
+                <button class="dropdown-item" id="blockUserBtn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="4.93 4.93l14.14 14.14"/>
+                  </svg>
+                  Block @<span id="blockUsername"></span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="profile-info">

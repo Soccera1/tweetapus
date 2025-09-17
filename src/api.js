@@ -2,6 +2,8 @@ import { Elysia } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
 import admin from "./api/admin.js";
 import auth from "./api/auth.js";
+import blocking from "./api/blocking.js";
+import bookmarks from "./api/bookmarks.js";
 import dm from "./api/dm.js";
 import notifications from "./api/notifications.js";
 import profile, { avatarRoutes } from "./api/profile.js";
@@ -54,6 +56,8 @@ export default new Elysia({
 	})
 	.use(auth)
 	.use(admin)
+	.use(blocking)
+	.use(bookmarks)
 	.use(tweet)
 	.use(profile)
 	.use(timeline)

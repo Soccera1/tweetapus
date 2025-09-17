@@ -288,10 +288,16 @@ const renderProfile = (data) => {
 	if (isOwnProfile) {
 		document.getElementById("editProfileBtn").style.display = "block";
 		document.getElementById("followBtn").style.display = "none";
+		document.getElementById("profileDropdown").style.display = "none";
 	} else if (authToken) {
 		document.getElementById("editProfileBtn").style.display = "none";
 		document.getElementById("followBtn").style.display = "block";
+		document.getElementById("profileDropdown").style.display = "block";
+		document.getElementById("blockUsername").textContent = profile.username;
 		updateFollowButton(isFollowing);
+		checkBlockStatus(profile.username);
+	} else {
+		document.getElementById("profileDropdown").style.display = "none";
 	}
 
 	currentPosts = posts;
@@ -750,8 +756,9 @@ const loadProfile = async (username) => {
 	openProfile(username);
 };
 
-document.querySelector(".back-button").addEventListener("click", () => {
-	window.location.href = "/";
+document.querySelector(".back-button").addEventListener("click", (e) => {
+	e.preventDefault();
+	history.back();
 });
 
 document.querySelectorAll(".profile-tab-btn").forEach((btn) => {
@@ -839,6 +846,20 @@ editBannerUpload?.addEventListener("change", (e) => {
 
 editRemoveBannerBtn?.addEventListener("click", handleEditBannerRemoval);
 
+// Profile dropdown event listeners
+document.getElementById("profileDropdownBtn")?.addEventListener("click", (e) => {
+	e.stopPropagation();
+	const menu = document.getElementById("profileDropdownMenu");
+	menu.classList.toggle("show");
+});
+
+// Close dropdown when clicking outside
+document.addEventListener("click", (e) => {
+	if (!e.target.closest(".profile-dropdown")) {
+		document.getElementById("profileDropdownMenu")?.classList.remove("show");
+	}
+});
+
 document.getElementById("editProfileModal").addEventListener("click", (e) => {
 	if (e.target === e.currentTarget) closeEditModal();
 });
@@ -923,5 +944,105 @@ async function showFollowersList(username, type) {
 		toastQueue.add(`<h1>Error loading ${type}</h1><p>Please try again</p>`);
 	}
 }
+
+const checkBlockStatus = async (username) => {
+	if (!authToken || !currentProfile) return;
+
+	try {
+		const { blocked } = await (
+			await fetch(`/api/blocking/check/${currentProfile.profile.id}`, {
+				headers: {
+					Authorization: `Bearer ${authToken}`,
+				},
+			})
+		).json();
+
+		updateBlockButton(blocked);
+	} catch (error) {
+		console.error("Error checking block status:", error);
+	}
+};
+
+const updateBlockButton = (isBlocked) => {
+	const blockBtn = document.getElementById("blockUserBtn");
+
+	if (isBlocked) {
+		blockBtn.innerHTML = `
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<circle cx="12" cy="12" r="10"/>
+				<path d="4.93 4.93l14.14 14.14"/>
+			</svg>
+			Unblock @<span id="blockUsername">${currentUsername}</span>
+		`;
+		blockBtn.onclick = () => handleUnblockUser();
+	} else {
+		blockBtn.innerHTML = `
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<circle cx="12" cy="12" r="10"/>
+				<path d="4.93 4.93l14.14 14.14"/>
+			</svg>
+			Block @<span id="blockUsername">${currentUsername}</span>
+		`;
+		blockBtn.onclick = () => handleBlockUser();
+	}
+};
+
+const handleBlockUser = async () => {
+	if (!authToken || !currentUsername || !currentProfile) return;
+
+	try {
+		const { success } = await (
+			await fetch(`/api/blocking/block`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${authToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ userId: currentProfile.profile.id }),
+			})
+		).json();
+
+		if (success) {
+			updateBlockButton(true);
+			toastQueue.add(`<h1>User blocked</h1><p>@${currentUsername} has been blocked.</p>`);
+			// Close dropdown
+			document.getElementById("profileDropdownMenu").classList.remove("show");
+		} else {
+			toastQueue.add(`<h1>Failed to block user</h1>`);
+		}
+	} catch (error) {
+		console.error("Block user error:", error);
+		toastQueue.add(`<h1>Failed to block user</h1>`);
+	}
+};
+
+const handleUnblockUser = async () => {
+	if (!authToken || !currentUsername || !currentProfile) return;
+
+	try {
+		const { success } = await (
+			await fetch(`/api/blocking/unblock`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${authToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ userId: currentProfile.profile.id }),
+			})
+		).json();
+
+		if (success) {
+			updateBlockButton(false);
+			toastQueue.add(`<h1>User unblocked</h1><p>@${currentUsername} has been unblocked.</p>`);
+			// Close dropdown
+			document.getElementById("profileDropdownMenu").classList.remove("show");
+		} else {
+			toastQueue.add(`<h1>Failed to unblock user</h1>`);
+		}
+	} catch (error) {
+		console.error("Unblock user error:", error);
+		toastQueue.add(`<h1>Failed to unblock user</h1>`);
+	}
+};
 
 export { loadProfile };

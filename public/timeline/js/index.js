@@ -93,7 +93,7 @@ window.onunhandledrejection = (event) => {
 	document.addEventListener("click", (e) => {
 		if (e.target.closest("#searchBackBtn")) {
 			e.preventDefault();
-			window.location.href = "/";
+			history.back();
 		}
 	});
 
@@ -137,7 +137,15 @@ window.onunhandledrejection = (event) => {
 })();
 
 const currentPath = window.location.pathname;
-if (currentPath === "/search") {
+if (currentPath.startsWith("/settings")) {
+	// Handle settings routing
+	(async () => {
+		const { openSettings } = await import("./settings.js");
+		const pathParts = currentPath.split("/");
+		const section = pathParts[2] || "account";
+		openSettings(section);
+	})();
+} else if (currentPath === "/search") {
 	showPage("search");
 } else {
 	showPage("timeline");
@@ -151,4 +159,16 @@ addRoute(
 addRoute(
 	(pathname) => pathname === "/search",
 	() => showPage("search"),
+);
+
+addRoute(
+	(pathname) => pathname.startsWith("/settings"),
+	(pathname) => {
+		(async () => {
+			const { openSettings } = await import("./settings.js");
+			const pathParts = pathname.split("/");
+			const section = pathParts[2] || "account";
+			openSettings(section);
+		})();
+	},
 );

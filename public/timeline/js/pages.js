@@ -4,6 +4,7 @@ const pages = {
 	profile: document.querySelector(".profile"),
 	notifications: document.querySelector(".notifications"),
 	search: document.querySelector(".search-page"),
+	bookmarks: document.querySelector(".bookmarks-page"),
 	"direct-messages": document.querySelector(".direct-messages"),
 	"dm-conversation": document.querySelector(".dm-conversation"),
 	settings: null,
@@ -11,14 +12,20 @@ const pages = {
 const states = {};
 let searchInitialized = false;
 
-function showPage(page, recoverState = () => {}) {
+function showPage(page, options = {}) {
+	const { recoverState = () => {}, path = "/" } = options;
+
 	Object.values(pages).forEach((p) => {
 		if (p) p.style.display = "none";
 	});
 
 	if (pages[page]) {
 		pages[page].style.display = "flex";
-		recoverState(pages[page]);
+		try {
+			recoverState(pages[page]);
+		} catch (error) {
+			console.error(`Error in recoverState for page ${page}:`, error);
+		}
 
 		if (page === "search" && !searchInitialized) {
 			searchInitialized = true;
@@ -58,7 +65,7 @@ export default function switchPage(
 		);
 	}
 
-	showPage(page, recoverState);
+	showPage(page, { recoverState, path });
 
 	const stateId = crypto.randomUUID();
 	states[stateId] = recoverState;
@@ -91,7 +98,7 @@ window.addEventListener("popstate", (event) => {
 
 	const recoverState = (stateId && states[stateId]) || (() => {});
 
-	showPage(page, recoverState);
+	showPage(page, { recoverState });
 
 	setTimeout(() => {
 		window.scrollTo(0, scroll || 0);

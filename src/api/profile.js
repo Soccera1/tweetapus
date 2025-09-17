@@ -1,4 +1,3 @@
-
 import { jwt } from "@elysiajs/jwt";
 import { Elysia, file } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
@@ -32,6 +31,12 @@ const updateProfile = db.query(`
   UPDATE users
   SET name = ?, bio = ?, location = ?, website = ?, pronouns = ?
   WHERE id = ?
+`);
+
+const updateThemeAccent = db.query(`
+	UPDATE users
+	SET theme = ?, accent_color = ?
+	WHERE id = ?
 `);
 
 const updateBanner = db.query(`
@@ -448,6 +453,8 @@ export default new Elysia({ prefix: "/profile" })
 
 			const { name, bio, location, website, pronouns } = body;
 
+			const { theme, accent_color } = body;
+
 			if (name && name.length > 50) {
 				return { error: "Display name must be 50 characters or less" };
 			}
@@ -476,6 +483,15 @@ export default new Elysia({ prefix: "/profile" })
 				pronouns !== undefined ? pronouns : currentUser.pronouns,
 				currentUser.id,
 			);
+
+			// Persist theme/accent if provided
+			if (theme !== undefined || accent_color !== undefined) {
+				updateThemeAccent.run(
+					theme !== undefined ? theme : currentUser.theme,
+					accent_color !== undefined ? accent_color : currentUser.accent_color,
+					currentUser.id,
+				);
+			}
 
 			const updatedUser = getUserByUsername.get(currentUser.username);
 			return { success: true, profile: updatedUser };

@@ -1,234 +1,465 @@
 import toastQueue from "../../shared/toasts.js";
 import { authToken } from "./auth.js";
-import showPage, { addRoute } from "./pages.js";
+import { showPage } from "./pages.js";
 
 let currentUser = null;
 
+const hexToRgb = (hex) => {
+	if (!hex) return null;
+	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+	return result
+		? {
+				r: parseInt(result[1], 16),
+				g: parseInt(result[2], 16),
+				b: parseInt(result[3], 16),
+			}
+		: null;
+};
+
+const initializeGlobalColors = () => {
+	const savedColor = localStorage.getItem("accentColor") || "#1185fe";
+	const root = document.documentElement;
+	root.style.setProperty("--primary", savedColor);
+	const rgb = hexToRgb(savedColor);
+	if (rgb)
+		root.style.setProperty("--primary-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+	root.style.setProperty("--primary-hover", adjustBrightness(savedColor, -10));
+	root.style.setProperty("--primary-focus", adjustBrightness(savedColor, -20));
+};
+
+const adjustBrightness = (hex, percent) => {
+	const rgb = hexToRgb(hex);
+	if (!rgb) return hex;
+	const adjust = (color) =>
+		Math.max(0, Math.min(255, Math.round(color + (color * percent) / 100)));
+	return `#${adjust(rgb.r).toString(16).padStart(2, "0")}${adjust(rgb.g).toString(16).padStart(2, "0")}${adjust(rgb.b).toString(16).padStart(2, "0")}`;
+};
+
+initializeGlobalColors();
+
 const settingsPages = [
-	{
-		key: "account",
-		title: "Account",
-		content: () => createAccountContent(),
-	},
-	{
-		key: "themes",
-		title: "Themes",
-		content: () => createThemesContent(),
-	},
-	{
-		key: "other",
-		title: "Other",
-		content: () => `
-        <h1>Other Settings</h1>
-        <p>Additional settings will be added here.</p>
-        `,
-	},
+	{ key: "account", title: "Account", content: () => createAccountContent() },
+	{ key: "themes", title: "Themes", content: () => createThemesContent() },
+	{ key: "other", title: "Other", content: () => createOtherContent() },
 ];
 
 const createThemesContent = () => {
-	return `
-		<div class="settings-section">
-			<h1>Themes</h1>
-			<div class="setting-group">const showModal = (modal) => { modal.style.display = "flex"; };
-const hideModal = (modal) => { modal.style.display = "none"; };			<h2>Appearance</h2>
-				<div class="setting-item">
-					<label class="setting-label">
-						<span class="setting-title">Theme Mode</span>
-						<span class="setting-description">Choose light or dark mode</span>
-					</label>
-					<div class="theme-mode-picker setting-control">
-						<button class="theme-btn" data-theme="light">☀️ Light</button>
-						<button class="theme-btn" data-theme="dark">🌙 Dark</button>
-						<button class="theme-btn" data-theme="auto">🖥️ Auto</button>
-					</div>
-				</div>
-				<div class="setting-item">
-					<label class="setting-label">
-						<span class="setting-title">Accent Color</span>
-						<span class="setting-description">Customize the accent color</span>
-					</label>
-					<div class="accent-color-section setting-control">
-						<div class="color-presets">
-							<div class="color-option" data-color="#1185fe" style="background-color: #1185fe"></div>
-							<div class="color-option" data-color="#dc2626" style="background-color: #dc2626"></div>
-							<div class="color-option" data-color="#059669" style="background-color: #059669"></div>
-							<div class="color-option" data-color="#7c3aed" style="background-color: #7c3aed"></div>
-							<div class="color-option" data-color="#ea580c" style="background-color: #ea580c"></div>
-							<div class="color-option" data-color="#0891b2" style="background-color: #0891b2"></div>
-						</div>
-						<input type="color" id="customColorPicker" class="custom-color-picker" title="Choose custom color">
-					</div>
-				</div>
-			</div>
-		</div>
+	const section = document.createElement("div");
+	section.className = "settings-section";
+
+	const h1 = document.createElement("h1");
+	h1.textContent = "Themes";
+	section.appendChild(h1);
+
+	const group = document.createElement("div");
+	group.className = "setting-group";
+
+	const h2 = document.createElement("h2");
+	h2.textContent = "Appearance";
+	group.appendChild(h2);
+
+	const themeItem = document.createElement("div");
+	themeItem.className = "setting-item";
+
+	const themeLabel = document.createElement("label");
+	themeLabel.className = "setting-label";
+	const themeTitle = document.createElement("span");
+	themeTitle.className = "setting-title";
+	themeTitle.textContent = "Theme Mode";
+	const themeDesc = document.createElement("span");
+	themeDesc.className = "setting-description";
+	themeDesc.textContent = "Choose light or dark mode";
+	themeLabel.appendChild(themeTitle);
+	themeLabel.appendChild(themeDesc);
+
+	const themeControl = document.createElement("div");
+	themeControl.className = "setting-control";
+
+	const dropdown = document.createElement("div");
+	dropdown.className = "custom-dropdown";
+	dropdown.id = "themeDropdown";
+
+	const dropdownButton = document.createElement("button");
+	dropdownButton.className = "custom-dropdown-button";
+	dropdownButton.setAttribute("aria-label", "Theme mode");
+	dropdownButton.innerHTML = `
+		<span class="dropdown-text">Auto</span>
+		<svg class="custom-dropdown-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<polyline points="6,9 12,15 18,9"></polyline>
+		</svg>
 	`;
+
+	const dropdownMenu = document.createElement("div");
+	dropdownMenu.className = "custom-dropdown-menu";
+
+	[
+		{ v: "light", t: "Light", icon: "☀️" },
+		{ v: "dark", t: "Dark", icon: "🌙" },
+		{ v: "auto", t: "Auto", icon: "🔄" },
+	].forEach(({ v, t, icon }) => {
+		const option = document.createElement("div");
+		option.className = "custom-dropdown-option";
+		option.dataset.value = v;
+		option.innerHTML = `${icon} ${t}`;
+		dropdownMenu.appendChild(option);
+	});
+
+	dropdown.appendChild(dropdownButton);
+	dropdown.appendChild(dropdownMenu);
+	themeControl.appendChild(dropdown);
+	const select = document.createElement("select");
+	select.className = "theme-mode-select";
+	select.setAttribute("aria-label", "Theme mode");
+	select.style.display = "none";
+	[
+		{ v: "light", t: "Light" },
+		{ v: "dark", t: "Dark" },
+		{ v: "auto", t: "Auto" },
+	].forEach(({ v, t }) => {
+		const opt = document.createElement("option");
+		opt.value = v;
+		opt.textContent = t;
+		select.appendChild(opt);
+	});
+	themeControl.appendChild(select);
+
+	themeItem.appendChild(themeLabel);
+	themeItem.appendChild(themeControl);
+	group.appendChild(themeItem);
+
+	const colorItem = document.createElement("div");
+	colorItem.className = "setting-item";
+
+	const colorLabel = document.createElement("label");
+	colorLabel.className = "setting-label";
+	const colorTitle = document.createElement("span");
+	colorTitle.className = "setting-title";
+	colorTitle.textContent = "Accent Color";
+	const colorDesc = document.createElement("span");
+	colorDesc.className = "setting-description";
+	colorDesc.textContent = "Customize the accent color";
+	colorLabel.appendChild(colorTitle);
+	colorLabel.appendChild(colorDesc);
+
+	const colorControl = document.createElement("div");
+	colorControl.className = "accent-color-section setting-control";
+	const presets = document.createElement("div");
+	presets.className = "color-presets";
+	["#1185fe", "#dc2626", "#059669", "#7c3aed", "#ea580c", "#0891b2"].forEach(
+		(hex) => {
+			const dot = document.createElement("div");
+			dot.className = "color-option";
+			dot.dataset.color = hex;
+			dot.style.backgroundColor = hex;
+			presets.appendChild(dot);
+		},
+	);
+	const customWrap = document.createElement("div");
+	customWrap.className = "color-option";
+	customWrap.dataset.isCustom = "true";
+	const picker = document.createElement("input");
+	picker.type = "color";
+	picker.id = "customColorPicker";
+	picker.className = "custom-color-picker";
+	picker.title = "Choose custom color";
+	const savedColor = localStorage.getItem("accentColor") || "#1185fe";
+	picker.value = savedColor;
+	customWrap.style.backgroundColor = savedColor;
+	customWrap.appendChild(picker);
+	colorControl.appendChild(presets);
+	colorControl.appendChild(customWrap);
+
+	const actionsWrap = document.createElement("div");
+	actionsWrap.style.marginTop = "12px";
+	actionsWrap.style.display = "flex";
+	actionsWrap.style.justifyContent = "flex-end";
+	const saveBtn = document.createElement("button");
+	saveBtn.className = "btn primary";
+	saveBtn.id = "saveThemeBtn";
+	saveBtn.textContent = "Save Theme";
+	actionsWrap.appendChild(saveBtn);
+	colorControl.appendChild(actionsWrap);
+
+	colorItem.appendChild(colorLabel);
+	colorItem.appendChild(colorControl);
+	group.appendChild(colorItem);
+
+	section.appendChild(group);
+	return section;
 };
 
 const createAccountContent = () => {
-	return `
-		<div class="settings-section">
-			<h1>Account Settings</h1>
-			<div class="setting-group">
-				<h2>Profile</h2>
-				<div class="setting-item">
-					<button class="btn secondary" id="changeUsernameBtn">
-						Change Username
-					</button>
-				</div>
-				<div class="setting-item">
-					<button class="btn secondary" id="changePasswordBtn">
-						Change Password
-					</button>
-				</div>
-			</div>
-			<div class="setting-group danger-group">
-				<h2>Danger Zone</h2>
-				<div class="setting-item">
-					<button class="btn danger" id="deleteAccountBtn">
-						Delete Account
-					</button>
-				</div>
-			</div>
-		</div>
+	const section = document.createElement("div");
+	section.className = "settings-section";
 
-		<!-- Change Username Modal -->
-		<div id="changeUsernameModal" class="modal" style="display: none">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h2>Change Username</h2>
-					<button class="close-btn" id="closeUsernameModal">&times;</button>
-				</div>
-				<div class="modal-body">
-					<form id="changeUsernameForm">
-						<div class="form-group">
-							<label for="newUsername">New Username</label>
-							<div class="username-wrapper">
-								<span inert>@</span>
-								<input
-									type="text"
-									id="newUsername"
-									placeholder="new username"
-									required
-								/>
-							</div>
-							<small>
-								Username must be 3-20 characters and contain only letters,
-								numbers, and underscores.
-							</small>
-						</div>
-						<div class="form-actions">
-							<button
-								type="button"
-								class="btn secondary"
-								id="cancelUsernameChange"
-							>
-								Cancel
-							</button>
-							<button type="submit" class="btn primary">Change Username</button>
-						</div>
-					</form>
-				</div>
-			</div>
-		</div>
+	const h1 = document.createElement("h1");
+	h1.textContent = "Account Settings";
+	section.appendChild(h1);
 
-		<!-- Delete Account Modal -->
-		<div id="deleteAccountModal" class="modal" style="display: none">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h2>Delete Account</h2>
-					<button class="close-btn" id="closeDeleteModal">&times;</button>
-				</div>
-				<div class="modal-body">
-					<p>
-						<strong>Warning:</strong>
-						This action cannot be undone. All your tweets, likes, follows, and
-						account data will be permanently deleted.
-					</p>
-					<form id="deleteAccountForm">
-						<div class="form-group">
-							<label for="deleteConfirmation">
-								Type "DELETE MY ACCOUNT" to confirm:
-							</label>
-							<input
-								type="text"
-								id="deleteConfirmation"
-								placeholder="DELETE MY ACCOUNT"
-								required
-							/>
-						</div>
-						<div class="form-actions">
-							<button
-								type="button"
-								class="btn secondary"
-								id="cancelAccountDelete"
-							>
-								Cancel
-							</button>
-							<button type="submit" class="btn danger">Delete Account</button>
-						</div>
-					</form>
-				</div>
-			</div>
-		</div>
+	const group = document.createElement("div");
+	group.className = "setting-group";
+	const h2 = document.createElement("h2");
+	h2.textContent = "Profile";
+	group.appendChild(h2);
 
-		<!-- Change Password Modal -->
-		<div id="changePasswordModal" class="modal" style="display: none">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h2>Change Password</h2>
-					<button class="close-btn" id="closePasswordModal">&times;</button>
-				</div>
-				<div class="modal-body">
-					<p id="passwordModalDescription">
-						Set a password for your account to enable traditional
-						username/password login.
-					</p>
-					<form id="changePasswordForm">
-						<div
-							class="form-group"
-							id="currentPasswordGroup"
-							style="display: none"
-						>
-							<label for="current-password">Current Password</label>
-							<input
-								type="password"
-								id="current-password"
-								placeholder="enter your current password"
-								required
-							/>
-						</div>
-						<div class="form-group">
-							<label for="new-password">New Password</label>
-							<input
-								type="password"
-								id="new-password"
-								placeholder="enter your new password"
-								minlength="8"
-								required
-							/>
-							<small>Password must be at least 8 characters long.</small>
-						</div>
-						<div class="form-actions">
-							<button
-								type="button"
-								class="btn secondary"
-								id="cancelPasswordChange"
-							>
-								Cancel
-							</button>
-							<button
-								type="submit"
-								class="btn primary"
-								id="changePasswordSubmit"
-							>
-								Set Password
-							</button>
-						</div>
-					</form>
-				</div>
-			</div>
-		</div>
-	`;
+	const item1 = document.createElement("div");
+	item1.className = "setting-item";
+	const btnUser = document.createElement("button");
+	btnUser.className = "btn secondary";
+	btnUser.id = "changeUsernameBtn";
+	btnUser.textContent = "Change Username";
+	item1.appendChild(btnUser);
+	group.appendChild(item1);
+
+	const item2 = document.createElement("div");
+	item2.className = "setting-item";
+	const btnPass = document.createElement("button");
+	btnPass.className = "btn secondary";
+	btnPass.id = "changePasswordBtn";
+	btnPass.textContent = "Change Password";
+	item2.appendChild(btnPass);
+	group.appendChild(item2);
+
+	section.appendChild(group);
+
+	const danger = document.createElement("div");
+	danger.className = "setting-group danger-group";
+	const dh2 = document.createElement("h2");
+	dh2.textContent = "Danger Zone";
+	danger.appendChild(dh2);
+	const item3 = document.createElement("div");
+	item3.className = "setting-item";
+	const btnDel = document.createElement("button");
+	btnDel.className = "btn danger";
+	btnDel.id = "deleteAccountBtn";
+	btnDel.textContent = "Delete Account";
+	item3.appendChild(btnDel);
+	danger.appendChild(item3);
+	section.appendChild(danger);
+
+	section.appendChild(createChangeUsernameModal());
+	section.appendChild(createDeleteAccountModal());
+	section.appendChild(createChangePasswordModal());
+
+	return section;
+};
+
+const createOtherContent = () => {
+	const wrap = document.createElement("div");
+	wrap.className = "settings-section";
+	const h1 = document.createElement("h1");
+	h1.textContent = "Other Settings";
+	const p = document.createElement("p");
+	p.textContent = "Additional settings will be added here.";
+	wrap.appendChild(h1);
+	wrap.appendChild(p);
+	return wrap;
+};
+
+const createChangeUsernameModal = () => {
+	const modal = document.createElement("div");
+	modal.id = "changeUsernameModal";
+	modal.className = "modal";
+	modal.style.display = "none";
+
+	const content = document.createElement("div");
+	content.className = "modal-content";
+	const header = document.createElement("div");
+	header.className = "modal-header";
+	const h2 = document.createElement("h2");
+	h2.textContent = "Change Username";
+	const close = document.createElement("button");
+	close.className = "close-btn";
+	close.id = "closeUsernameModal";
+	close.textContent = "×";
+	header.appendChild(h2);
+	header.appendChild(close);
+	const body = document.createElement("div");
+	body.className = "modal-body";
+	const form = document.createElement("form");
+	form.id = "changeUsernameForm";
+	const fg = document.createElement("div");
+	fg.className = "form-group";
+	const label = document.createElement("label");
+	label.htmlFor = "newUsername";
+	label.textContent = "New Username";
+	const userWrap = document.createElement("div");
+	userWrap.className = "username-wrapper";
+	const at = document.createElement("span");
+	at.setAttribute("inert", "");
+	at.textContent = "@";
+	const input = document.createElement("input");
+	input.type = "text";
+	input.id = "newUsername";
+	input.placeholder = "new username";
+	input.required = true;
+	userWrap.appendChild(at);
+	userWrap.appendChild(input);
+	const small = document.createElement("small");
+	small.textContent =
+		"Username must be 3-20 characters and contain only letters, numbers, and underscores.";
+	fg.appendChild(label);
+	fg.appendChild(userWrap);
+	fg.appendChild(small);
+	const actions = document.createElement("div");
+	actions.className = "form-actions";
+	const cancel = document.createElement("button");
+	cancel.type = "button";
+	cancel.className = "btn secondary";
+	cancel.id = "cancelUsernameChange";
+	cancel.textContent = "Cancel";
+	const submit = document.createElement("button");
+	submit.type = "submit";
+	submit.className = "btn primary";
+	submit.textContent = "Change Username";
+	actions.appendChild(cancel);
+	actions.appendChild(submit);
+	form.appendChild(fg);
+	form.appendChild(actions);
+	body.appendChild(form);
+	content.appendChild(header);
+	content.appendChild(body);
+	modal.appendChild(content);
+	return modal;
+};
+
+const createDeleteAccountModal = () => {
+	const modal = document.createElement("div");
+	modal.id = "deleteAccountModal";
+	modal.className = "modal";
+	modal.style.display = "none";
+	const content = document.createElement("div");
+	content.className = "modal-content";
+	const header = document.createElement("div");
+	header.className = "modal-header";
+	const h2 = document.createElement("h2");
+	h2.textContent = "Delete Account";
+	const close = document.createElement("button");
+	close.className = "close-btn";
+	close.id = "closeDeleteModal";
+	close.textContent = "×";
+	header.appendChild(h2);
+	header.appendChild(close);
+	const body = document.createElement("div");
+	body.className = "modal-body";
+	const p = document.createElement("p");
+	p.innerHTML =
+		"<strong>Warning:</strong> This action cannot be undone. All your tweets, likes, follows, and account data will be permanently deleted.";
+	const form = document.createElement("form");
+	form.id = "deleteAccountForm";
+	const fg = document.createElement("div");
+	fg.className = "form-group";
+	const label = document.createElement("label");
+	label.htmlFor = "deleteConfirmation";
+	label.textContent = 'Type "DELETE MY ACCOUNT" to confirm:';
+	const input = document.createElement("input");
+	input.type = "text";
+	input.id = "deleteConfirmation";
+	input.placeholder = "DELETE MY ACCOUNT";
+	input.required = true;
+	fg.appendChild(label);
+	fg.appendChild(input);
+	const actions = document.createElement("div");
+	actions.className = "form-actions";
+	const cancel = document.createElement("button");
+	cancel.type = "button";
+	cancel.className = "btn secondary";
+	cancel.id = "cancelAccountDelete";
+	cancel.textContent = "Cancel";
+	const submit = document.createElement("button");
+	submit.type = "submit";
+	submit.className = "btn danger";
+	submit.textContent = "Delete Account";
+	actions.appendChild(cancel);
+	actions.appendChild(submit);
+	form.appendChild(fg);
+	form.appendChild(actions);
+	body.appendChild(p);
+	body.appendChild(form);
+	content.appendChild(header);
+	content.appendChild(body);
+	modal.appendChild(content);
+	return modal;
+};
+
+const createChangePasswordModal = () => {
+	const modal = document.createElement("div");
+	modal.id = "changePasswordModal";
+	modal.className = "modal";
+	modal.style.display = "none";
+	const content = document.createElement("div");
+	content.className = "modal-content";
+	const header = document.createElement("div");
+	header.className = "modal-header";
+	const h2 = document.createElement("h2");
+	h2.textContent = "Change Password";
+	const close = document.createElement("button");
+	close.className = "close-btn";
+	close.id = "closePasswordModal";
+	close.textContent = "×";
+	header.appendChild(h2);
+	header.appendChild(close);
+	const body = document.createElement("div");
+	body.className = "modal-body";
+	const p = document.createElement("p");
+	p.id = "passwordModalDescription";
+	p.textContent =
+		"Set a password for your account to enable traditional username/password login.";
+	const form = document.createElement("form");
+	form.id = "changePasswordForm";
+	const fgCur = document.createElement("div");
+	fgCur.className = "form-group";
+	fgCur.id = "currentPasswordGroup";
+	fgCur.style.display = "none";
+	const labelCur = document.createElement("label");
+	labelCur.htmlFor = "current-password";
+	labelCur.textContent = "Current Password";
+	const inputCur = document.createElement("input");
+	inputCur.type = "password";
+	inputCur.id = "current-password";
+	inputCur.placeholder = "enter your current password";
+	inputCur.required = true;
+	fgCur.appendChild(labelCur);
+	fgCur.appendChild(inputCur);
+	const fgNew = document.createElement("div");
+	fgNew.className = "form-group";
+	const labelNew = document.createElement("label");
+	labelNew.htmlFor = "new-password";
+	labelNew.textContent = "New Password";
+	const inputNew = document.createElement("input");
+	inputNew.type = "password";
+	inputNew.id = "new-password";
+	inputNew.placeholder = "enter your new password";
+	inputNew.minLength = 8;
+	inputNew.required = true;
+	const small = document.createElement("small");
+	small.textContent = "Password must be at least 8 characters long.";
+	fgNew.appendChild(labelNew);
+	fgNew.appendChild(inputNew);
+	fgNew.appendChild(small);
+	const actions = document.createElement("div");
+	actions.className = "form-actions";
+	const cancel = document.createElement("button");
+	cancel.type = "button";
+	cancel.className = "btn secondary";
+	cancel.id = "cancelPasswordChange";
+	cancel.textContent = "Cancel";
+	const submit = document.createElement("button");
+	submit.type = "submit";
+	submit.className = "btn primary";
+	submit.id = "changePasswordSubmit";
+	submit.textContent = "Set Password";
+	actions.appendChild(cancel);
+	actions.appendChild(submit);
+	form.appendChild(fgCur);
+	form.appendChild(fgNew);
+	form.appendChild(actions);
+	body.appendChild(p);
+	body.appendChild(form);
+	content.appendChild(header);
+	content.appendChild(body);
+	modal.appendChild(content);
+	return modal;
 };
 
 const createSettingsPage = () => {
@@ -236,105 +467,62 @@ const createSettingsPage = () => {
 	settingsContainer.className = "settings";
 	settingsContainer.style.display = "none";
 
-	const sidebarButtons = settingsPages
-		.map(
-			(page) =>
-				`<button class="settings-tab-btn${page.key === "account" ? " active" : ""}" data-tab="${page.key}">${page.title}</button>`,
-		)
-		.join("");
+	const header = document.createElement("div");
+	header.className = "settings-header";
+	const back = document.createElement("a");
+	back.href = "/";
+	back.className = "back-button";
+	const svgNS = "http://www.w3.org/2000/svg";
+	const svg = document.createElementNS(svgNS, "svg");
+	svg.setAttribute("xmlns", svgNS);
+	svg.setAttribute("width", "24");
+	svg.setAttribute("height", "24");
+	svg.setAttribute("viewBox", "0 0 24 24");
+	svg.setAttribute("fill", "none");
+	svg.setAttribute("stroke", "currentColor");
+	svg.setAttribute("stroke-width", "2.25");
+	svg.setAttribute("stroke-linecap", "round");
+	svg.setAttribute("stroke-linejoin", "round");
+	const path1 = document.createElementNS(svgNS, "path");
+	path1.setAttribute("d", "m12 19-7-7 7-7");
+	const path2 = document.createElementNS(svgNS, "path");
+	path2.setAttribute("d", "M19 12H5");
+	svg.appendChild(path1);
+	svg.appendChild(path2);
+	back.appendChild(svg);
+	const headerInfo = document.createElement("div");
+	headerInfo.className = "settings-header-info";
+	const h1 = document.createElement("h1");
+	h1.textContent = "Settings";
+	headerInfo.appendChild(h1);
+	header.appendChild(back);
+	header.appendChild(headerInfo);
 
-	settingsContainer.innerHTML = `
-		<div class="settings-header">
-			<a href="/" class="back-button">
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-					<path d="m12 19-7-7 7-7"/>
-					<path d="M19 12H5"/>
-				</svg>
-			</a>
-			<div class="settings-header-info">
-				<h1>Settings</h1>
-			</div>
-		</div>
+	const body = document.createElement("div");
+	body.className = "settings-body";
+	const sidebar = document.createElement("div");
+	sidebar.className = "settings-sidebar";
+	settingsPages.forEach((page) => {
+		const b = document.createElement("button");
+		b.className = `settings-tab-btn${page.key === "account" ? " active" : ""}`;
+		b.dataset.tab = page.key;
+		b.textContent = page.title;
+		sidebar.appendChild(b);
+	});
+	const content = document.createElement("div");
+	content.className = "settings-content";
+	content.id = "settings-content";
+	body.appendChild(sidebar);
+	body.appendChild(content);
 
-		<div class="settings-body">
-			<div class="settings-sidebar">
-				${sidebarButtons}
-			</div>
-			<div class="settings-content" id="settings-content"></div>
-		</div>
-	`;
+	settingsContainer.appendChild(header);
+	settingsContainer.appendChild(body);
 
 	const style = document.createElement("style");
-	style.textContent = `
-		.settings { flex-direction: column; min-height: 100vh; }
-		.settings-header { display: flex; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--border-primary); margin-bottom: 20px; }
-		.back-button { background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 8px; margin-right: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; text-decoration: none; }
-		.back-button:hover { background-color: var(--bg-overlay-light); }
-		.settings-header-info h1 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text-primary); }
-		.settings-body { display: flex; gap: 20px; flex: 1; }
-		.settings-sidebar { background-color: var(--bg-secondary); border-radius: 8px; padding: 8px; width: 200px; height: fit-content; }
-		.settings-tab-btn { width: 100%; background: transparent; border: none; color: var(--text-primary); text-align: left; padding: 12px 16px; font-size: 16px; cursor: pointer; border-radius: 6px; margin-bottom: 4px; font-family: inherit; font-weight: 400; transition: background-color 0.2s; }
-		.settings-tab-btn:hover { background-color: var(--bg-overlay-light); }
-		.settings-tab-btn.active { background-color: var(--primary); color: white; font-weight: 500; }
-		.settings-content { background-color: var(--bg-secondary); border-radius: 8px; padding: 24px; flex: 1; }
-		.settings-section h1 { margin: 0 0 24px 0; font-size: 24px; font-weight: 700; color: var(--text-primary); }
-		.setting-group { margin-bottom: 32px; }
-		.setting-group h2 { margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: var(--text-primary); }
-		.setting-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border-primary); }
-		.setting-item:last-child { border-bottom: none; }
-		.setting-label { display: flex; flex-direction: column; gap: 4px; }
-		.setting-title { font-size: 16px; font-weight: 500; color: var(--text-primary); }
-		.setting-description { font-size: 14px; color: var(--text-secondary); }
-		.setting-control { flex-shrink: 0; }
-		.theme-mode-picker { display: flex; gap: 8px; background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 4px; }
-		.theme-btn { padding: 8px 12px; border: none; background: transparent; color: var(--text-secondary); border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
-		.theme-btn:hover { background: var(--bg-overlay-light); color: var(--text-primary); }
-		.theme-btn.active { background: var(--primary); color: white; }
-		.accent-color-section { display: flex; flex-direction: column; gap: 12px; }
-		.color-presets { display: flex; gap: 8px; align-items: center; }
-		.color-option { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-primary); transition: all 0.2s; position: relative; }
-		.color-option:hover { transform: scale(1.1); border-color: var(--border-hover); }
-		.color-option.active { border-color: var(--text-primary); transform: scale(1.1); }
-		.color-option.active::after { content: '✓'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 14px; font-weight: bold; text-shadow: 0 0 2px rgba(0,0,0,0.8); }
-		.custom-color-picker { width: 32px; height: 32px; border: 2px solid var(--border-primary); border-radius: 50%; cursor: pointer; padding: 0; background: none; transition: all 0.2s; }
-		.custom-color-picker:hover { transform: scale(1.1); border-color: var(--border-hover); }
-		.danger-group { border: 1px solid var(--error-color); border-radius: 8px; padding: 16px; background-color: rgba(220, 38, 38, 0.05); }
-		.danger-group h2 { color: var(--error-color); }
-		.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-overlay); z-index: 1000; align-items: center; justify-content: center; }
-		.modal-content { background: var(--bg-primary); border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
-		.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px 0 24px; border-bottom: 1px solid var(--border-primary); margin-bottom: 20px; }
-		.modal-header h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--text-primary); }
-		.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; }
-		.close-btn:hover { background-color: var(--bg-overlay-light); }
-		.modal-body { padding: 0 24px 24px 24px; }
-		.form-group { margin-bottom: 20px; }
-		.form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-primary); }
-		.form-group input { width: 100%; padding: 12px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 16px; background: var(--bg-primary); color: var(--text-primary); transition: border-color 0.2s; box-sizing: border-box; }
-		.form-group input:focus { outline: none; border-color: var(--primary); }
-		.form-group small { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 14px; }
-		.username-wrapper { display: flex; align-items: center; border: 1px solid var(--border-input); border-radius: 8px; overflow: hidden; }
-		.username-wrapper span { padding: 12px 8px 12px 12px; background: var(--bg-secondary); color: var(--text-secondary); font-size: 16px; }
-		.username-wrapper input { border: none; flex: 1; }
-		.form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
-		.btn { padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
-		.btn.primary { background: var(--primary); color: white; }
-		.btn.primary:hover { background: var(--primary-hover); }
-		.btn.secondary { background: transparent; color: var(--btn-secondary-color); border-color: var(--btn-secondary-border); }
-		.btn.secondary:hover { background: var(--btn-secondary-hover-bg); border-color: var(--btn-secondary-hover-border); }
-		.btn.danger { background: var(--error-color); color: white; }
-		.btn.danger:hover { background: #b91c1c; }
-		@media (max-width: 768px) {
-			.settings-body { flex-direction: column; }
-			.settings-sidebar { width: 100%; display: flex; overflow-x: auto; gap: 8px; }
-			.settings-tab-btn { white-space: nowrap; margin-bottom: 0; }
-			.setting-item { flex-direction: column; align-items: stretch; gap: 12px; }
-			.color-presets { justify-content: center; }
-		}
-	`;
+	style.textContent = `.settings{flex-direction:column;min-height:100vh;max-width:1600px;margin:0 auto;padding:0 20px}.settings-header{display:flex;align-items:center;padding:20px 0;border-bottom:1px solid var(--border-primary);margin-bottom:20px}.back-button{background:none;border:none;color:var(--text-primary);cursor:pointer;padding:8px;margin-right:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background-color .2s;text-decoration:none}.back-button:hover{background-color:var(--bg-overlay-light)}.settings-header-info h1{margin:0;font-size:24px;font-weight:700;color:var(--text-primary)}.settings-body{display:flex;gap:24px;flex:1;width:100%}.settings-sidebar{background-color:var(--bg-secondary);border-radius:8px;padding:8px;width:180px;flex-shrink:0;height:fit-content}.settings-tab-btn{width:100%;background:transparent;border:none;color:var(--text-primary);text-align:left;padding:12px 16px;font-size:16px;cursor:pointer;border-radius:6px;margin-bottom:4px;font-family:inherit;font-weight:400;transition:background-color .2s}.settings-tab-btn:hover{background-color:var(--bg-overlay-light)}.settings-tab-btn.active{background-color:var(--primary);color:#fff;font-weight:500}.settings-content{background-color:var(--bg-secondary);border-radius:8px;padding:32px;flex:1;min-width:0;max-width:none}.settings-section h1{margin:0 0 24px 0;font-size:24px;font-weight:700;color:var(--text-primary)}.setting-group{margin-bottom:32px}.setting-group h2{margin:0 0 16px 0;font-size:18px;font-weight:600;color:var(--text-primary)}.setting-item{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border-primary)}.setting-item:last-child{border-bottom:none}.setting-label{display:flex;flex-direction:column;gap:4px}.setting-title{font-size:16px;font-weight:500;color:var(--text-primary)}.setting-description{font-size:14px;color:var(--text-secondary)}.setting-control{flex-shrink:0}.custom-dropdown{position:relative;display:inline-block}.custom-dropdown-button{padding:8px 12px;background:var(--bg-primary);border:1px solid var(--border-primary);color:var(--text-primary);border-radius:6px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;min-width:100px;transition:all 0.2s}.custom-dropdown-button:hover{background:var(--bg-secondary);border-color:var(--border-hover)}.custom-dropdown-arrow{transition:transform 0.2s}.custom-dropdown.open .custom-dropdown-arrow{transform:rotate(180deg)}.custom-dropdown-menu{position:absolute;top:100%;left:0;right:0;background:var(--bg-primary);border:1px solid var(--border-primary);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:1000;opacity:0;visibility:hidden;transform:translateY(-8px);transition:all 0.2s}.custom-dropdown.open .custom-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}.custom-dropdown-option{padding:8px 12px;cursor:pointer;transition:background-color 0.2s;font-size:14px}.custom-dropdown-option:hover{background:var(--bg-secondary)}.custom-dropdown-option.selected{background:var(--primary);color:#fff}.theme-mode-select{display:none}.accent-color-section{display:flex;flex-direction:column;gap:12px}.color-presets{display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:100%;overflow:visible}.color-option{width:36px;height:36px;border-radius:50%;cursor:pointer;border:2px solid var(--border-primary);transition:all .2s;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}.color-option:hover{transform:scale(1.08);border-color:var(--border-hover)}.color-option.active{border-color:var(--text-primary);transform:scale(1.08)}.color-option.active::after{content:'✓';position:absolute;color:#fff;font-size:16px;font-weight:700;text-shadow:0 0 3px rgba(0,0,0,.9);z-index:1}.custom-color-picker{width:100%;height:100%;border:none;border-radius:50%;cursor:pointer;padding:0;background:none;opacity:0}.custom-color-picker::-webkit-color-swatch-wrapper{padding:2px;border-radius:50%}.custom-color-picker::-webkit-color-swatch{border:none;border-radius:50%}.custom-color-picker::-moz-color-swatch{border:none;border-radius:50%}.danger-group{border:1px solid var(--error-color);border-radius:8px;padding:16px;background-color:rgba(220,38,38,.05)}.danger-group h2{color:var(--error-color)}.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background-color:var(--bg-overlay);z-index:1000;align-items:center;justify-content:center}.modal-content{background:var(--bg-primary);border-radius:12px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 10px 10px -5px rgba(0,0,0,.04)}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 0;border-bottom:1px solid var(--border-primary);margin-bottom:20px}.modal-header h2{margin:0;font-size:20px;font-weight:600;color:var(--text-primary)}.close-btn{background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-secondary);padding:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background-color .2s}.close-btn:hover{background-color:var(--bg-overlay-light)}.modal-body{padding:0 24px 24px}.form-group{margin-bottom:20px}.form-group label{display:block;margin-bottom:8px;font-weight:500;color:var(--text-primary)}.form-group input{width:100%;padding:12px;border:1px solid var(--border-input);border-radius:8px;font-size:16px;background:var(--bg-primary);color:var(--text-primary);transition:border-color .2s;box-sizing:border-box}.form-group input:focus{outline:none;border-color:var(--primary)}.form-group small{display:block;margin-top:4px;color:var(--text-secondary);font-size:14px}.username-wrapper{display:flex;align-items:center;border:1px solid var(--border-input);border-radius:8px;overflow:hidden}.username-wrapper span{padding:12px 8px 12px 12px;background:var(--bg-secondary);color:var(--text-secondary);font-size:16px}.username-wrapper input{border:none;flex:1}.form-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}.btn{padding:10px 20px;border-radius:8px;font-size:16px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .2s}.btn.primary{background:var(--primary);color:#fff}.btn.primary:hover{background:var(--primary-hover)}.btn.secondary{background:transparent;color:var(--btn-secondary-color);border-color:var(--btn-secondary-border)}.btn.secondary:hover{background:var(--btn-secondary-hover-bg);border-color:var(--btn-secondary-hover-border)}.btn.danger{background:var(--error-color);color:#fff}.btn.danger:hover{background:#b91c1c}[data-toast=\"popover\"]{overflow:hidden!important;scrollbar-width:none!important;-ms-overflow-style:none!important}[data-toast=\"popover\"]::-webkit-scrollbar{display:none!important}[data-toast=\"container\"]{overflow:hidden!important;scrollbar-width:none!important;-ms-overflow-style:none!important}[data-toast=\"container\"]::-webkit-scrollbar{display:none!important}[data-toast=\"root\"]{overflow:hidden!important}@media (max-width:768px){.settings{padding:0 10px}.settings-body{flex-direction:column}.settings-sidebar{width:100%;display:flex;overflow-x:auto;gap:8px}.settings-tab-btn{white-space:nowrap;margin-bottom:0}.setting-item{flex-direction:column;align-items:stretch;gap:12px}.color-presets{justify-content:center;max-width:100%}.custom-dropdown{width:100%}.custom-dropdown-button{width:100%}}`;
 
 	document.head.appendChild(style);
 	document.body.appendChild(settingsContainer);
-
 	return settingsContainer;
 };
 
@@ -363,7 +551,9 @@ const initializeSettings = () => {
 			}
 		});
 
-		contentArea.innerHTML = page.content();
+		contentArea.textContent = "";
+		const node = page.content();
+		contentArea.appendChild(node);
 
 		const newPath = `/settings/${tabKey}`;
 		if (window.location.pathname !== newPath) {
@@ -391,6 +581,11 @@ const initializeSettings = () => {
 	switchTab(initialTab);
 
 	setupSettingsEventHandlers();
+
+	setTimeout(() => {
+		loadCurrentAccentColor();
+		loadCurrentThemeMode();
+	}, 100);
 };
 
 const setupSettingsEventHandlers = async () => {
@@ -403,6 +598,14 @@ const setupSettingsEventHandlers = async () => {
 		const data = await response.json();
 		if (data.user) {
 			currentUser = data.user;
+
+			// If server provides theme/accent, apply them (account-wide)
+			if (currentUser.theme) {
+				handleThemeModeChange(currentUser.theme);
+			}
+			if (currentUser.accent_color) {
+				applyAccentColor(currentUser.accent_color);
+			}
 		}
 	} catch (error) {
 		console.error("Failed to fetch user data:", error);
@@ -415,8 +618,63 @@ const setupSettingsEventHandlers = async () => {
 			handleAccentColorChange(target.closest(".color-option"));
 		}
 
-		if (target.classList.contains("theme-btn")) {
-			handleThemeModeChange(target.dataset.theme);
+		// If user clicks the custom color wrapper, open the color picker
+		if (target.closest('[data-is-custom="true"]')) {
+			const customWrap = target.closest('[data-is-custom="true"]');
+			const picker = customWrap.querySelector("#customColorPicker");
+			if (picker) picker.click();
+		}
+
+		if (target.closest(".custom-dropdown-button")) {
+			const dropdown = target.closest(".custom-dropdown");
+			const isOpen = dropdown.classList.contains("open");
+
+			document
+				.querySelectorAll(".custom-dropdown")
+				.forEach((d) => d.classList.remove("open"));
+
+			if (!isOpen) {
+				dropdown.classList.add("open");
+			}
+		}
+
+		if (target.classList.contains("custom-dropdown-option")) {
+			const value = target.dataset.value;
+			const dropdown = target.closest(".custom-dropdown");
+			const button = dropdown.querySelector(
+				".custom-dropdown-button .dropdown-text",
+			);
+			const hiddenSelect =
+				dropdown.parentElement.querySelector(".theme-mode-select");
+
+			button.textContent = target.textContent;
+
+			if (hiddenSelect) {
+				hiddenSelect.value = value;
+			}
+
+			dropdown
+				.querySelectorAll(".custom-dropdown-option")
+				.forEach((opt) => opt.classList.remove("selected"));
+			target.classList.add("selected");
+
+			dropdown.classList.remove("open");
+
+			handleThemeModeChange(value);
+		}
+
+		// Save theme/account-wide preferences
+		if (target.id === "saveThemeBtn") {
+			saveThemeToServer();
+		}
+
+		if (!target.closest(".custom-dropdown")) {
+			document
+				.querySelectorAll(".custom-dropdown")
+				.forEach((d) => d.classList.remove("open"));
+		}
+
+		if (target.classList.contains("theme-mode-select")) {
 		}
 
 		if (target.id === "changeUsernameBtn") {
@@ -502,19 +760,78 @@ const setupSettingsEventHandlers = async () => {
 				.toLowerCase()
 				.replace(/[^a-z0-9_]/g, "");
 		}
+		if (event.target.classList.contains("theme-mode-select")) {
+			handleThemeModeChange(event.target.value);
+		}
 		if (event.target.id === "customColorPicker") {
 			handleCustomColorChange(event.target.value);
 		}
 	});
 };
 
+const saveThemeToServer = async () => {
+	if (!currentUser) {
+		toastQueue.add(
+			`<h1>Not Signed In</h1><p>Please sign in to save theme settings</p>`,
+		);
+		return;
+	}
+
+	const dropdown = document.querySelector("#themeDropdown");
+	let theme = "auto";
+	if (dropdown) {
+		const selected = dropdown.querySelector(".custom-dropdown-option.selected");
+		if (selected) theme = selected.dataset.value;
+		else {
+			const btnText = dropdown
+				.querySelector(".dropdown-text")
+				?.textContent?.trim();
+			if (btnText) theme = btnText.toLowerCase();
+		}
+	}
+
+	const accent =
+		localStorage.getItem("accentColor") ||
+		document.getElementById("customColorPicker")?.value ||
+		"#1185fe";
+
+	try {
+		const res = await fetch(`/api/profile/${currentUser.username}`, {
+			method: "PUT",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${authToken}`,
+			},
+			body: JSON.stringify({ theme, accent_color: accent }),
+		});
+
+		const data = await res.json();
+		if (data.error) {
+			toastQueue.add(`<h1>Save Failed</h1><p>${data.error}</p>`);
+			return;
+		}
+
+		if (data.success) {
+			// update local copy
+			currentUser.theme = theme;
+			currentUser.accent_color = accent;
+			// apply locally as well
+			handleThemeModeChange(theme);
+			applyAccentColor(accent);
+			toastQueue.add(
+				`<h1>Saved</h1><p>Your theme is now saved to your account</p>`,
+			);
+		}
+	} catch {
+		toastQueue.add(`<h1>Save Failed</h1><p>Unable to contact server</p>`);
+	}
+};
+
+let themeToastRef = null;
 const handleThemeModeChange = (theme) => {
 	const root = document.documentElement;
-	const themeBtns = document.querySelectorAll(".theme-btn");
-
-	themeBtns.forEach((btn) => btn.classList.remove("active"));
-	document.querySelector(`[data-theme="${theme}"]`).classList.add("active");
-
+	const select = document.querySelector(".theme-mode-select");
+	if (select) select.value = theme;
 	if (theme === "auto") {
 		localStorage.removeItem("theme");
 		const systemDark = window.matchMedia(
@@ -533,115 +850,129 @@ const handleThemeModeChange = (theme) => {
 		localStorage.setItem("theme", "light");
 	}
 
-	toastQueue.add(`<h1>Theme Changed</h1><p>Switched to ${theme} mode</p>`);
+	if (themeToastRef) {
+		toastQueue.delete(themeToastRef.id);
+	}
+	themeToastRef = toastQueue.add(
+		`<h1>Theme Changed</h1><p>Switched to ${theme} mode</p>`,
+	);
 };
 
 const handleCustomColorChange = (color) => {
-	const root = document.documentElement;
-	root.style.setProperty("--primary", color);
-
-	const rgb = hexToRgb(color);
-	if (rgb) {
-		root.style.setProperty("--primary-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
-	}
-
-	const hoverColor = adjustBrightness(color, -10);
-	const focusColor = adjustBrightness(color, -20);
-
-	root.style.setProperty("--primary-hover", hoverColor);
-	root.style.setProperty("--primary-focus", focusColor);
-
-	localStorage.setItem("accentColor", color);
+	applyAccentColor(color);
 
 	document.querySelectorAll(".color-option").forEach((option) => {
 		option.classList.remove("active");
 	});
 
-	toastQueue.add(
+	const customWrap = document.querySelector('[data-is-custom="true"]');
+	if (customWrap) {
+		customWrap.classList.add("active");
+		customWrap.style.backgroundColor = color;
+
+		const picker = customWrap.querySelector("#customColorPicker");
+		if (picker) {
+			picker.style.backgroundColor = color;
+		}
+	}
+
+	if (themeToastRef) toastQueue.delete(themeToastRef.id);
+	themeToastRef = toastQueue.add(
 		`<h1>Custom Color Applied</h1><p>Your custom accent color has been set</p>`,
+	);
+};
+
+const applyAccentColor = (color) => {
+	const root = document.documentElement;
+	root.style.setProperty("--primary", color);
+	const rgb = hexToRgb(color);
+	if (rgb)
+		root.style.setProperty("--primary-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+	root.style.setProperty("--primary-hover", adjustBrightness(color, -10));
+	root.style.setProperty("--primary-focus", adjustBrightness(color, -20));
+	localStorage.setItem("accentColor", color);
+};
+
+const handleAccentColorChange = (colorOption) => {
+	const color = colorOption.dataset.color;
+	applyAccentColor(color);
+
+	document.querySelectorAll(".color-option").forEach((option) => {
+		option.classList.remove("active");
+	});
+
+	colorOption.classList.add("active");
+	colorOption.style.backgroundColor = color;
+
+	const customWrap = document.querySelector('[data-is-custom="true"]');
+	if (customWrap) {
+		customWrap.style.backgroundColor = "";
+		const picker = customWrap.querySelector("#customColorPicker");
+		if (picker) {
+			picker.style.backgroundColor = "";
+		}
+	}
+
+	if (themeToastRef) toastQueue.delete(themeToastRef.id);
+	themeToastRef = toastQueue.add(
+		`<h1>Accent Color Changed</h1><p>Your new accent color has been applied</p>`,
 	);
 };
 
 const loadCurrentThemeMode = () => {
 	const savedTheme = localStorage.getItem("theme");
-
 	let currentTheme = "auto";
 	if (savedTheme === "dark") currentTheme = "dark";
 	else if (savedTheme === "light") currentTheme = "light";
 
-	const themeBtn = document.querySelector(`[data-theme="${currentTheme}"]`);
-	if (themeBtn) {
-		themeBtn.classList.add("active");
+	const select = document.querySelector(".theme-mode-select");
+	if (select) select.value = currentTheme;
+
+	const dropdown = document.querySelector("#themeDropdown");
+	if (dropdown) {
+		const button = dropdown.querySelector(".dropdown-text");
+		const options = dropdown.querySelectorAll(".custom-dropdown-option");
+
+		options.forEach((option) => {
+			option.classList.remove("selected");
+			if (option.dataset.value === currentTheme) {
+				option.classList.add("selected");
+				if (button) {
+					button.textContent = option.textContent.split(" ").slice(1).join(" ");
+				}
+			}
+		});
 	}
-};
-const handleAccentColorChange = (colorOption) => {
-	const color = colorOption.dataset.color;
-	const root = document.documentElement;
-
-	root.style.setProperty("--primary", color);
-
-	const rgb = hexToRgb(color);
-	if (rgb) {
-		root.style.setProperty("--primary-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
-	}
-
-	const hoverColor = adjustBrightness(color, -10);
-	const focusColor = adjustBrightness(color, -20);
-
-	root.style.setProperty("--primary-hover", hoverColor);
-	root.style.setProperty("--primary-focus", focusColor);
-
-	localStorage.setItem("accentColor", color);
-
-	document.querySelectorAll(".color-option").forEach((option) => {
-		option.classList.remove("active");
-	});
-	colorOption.classList.add("active");
-
-	toastQueue.add(
-		`<h1>Accent Color Changed</h1><p>Your new accent color has been applied</p>`,
-	);
 };
 
 const loadCurrentAccentColor = () => {
 	const savedColor = localStorage.getItem("accentColor") || "#1185fe";
+
+	document.querySelectorAll(".color-option").forEach((option) => {
+		option.classList.remove("active");
+	});
+
 	const colorOption = document.querySelector(`[data-color="${savedColor}"]`);
 	if (colorOption) {
 		colorOption.classList.add("active");
-	}
-
-	const root = document.documentElement;
-	root.style.setProperty("--primary", savedColor);
-
-	const rgb = hexToRgb(savedColor);
-	if (rgb) {
-		root.style.setProperty("--primary-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
-	}
-
-	const hoverColor = adjustBrightness(savedColor, -10);
-	const focusColor = adjustBrightness(savedColor, -20);
-
-	root.style.setProperty("--primary-hover", hoverColor);
-	root.style.setProperty("--primary-focus", focusColor);
-};
-
-const hexToRgb = (hex) => {
-	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-	return result
-		? {
-				r: parseInt(result[1], 16),
-				g: parseInt(result[2], 16),
-				b: parseInt(result[3], 16),
+		colorOption.style.backgroundColor = savedColor;
+	} else {
+		const customWrap = document.querySelector('[data-is-custom="true"]');
+		if (customWrap) {
+			customWrap.classList.add("active");
+			customWrap.style.backgroundColor = savedColor;
+			const picker = customWrap.querySelector("#customColorPicker");
+			if (picker) {
+				picker.style.backgroundColor = savedColor;
 			}
-		: null;
-};
+		}
+	}
 
-const adjustBrightness = (hex, percent) => {
-	const rgb = hexToRgb(hex);
-	if (!rgb) return hex;
-	const adjust = (color) =>
-		Math.max(0, Math.min(255, Math.round(color + (color * percent) / 100)));
-	return `#${adjust(rgb.r).toString(16).padStart(2, "0")}${adjust(rgb.g).toString(16).padStart(2, "0")}${adjust(rgb.b).toString(16).padStart(2, "0")}`;
+	const picker = document.getElementById("customColorPicker");
+	if (picker) {
+		picker.value = savedColor;
+		picker.style.backgroundColor = savedColor;
+	}
 };
 
 const showModal = (modal) => {
@@ -809,25 +1140,21 @@ const handleAccountDeletion = async () => {
 };
 
 export const openSettings = (section = "account") => {
-	const page = showPage("settings", {
-		path: `/settings/${section}`,
-		recoverState: () => initializeSettings(),
-	});
+	try {
+		const page = showPage("settings", {
+			path: `/settings/${section}`,
+			recoverState: () => initializeSettings(),
+		});
 
-	if (!page) {
+		if (!page) {
+			initializeSettings();
+			showPage("settings", { path: `/settings/${section}` });
+		}
+
+		return settingsPage;
+	} catch (error) {
+		console.error("Error opening settings:", error);
 		initializeSettings();
-		showPage("settings", { path: `/settings/${section}` });
+		return settingsPage;
 	}
-
-	return settingsPage;
 };
-
-addRoute(
-	(pathname) => pathname.startsWith("/settings"),
-	(pathname) => {
-		const pathParts = pathname.split("/");
-		const section = pathParts[2] || "account";
-		const validSection = settingsPages.find((p) => p.key === section);
-		openSettings(validSection ? section : "account");
-	},
-);

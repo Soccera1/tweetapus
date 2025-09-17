@@ -30,10 +30,11 @@ export default async function openTweet(
 	switchPage("tweet", {
 		path: `/tweet/${tweet.id}`,
 		recoverState: async (page) => {
-			page.innerHTML = `<a href="/" class="back-button"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left-icon lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></a>`;
+			page.innerHTML = `<button class="back-button" onclick="history.back()"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left-icon lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button>`;
 
-			page.querySelector(".back-button").addEventListener("click", () => {
-				window.location.href = "/";
+			page.querySelector(".back-button").addEventListener("click", (e) => {
+				e.preventDefault();
+				history.back();
 			});
 
 			const tweetEl = createTweetElement(tweet, {

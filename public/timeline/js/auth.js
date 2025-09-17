@@ -1,3 +1,7 @@
+import toastQueue from "../../shared/toasts.js";
+import switchPage, { addRoute } from "./pages.js";
+import { createTweetElement } from "./tweets.js";
+
 export const authToken = localStorage.getItem("authToken");
 
 let _user;
@@ -113,6 +117,17 @@ const closeDropdown = (dropdown) => {
 		});
 	});
 
+	document.getElementById("bookmarksLink").addEventListener("click", (e) => {
+		e.preventDefault();
+		const dropdown = document.getElementById("accountDropdown");
+		closeDropdown(dropdown);
+		openBookmarks();
+	});
+
+	document.getElementById("homeBtn").addEventListener("click", () => {
+		window.location.href = "/";
+	});
+
 	document.getElementById("signOutLink").addEventListener("click", (e) => {
 		e.preventDefault();
 		const dropdown = document.getElementById("accountDropdown");
@@ -126,6 +141,63 @@ const closeDropdown = (dropdown) => {
 		document.querySelector(".loader").style.display = "none";
 	}, 150);
 })();
+
+const openBookmarks = async () => {
+	switchPage("bookmarks", {
+		path: "/bookmarks",
+		recoverState: async () => {
+			await loadBookmarks();
+		},
+	});
+};
+
+const loadBookmarks = async () => {
+	if (!authToken) {
+		toastQueue.add("<h1>Please log in to view bookmarks</h1>");
+		return;
+	}
+
+	try {
+		const response = await (
+			await fetch("/api/bookmarks", {
+				headers: {
+					Authorization: `Bearer ${authToken}`,
+				},
+			})
+		).json();
+
+		if (response.error) {
+			toastQueue.add(
+				`<h1>Error loading bookmarks</h1><p>${response.error}</p>`,
+			);
+			return;
+		}
+
+		const bookmarksList = document.getElementById("bookmarksList");
+		const bookmarksEmpty = document.getElementById("bookmarksEmpty");
+
+		if (!response.bookmarks || response.bookmarks.length === 0) {
+			bookmarksList.innerHTML = "";
+			bookmarksEmpty.style.display = "block";
+			return;
+		}
+
+		bookmarksEmpty.style.display = "none";
+		bookmarksList.innerHTML = "";
+
+		response.bookmarks.forEach((bookmark) => {
+			const tweetElement = createTweetElement(bookmark, {
+				clickToOpen: true,
+			});
+			bookmarksList.appendChild(tweetElement);
+		});
+	} catch (error) {
+		console.error("Error loading bookmarks:", error);
+		toastQueue.add("<h1>Failed to load bookmarks</h1>");
+	}
+};
+
+addRoute((pathname) => pathname === "/bookmarks", openBookmarks);
 
 export default function getUser() {
 	return new Promise((resolve) => {

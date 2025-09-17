@@ -23,7 +23,9 @@ CREATE TABLE IF NOT EXISTS users (
   admin BOOLEAN DEFAULT FALSE,
   suspended BOOLEAN DEFAULT FALSE,
   private BOOLEAN DEFAULT FALSE,
-  pronouns TEXT DEFAULT NULL
+  pronouns TEXT DEFAULT NULL,
+  theme TEXT DEFAULT NULL,
+  accent_color TEXT DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS passkeys (
@@ -210,6 +212,51 @@ CREATE TABLE IF NOT EXISTS dm_attachments (
   file_url TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
   FOREIGN KEY (message_id) REFERENCES dm_messages(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS blocks (
+  id TEXT PRIMARY KEY,
+  blocker_id TEXT NOT NULL,
+  blocked_id TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (blocker_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE(blocker_id, blocked_id)
+);
+
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  post_id TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+  UNIQUE(user_id, post_id)
 );`);
+
+try {
+	const tableInfo = db.query("PRAGMA table_info(users);").all();
+	const colNames = tableInfo.map((c) => c.name);
+
+	if (!colNames.includes("theme")) {
+		try {
+			db.exec("ALTER TABLE users ADD COLUMN theme TEXT DEFAULT NULL;");
+			console.log("Added 'theme' column to users table");
+		} catch (e) {
+			console.error("Failed to add 'theme' column:", e);
+		}
+	}
+
+	if (!colNames.includes("accent_color")) {
+		try {
+			db.exec("ALTER TABLE users ADD COLUMN accent_color TEXT DEFAULT NULL;");
+			console.log("Added 'accent_color' column to users table");
+		} catch (e) {
+			console.error("Failed to add 'accent_color' column:", e);
+		}
+	}
+} catch (err) {
+	console.error("DB migration check failed:", err);
+}
 
 export default db;

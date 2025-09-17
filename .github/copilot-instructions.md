@@ -25,3 +25,4 @@
 - DO NOT USE --spacing variables, THEY DO NOT EXIST.
 - ALWAYS create elements, not html.
 - BEWARE of XSS, SANITIZE EVERYTHING.
+- ALWAYS make sure db.js is up-to-date with the schema.

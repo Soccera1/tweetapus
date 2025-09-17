@@ -1164,9 +1164,83 @@ export const createTweetElement = (tweet, config = {}) => {
 		}
 	});
 
+	const tweetInteractionsBookmarkEl = document.createElement("button");
+	tweetInteractionsBookmarkEl.className = "engagement";
+	tweetInteractionsBookmarkEl.dataset.bookmarked = tweet.bookmarked_by_user || false;
+	tweetInteractionsBookmarkEl.style.setProperty("--color", "255, 169, 0");
+
+	const bookmarkColor = tweet.bookmarked_by_user ? "#FFA900" : "currentColor";
+	const bookmarkFill = tweet.bookmarked_by_user ? "#FFA900" : "none";
+
+	tweetInteractionsBookmarkEl.innerHTML = `<svg
+		width="19"
+		height="19"
+		viewBox="0 0 19 19"
+		fill="${bookmarkFill}"
+		xmlns="http://www.w3.org/2000/svg"
+	>
+		<path
+			d="M3.95833 16.625L9.5 12.2917L15.0417 16.625V4.75C15.0417 4.33008 14.8749 3.92735 14.5779 3.63041C14.281 3.33348 13.8783 3.16667 13.4583 3.16667H5.54167C5.12174 3.16667 4.71901 3.33348 4.42208 3.63041C4.12514 3.92735 3.95833 4.33008 3.95833 4.75V16.625Z"
+			stroke="${bookmarkColor}"
+			stroke-width="1.5"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		/>
+	</svg>`;
+
+	tweetInteractionsBookmarkEl.addEventListener("click", async (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+
+		if (!authToken) {
+			toastQueue.add(`<h1>Please log in to bookmark tweets</h1>`);
+			return;
+		}
+
+		try {
+			const isBookmarked = tweetInteractionsBookmarkEl.dataset.bookmarked === "true";
+			const endpoint = isBookmarked ? "/api/bookmarks/remove" : "/api/bookmarks/add";
+
+			const response = await fetch(endpoint, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${authToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ postId: tweet.id }),
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				const newIsBookmarked = result.bookmarked;
+				tweetInteractionsBookmarkEl.dataset.bookmarked = newIsBookmarked;
+
+				const svg = tweetInteractionsBookmarkEl.querySelector("svg");
+				const path = svg.querySelector("path");
+
+				if (newIsBookmarked) {
+					path.setAttribute("fill", "#FFA900");
+					path.setAttribute("stroke", "#FFA900");
+					toastQueue.add(`<h1>Tweet bookmarked!</h1>`);
+				} else {
+					path.setAttribute("fill", "none");
+					path.setAttribute("stroke", "currentColor");
+					toastQueue.add(`<h1>Bookmark removed</h1>`);
+				}
+			} else {
+				toastQueue.add(`<h1>${result.error || "Failed to bookmark tweet"}</h1>`);
+			}
+		} catch (error) {
+			console.error("Error bookmarking tweet:", error);
+			toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+		}
+	});
+
 	tweetInteractionsEl.appendChild(tweetInteractionsLikeEl);
 	tweetInteractionsEl.appendChild(tweetInteractionsRetweetEl);
 	tweetInteractionsEl.appendChild(tweetInteractionsReplyEl);
+	tweetInteractionsEl.appendChild(tweetInteractionsBookmarkEl);
 	tweetInteractionsEl.appendChild(tweetInteractionsShareEl);
 
 	if (size !== "preview") {
