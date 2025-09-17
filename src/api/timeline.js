@@ -219,12 +219,7 @@ export default new Elysia({ prefix: "/timeline" })
 				}
 
 				const author = userMap[post.user_id];
-				if (!author) {
-					console.error(
-						`Missing author for post ${post.id}, user_id: ${post.user_id}`,
-					);
-					return null; // Skip posts with missing authors
-				}
+				if (!author) return;
 
 				return {
 					...post,
@@ -320,12 +315,7 @@ export default new Elysia({ prefix: "/timeline" })
 				}
 
 				const author = userMap[post.user_id];
-				if (!author) {
-					console.error(
-						`Missing author for post ${post.id}, user_id: ${post.user_id}`,
-					);
-					return null; // Skip posts with missing authors
-				}
+				if (!author) return;
 
 				return {
 					...post,

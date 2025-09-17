@@ -6,9 +6,7 @@ import { createTweetElement } from "./tweets.js";
 let currentNotifications = [];
 
 async function updateUnreadCount() {
-	if (			if (response.ok) {
-				const openTweet = (await import("./tweet.js")).default;
-				openTweet({ id: relatedId });thToken) return;
+	if (!authToken) return;
 
 	const { count } = await (
 		await fetch("/api/notifications/unread-count", {
@@ -265,8 +263,22 @@ function createNotificationElement(notification) {
 				});
 
 				if (response.ok) {
-					const openTweet = (await import("./tweet.js")).default;
-					openTweet({ id: relatedId });
+					try {
+						// Force fresh import to avoid caching issues
+						const tweetModule = await import(`./tweet.js?t=${Date.now()}`);
+						const openTweet = tweetModule.default;
+						
+						if (typeof openTweet !== 'function') {
+							console.error('openTweet is not a function:', typeof openTweet, openTweet);
+							toastQueue.add(`<h1>Error loading tweet function</h1>`);
+							return;
+						}
+						
+						openTweet({ id: relatedId });
+					} catch (importError) {
+						console.error('Error importing tweet module:', importError);
+						toastQueue.add(`<h1>Failed to load tweet module</h1>`);
+					}
 				} else {
 					toastQueue.add(`<h1>Tweet not found</h1>`);
 				}

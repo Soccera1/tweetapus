@@ -1,6 +1,5 @@
 let isLoading = false;
 
-// Hide loader after page loads
 window.addEventListener("load", () => {
 	const loader = document.querySelector(".loader");
 	if (loader) {
@@ -44,14 +43,12 @@ function updateSendButton() {
 	button.textContent = isLoading ? "Sending..." : "Send";
 }
 
-// Auto-resize textarea
 const messageInput = document.getElementById("message");
 messageInput.addEventListener("input", () => {
 	autoResizeTextarea(messageInput);
 	updateSendButton();
 });
 
-// Handle Enter key (send on Enter, new line on Shift+Enter)
 messageInput.addEventListener("keydown", (e) => {
 	if (e.key === "Enter" && !e.shiftKey) {
 		e.preventDefault();
@@ -59,7 +56,6 @@ messageInput.addEventListener("keydown", (e) => {
 	}
 });
 
-// Handle form submission
 document.getElementById("chatForm").addEventListener("submit", async (e) => {
 	e.preventDefault();
 
@@ -78,12 +74,10 @@ document.getElementById("chatForm").addEventListener("submit", async (e) => {
 	isLoading = true;
 	updateSendButton();
 
-	// Add user message
 	appendMessage(text, "user");
 	textarea.value = "";
 	autoResizeTextarea(textarea);
 
-	// Add thinking indicator
 	const thinkingEl = appendMessage("TweetaAI is thinking...", "ai", true);
 
 	try {
@@ -98,7 +92,6 @@ document.getElementById("chatForm").addEventListener("submit", async (e) => {
 
 		const data = await res.json();
 
-		// Remove thinking indicator
 		thinkingEl.remove();
 
 		if (data.error) {
@@ -109,7 +102,6 @@ document.getElementById("chatForm").addEventListener("submit", async (e) => {
 			return;
 		}
 
-		// Add AI response
 		appendMessage(data.reply || "(no reply)", "ai");
 	} catch (error) {
 		console.error("TweetaAI error:", error);
@@ -125,5 +117,4 @@ document.getElementById("chatForm").addEventListener("submit", async (e) => {
 	}
 });
 
-// Initial setup
 updateSendButton();

@@ -66,7 +66,7 @@ nav {
 
   .notifications-btn {
     position: absolute;
-    right: 130px;
+    right: 170px;
     background-color: transparent;
     border: none;
     cursor: pointer;
@@ -2686,7 +2686,7 @@ nav {
 
 .dm-btn {
   position: absolute;
-  right: 90px;
+  right: 130px;
   background-color: transparent;
   border: none;
   cursor: pointer;
@@ -4008,7 +4008,7 @@ nav {
   }
 
   .dm-btn {
-    right: 80px;
+    right: 120px;
   }
 
   .dm-message {
@@ -4180,4 +4180,191 @@ nav {
 
 .pinned-indicator svg {
   color: var(--primary);
+}
+
+/* TweetaAI Styles */
+.ai-btn {
+  position: absolute;
+  left: 120px;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  z-index: 2;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.ai-btn:hover {
+  background-color: rgba(var(--primary-rgb), 0.2);
+}
+
+.ai-btn svg {
+  color: var(--text-primary);
+}
+
+.tweetaai-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+  min-height: 100vh;
+  display: none;
+  flex-direction: column;
+}
+
+.tweetaai-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.tweetaai-header .back-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.tweetaai-header .back-button:hover {
+  background-color: var(--bg-secondary);
+}
+
+.tweetaai-header-info h1 {
+  font-weight: 500;
+  font-size: 24px;
+  margin: 0 0 4px 0;
+  color: var(--text-primary);
+}
+
+.tweetaai-header-info p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+#tweetaai-messages {
+  flex: 1;
+  margin-bottom: 24px;
+  min-height: 300px;
+}
+
+.tweetaai-page .bubble {
+  padding: 12px 16px;
+  border-radius: 16px;
+  margin: 12px 0;
+  max-width: 80%;
+  word-wrap: break-word;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.tweetaai-page .bubble.user {
+  background: var(--primary);
+  color: white;
+  margin-left: auto;
+  text-align: left;
+}
+
+.tweetaai-page .bubble.ai {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-secondary);
+}
+
+.tweetaai-page .bubble.thinking {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.tweetaai-page .bubble.streaming {
+  opacity: 0.9;
+}
+
+.tweetaai-composer {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-secondary);
+}
+
+.tweetaai-composer textarea {
+  flex: 1;
+  min-height: 44px;
+  max-height: 120px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-input);
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  resize: none;
+  line-height: 1.4;
+}
+
+.tweetaai-composer textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: inset 0 0 0 1px var(--border-focus);
+}
+
+.tweetaai-composer textarea::placeholder {
+  color: var(--text-placeholder);
+}
+
+.tweetaai-send-button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+
+.tweetaai-send-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.tweetaai-send-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.tweetaai-send-button:disabled {
+  background: var(--btn-disabled-bg);
+  cursor: not-allowed;
+}
+
+.tweetaai-empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+  margin: 48px 0;
+}
+
+.tweetaai-empty-state svg {
+  width: 48px;
+  height: 48px;
+  color: var(--text-tertiary);
+  margin-bottom: 16px;
+}
+
+.tweetaai-empty-state h3 {
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
 }
