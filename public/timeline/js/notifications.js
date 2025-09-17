@@ -267,16 +267,20 @@ function createNotificationElement(notification) {
 						// Force fresh import to avoid caching issues
 						const tweetModule = await import(`./tweet.js?t=${Date.now()}`);
 						const openTweet = tweetModule.default;
-						
-						if (typeof openTweet !== 'function') {
-							console.error('openTweet is not a function:', typeof openTweet, openTweet);
+
+						if (typeof openTweet !== "function") {
+							console.error(
+								"openTweet is not a function:",
+								typeof openTweet,
+								openTweet,
+							);
 							toastQueue.add(`<h1>Error loading tweet function</h1>`);
 							return;
 						}
-						
+
 						openTweet({ id: relatedId });
 					} catch (importError) {
-						console.error('Error importing tweet module:', importError);
+						console.error("Error importing tweet module:", importError);
 						toastQueue.add(`<h1>Failed to load tweet module</h1>`);
 					}
 				} else {
