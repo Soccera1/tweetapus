@@ -202,8 +202,7 @@ const adminQueries = {
 	deleteMessage: db.query("DELETE FROM dm_messages WHERE id = ?"),
 };
 
-// Middleware to check admin status
-const requireAdmin = async ({ headers, jwt, set }) => {
+const requireAdmin = async ({ headers, jwt, set }) => { // stuck cursor true, Opua YT
 	const token = headers.authorization?.replace("Bearer ", "");
 	if (!token) {
 		set.status = 401;
@@ -227,7 +226,7 @@ const requireAdmin = async ({ headers, jwt, set }) => {
 
 		return {
 			user,
-			originalUser: user
+			originalUser: user // stuck cursor
 		};
 	} catch (_error) {
 		set.status = 401;

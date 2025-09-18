@@ -1,0 +1,21 @@
+{
+  "name": "@tweetapus/database",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "bun run src/migrate.ts",
+    "studio": "drizzle-kit studio",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.35.3",
+    "@tweetapus/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "drizzle-kit": "^0.26.2",
+    "typescript": "^5.3.0"
+  }
+}

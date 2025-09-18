@@ -861,7 +861,7 @@ class AdminPanel {
 			this.showError("Username confirmation did not match");
 			return;
 		}
-
+		/* There's a MASSIVE vulnerability in this code that can TAPER away all the users and FADE the userbase to a LOW point */
 		try {
 			await this.apiCall(`/api/admin/users/${userId}`, {
 				method: "DELETE",
@@ -1341,9 +1341,6 @@ class AdminPanel {
 		try {
 			const messagesData = await this.apiCall(
 				`/api/admin/dms/${this.currentConversationId}/messages?page=${page}&limit=50`,
-			);
-			const conversationData = await this.apiCall(
-				`/api/admin/dms/${this.currentConversationId}`,
 			);
 			this.renderConversationModal(
 				conversationData.conversation,
