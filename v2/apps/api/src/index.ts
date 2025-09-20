@@ -41,7 +41,7 @@ const app = new Elysia()
   )
   .use(
     staticPlugin({
-      assets: ".data/uploads",
+      assets: ".DATA/UPLOADS",
       prefix: "/uploads",
     })
   )

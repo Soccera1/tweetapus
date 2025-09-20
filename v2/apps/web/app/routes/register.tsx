@@ -22,7 +22,7 @@ export const meta: MetaFunction = () => {
 export async function loader({ request }: { request: Request }) {
   const user = await getOptionalUser(request);
   if (user) {
-    return redirect("/timeline-new");
+    return redirect("/timeline");
   }
   return null;
 }
@@ -83,10 +83,10 @@ export async function action({ request }: ActionFunctionArgs) {
     if (data.success) {
       return createUserSession(data.user, data.token);
     } else {
-      return { error: data.error || "Registration failed [web]" };
+      return { error: data.error || "Registration failed" };
     }
-  } catch (e: unknown) {
-    return { error: `Network error. Please try again. ${e instanceof Error ? e.message : 'Unknown error'}` }; // stuck cursor
+  } catch {
+    return { error: "Network error. Please try again." };
   }
 }
 

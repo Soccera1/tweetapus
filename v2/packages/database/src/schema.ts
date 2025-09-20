@@ -7,7 +7,7 @@ export const users = sqliteTable("users", {
   name: text("name"),
   email: text("email"),
   avatar: text("profile_pic"),
-  banner: text("banner_pic"),
+  banner: text("banner"),
   bio: text("bio"),
   location: text("location"),
   website: text("website"),
