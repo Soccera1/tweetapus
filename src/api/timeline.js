@@ -73,265 +73,265 @@ const getTopReply = db.query(`
 `);
 
 const getPollDataForTweet = (tweetId, userId) => {
-	const poll = getPollByPostId.get(tweetId);
-	if (!poll) return null;
+  const poll = getPollByPostId.get(tweetId);
+  if (!poll) return null;
 
-	const options = getPollOptions.all(poll.id);
-	const totalVotes = getTotalPollVotes.get(poll.id)?.total || 0;
-	const userVote = userId ? getUserPollVote.get(userId, poll.id) : null;
-	const isExpired = new Date() > new Date(poll.expires_at);
-	const voters = getPollVoters.all(poll.id);
+  const options = getPollOptions.all(poll.id);
+  const totalVotes = getTotalPollVotes.get(poll.id)?.total || 0;
+  const userVote = userId ? getUserPollVote.get(userId, poll.id) : null;
+  const isExpired = new Date() > new Date(poll.expires_at);
+  const voters = getPollVoters.all(poll.id);
 
-	return {
-		...poll,
-		options: options.map((option) => ({
-			...option,
-			percentage:
-				totalVotes > 0 ? Math.round((option.vote_count / totalVotes) * 100) : 0,
-		})),
-		totalVotes,
-		userVote: userVote?.option_id || null,
-		isExpired,
-		voters,
-	};
+  return {
+    ...poll,
+    options: options.map((option) => ({
+      ...option,
+      percentage:
+        totalVotes > 0 ? Math.round((option.vote_count / totalVotes) * 100) : 0,
+    })),
+    totalVotes,
+    userVote: userVote?.option_id || null,
+    isExpired,
+    voters,
+  };
 };
 
 const getTweetAttachments = (tweetId) => {
-	return getAttachmentsByPostId.all(tweetId);
+  return getAttachmentsByPostId.all(tweetId);
 };
 
 const getQuotedTweetData = (quoteTweetId, userId) => {
-	if (!quoteTweetId) return null;
+  if (!quoteTweetId) return null;
 
-	const quotedTweet = getQuotedTweet.get(quoteTweetId);
-	if (!quotedTweet) return null;
+  const quotedTweet = getQuotedTweet.get(quoteTweetId);
+  if (!quotedTweet) return null;
 
-	return {
-		...quotedTweet,
-		author: {
-			username: quotedTweet.username,
-			name: quotedTweet.name,
-			avatar: quotedTweet.avatar,
-			verified: quotedTweet.verified || false,
-		},
-		poll: getPollDataForTweet(quotedTweet.id, userId),
-		attachments: getTweetAttachments(quotedTweet.id),
-	};
+  return {
+    ...quotedTweet,
+    author: {
+      username: quotedTweet.username,
+      name: quotedTweet.name,
+      avatar: quotedTweet.avatar,
+      verified: quotedTweet.verified || false,
+    },
+    poll: getPollDataForTweet(quotedTweet.id, userId),
+    attachments: getTweetAttachments(quotedTweet.id),
+  };
 };
 
 const getTopReplyData = (tweetId, userId) => {
-	const topReply = getTopReply.get(tweetId);
-	if (!topReply) return null;
+  const topReply = getTopReply.get(tweetId);
+  if (!topReply) return null;
 
-	return {
-		...topReply,
-		author: {
-			username: topReply.username,
-			name: topReply.name,
-			avatar: topReply.avatar,
-			verified: topReply.verified || false,
-		},
-		poll: getPollDataForTweet(topReply.id, userId),
-		quoted_tweet: getQuotedTweetData(topReply.quote_tweet_id, userId),
-		attachments: getTweetAttachments(topReply.id),
-	};
+  return {
+    ...topReply,
+    author: {
+      username: topReply.username,
+      name: topReply.name,
+      avatar: topReply.avatar,
+      verified: topReply.verified || false,
+    },
+    poll: getPollDataForTweet(topReply.id, userId),
+    quoted_tweet: getQuotedTweetData(topReply.quote_tweet_id, userId),
+    attachments: getTweetAttachments(topReply.id),
+  };
 };
 
 export default new Elysia({ prefix: "/timeline" })
-	.use(jwt({ name: "jwt", secret: JWT_SECRET }))
-	.use(
-		rateLimit({
-			duration: 10_000,
-			max: 30,
-			scoping: "scoped",
-			generator: ratelimit,
-		}),
-	)
-	.get("/", async ({ jwt, headers }) => {
-		const authorization = headers.authorization;
-		if (!authorization) return { error: "Authentication required" };
-		let user;
+  .use(jwt({ name: "jwt", secret: JWT_SECRET }))
+  .use(
+    rateLimit({
+      duration: 10_000,
+      max: 30,
+      scoping: "scoped",
+      generator: ratelimit,
+    })
+  )
+  .get("/", async ({ jwt, headers }) => {
+    const authorization = headers.authorization;
+    if (!authorization) return { error: "Authentication required" };
+    let user;
 
-		try {
-			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-			if (!payload) return { error: "Invalid token" };
+    try {
+      const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+      if (!payload) return { error: "Invalid token" };
 
-			user = getUserByUsername.get(payload.username);
-			if (!user) return { error: "User not found" };
-		} catch (e) {
-			console.error(e);
-			return { error: "Authentication failed" };
-		}
+      user = getUserByUsername.get(payload.username);
+      if (!user) return { error: "User not found" };
+    } catch (e) {
+      console.error(e);
+      return { error: "Authentication failed" };
+    }
 
-		const posts = getTimelinePosts.all(user.id);
+    const posts = getTimelinePosts.all(user.id);
 
-		const userIds = [...new Set(posts.map((post) => post.user_id))];
+    const userIds = [...new Set(posts.map((post) => post.user_id))];
 
-		const placeholders = userIds.map(() => "?").join(",");
-		const getUsersQuery = db.query(
-			`SELECT * FROM users WHERE id IN (${placeholders})`,
-		);
+    const placeholders = userIds.map(() => "?").join(",");
+    const getUsersQuery = db.query(
+      `SELECT * FROM users WHERE id IN (${placeholders})`
+    );
 
-		const users = getUsersQuery.all(...userIds);
+    const users = getUsersQuery.all(...userIds);
 
-		const userMap = {};
-		users.forEach((user) => {
-			userMap[user.id] = user;
-		});
+    const userMap = {};
+    users.forEach((user) => {
+      userMap[user.id] = user;
+    });
 
-		const postIds = posts.map((post) => post.id);
-		const likePlaceholders = postIds.map(() => "?").join(",");
-		const getUserLikesQuery = db.query(
-			`SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${likePlaceholders})`,
-		);
+    const postIds = posts.map((post) => post.id);
+    const likePlaceholders = postIds.map(() => "?").join(",");
+    const getUserLikesQuery = db.query(
+      `SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${likePlaceholders})`
+    );
 
-		const userLikes = getUserLikesQuery.all(user.id, ...postIds);
-		const userLikedPosts = new Set(userLikes.map((like) => like.post_id));
+    const userLikes = getUserLikesQuery.all(user.id, ...postIds);
+    const userLikedPosts = new Set(userLikes.map((like) => like.post_id));
 
-		const getUserRetweetsQuery = db.query(
-			`SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${likePlaceholders})`,
-		);
+    const getUserRetweetsQuery = db.query(
+      `SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${likePlaceholders})`
+    );
 
-		const userRetweets = getUserRetweetsQuery.all(user.id, ...postIds);
-		const userRetweetedPosts = new Set(
-			userRetweets.map((retweet) => retweet.post_id),
-		);
+    const userRetweets = getUserRetweetsQuery.all(user.id, ...postIds);
+    const userRetweetedPosts = new Set(
+      userRetweets.map((retweet) => retweet.post_id)
+    );
 
-		const getUserBookmarksQuery = db.query(
-			`SELECT post_id FROM bookmarks WHERE user_id = ? AND post_id IN (${likePlaceholders})`,
-		);
+    const getUserBookmarksQuery = db.query(
+      `SELECT post_id FROM bookmarks WHERE user_id = ? AND post_id IN (${likePlaceholders})`
+    );
 
-		const userBookmarks = getUserBookmarksQuery.all(user.id, ...postIds);
-		const userBookmarkedPosts = new Set(
-			userBookmarks.map((bookmark) => bookmark.post_id),
-		);
+    const userBookmarks = getUserBookmarksQuery.all(user.id, ...postIds);
+    const userBookmarkedPosts = new Set(
+      userBookmarks.map((bookmark) => bookmark.post_id)
+    );
 
-		const timeline = posts
-			.map((post) => {
-				const topReply = getTopReplyData(post.id, user.id);
-				const shouldShowTopReply =
-					topReply &&
-					post.like_count > 0 &&
-					topReply.like_count / post.like_count >= 0.8;
+    const timeline = posts
+      .map((post) => {
+        const topReply = getTopReplyData(post.id, user.id);
+        const shouldShowTopReply =
+          topReply &&
+          post.like_count > 0 &&
+          topReply.like_count / post.like_count >= 0.8;
 
-				if (topReply) {
-					topReply.liked_by_user = userLikedPosts.has(topReply.id);
-					topReply.retweeted_by_user = userRetweetedPosts.has(topReply.id);
-					topReply.bookmarked_by_user = userBookmarkedPosts.has(topReply.id);
-				}
+        if (topReply) {
+          topReply.liked_by_user = userLikedPosts.has(topReply.id);
+          topReply.retweeted_by_user = userRetweetedPosts.has(topReply.id);
+          topReply.bookmarked_by_user = userBookmarkedPosts.has(topReply.id);
+        }
 
-				const author = userMap[post.user_id];
-				if (!author) return;
+        const author = userMap[post.user_id];
+        if (!author) return;
 
-				return {
-					...post,
-					author,
-					liked_by_user: userLikedPosts.has(post.id),
-					retweeted_by_user: userRetweetedPosts.has(post.id),
-					bookmarked_by_user: userBookmarkedPosts.has(post.id),
-					poll: getPollDataForTweet(post.id, user.id),
-					quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
-					top_reply: shouldShowTopReply ? topReply : null,
-					attachments: getTweetAttachments(post.id),
-				};
-			})
-			.filter(Boolean); // Remove null entries
+        return {
+          ...post,
+          author,
+          liked_by_user: userLikedPosts.has(post.id),
+          retweeted_by_user: userRetweetedPosts.has(post.id),
+          bookmarked_by_user: userBookmarkedPosts.has(post.id),
+          poll: getPollDataForTweet(post.id, user.id),
+          quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
+          top_reply: shouldShowTopReply ? topReply : null,
+          attachments: getTweetAttachments(post.id),
+        };
+      })
+      .filter(Boolean); // Remove null entries
 
-		return { timeline };
-	})
-	.get("/following", async ({ jwt, headers }) => {
-		const authorization = headers.authorization;
-		if (!authorization) return { error: "Authentication required" };
-		let user;
+    return { timeline };
+  })
+  .get("/following", async ({ jwt, headers }) => {
+    const authorization = headers.authorization;
+    if (!authorization) return { error: "Authentication required" };
+    let user;
 
-		try {
-			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-			if (!payload) return { error: "Invalid token" };
+    try {
+      const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+      if (!payload) return { error: "Invalid token" };
 
-			user = getUserByUsername.get(payload.username);
-			if (!user) return { error: "User not found" };
-		} catch (e) {
-			console.error(e);
-			return { error: "Authentication failed" };
-		}
+      user = getUserByUsername.get(payload.username);
+      if (!user) return { error: "User not found" };
+    } catch (e) {
+      console.error(e);
+      return { error: "Authentication failed" };
+    }
 
-		const posts = getFollowingTimelinePosts.all(user.id, user.id);
+    const posts = getFollowingTimelinePosts.all(user.id, user.id);
 
-		if (posts.length === 0) {
-			return { timeline: [] };
-		}
+    if (posts.length === 0) {
+      return { timeline: [] };
+    }
 
-		const userIds = [...new Set(posts.map((post) => post.user_id))];
+    const userIds = [...new Set(posts.map((post) => post.user_id))];
 
-		const placeholders = userIds.map(() => "?").join(",");
-		const getUsersQuery = db.query(
-			`SELECT * FROM users WHERE id IN (${placeholders})`,
-		);
+    const placeholders = userIds.map(() => "?").join(",");
+    const getUsersQuery = db.query(
+      `SELECT * FROM users WHERE id IN (${placeholders})`
+    );
 
-		const users = getUsersQuery.all(...userIds);
+    const users = getUsersQuery.all(...userIds);
 
-		const userMap = {};
-		users.forEach((user) => {
-			userMap[user.id] = user;
-		});
+    const userMap = {};
+    users.forEach((user) => {
+      userMap[user.id] = user;
+    });
 
-		const postIds = posts.map((post) => post.id);
-		const likePlaceholders = postIds.map(() => "?").join(",");
-		const getUserLikesQuery = db.query(
-			`SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${likePlaceholders})`,
-		);
+    const postIds = posts.map((post) => post.id);
+    const likePlaceholders = postIds.map(() => "?").join(",");
+    const getUserLikesQuery = db.query(
+      `SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${likePlaceholders})`
+    );
 
-		const userLikes = getUserLikesQuery.all(user.id, ...postIds);
-		const userLikedPosts = new Set(userLikes.map((like) => like.post_id));
+    const userLikes = getUserLikesQuery.all(user.id, ...postIds);
+    const userLikedPosts = new Set(userLikes.map((like) => like.post_id));
 
-		const getUserRetweetsQuery = db.query(
-			`SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${likePlaceholders})`,
-		);
+    const getUserRetweetsQuery = db.query(
+      `SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${likePlaceholders})`
+    );
 
-		const userRetweets = getUserRetweetsQuery.all(user.id, ...postIds);
-		const userRetweetedPosts = new Set(
-			userRetweets.map((retweet) => retweet.post_id),
-		);
+    const userRetweets = getUserRetweetsQuery.all(user.id, ...postIds);
+    const userRetweetedPosts = new Set(
+      userRetweets.map((retweet) => retweet.post_id)
+    );
 
-		const getUserBookmarksQuery = db.query(
-			`SELECT post_id FROM bookmarks WHERE user_id = ? AND post_id IN (${likePlaceholders})`,
-		);
+    const getUserBookmarksQuery = db.query(
+      `SELECT post_id FROM bookmarks WHERE user_id = ? AND post_id IN (${likePlaceholders})`
+    );
 
-		const userBookmarks = getUserBookmarksQuery.all(user.id, ...postIds);
-		const userBookmarkedPosts = new Set(
-			userBookmarks.map((bookmark) => bookmark.post_id),
-		);
+    const userBookmarks = getUserBookmarksQuery.all(user.id, ...postIds);
+    const userBookmarkedPosts = new Set(
+      userBookmarks.map((bookmark) => bookmark.post_id)
+    );
 
-		const timeline = posts
-			.map((post) => {
-				const topReply = getTopReplyData(post.id, user.id);
-				const shouldShowTopReply =
-					topReply &&
-					post.like_count > 0 &&
-					topReply.like_count / post.like_count >= 0.8;
+    const timeline = posts
+      .map((post) => {
+        const topReply = getTopReplyData(post.id, user.id);
+        const shouldShowTopReply =
+          topReply &&
+          post.like_count > 0 &&
+          topReply.like_count / post.like_count >= 0.8;
 
-				if (topReply) {
-					topReply.liked_by_user = userLikedPosts.has(topReply.id);
-					topReply.retweeted_by_user = userRetweetedPosts.has(topReply.id);
-					topReply.bookmarked_by_user = userBookmarkedPosts.has(topReply.id);
-				}
+        if (topReply) {
+          topReply.liked_by_user = userLikedPosts.has(topReply.id);
+          topReply.retweeted_by_user = userRetweetedPosts.has(topReply.id);
+          topReply.bookmarked_by_user = userBookmarkedPosts.has(topReply.id);
+        }
 
-				const author = userMap[post.user_id];
-				if (!author) return;
+        const author = userMap[post.user_id];
+        if (!author) return;
 
-				return {
-					...post,
-					author,
-					liked_by_user: userLikedPosts.has(post.id),
-					retweeted_by_user: userRetweetedPosts.has(post.id),
-					bookmarked_by_user: userBookmarkedPosts.has(post.id),
-					poll: getPollDataForTweet(post.id, user.id),
-					quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
-					top_reply: shouldShowTopReply ? topReply : null,
-					attachments: getTweetAttachments(post.id),
-				};
-			})
-			.filter(Boolean); // Remove null entries
+        return {
+          ...post,
+          author,
+          liked_by_user: userLikedPosts.has(post.id),
+          retweeted_by_user: userRetweetedPosts.has(post.id),
+          bookmarked_by_user: userBookmarkedPosts.has(post.id),
+          poll: getPollDataForTweet(post.id, user.id),
+          quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
+          top_reply: shouldShowTopReply ? topReply : null,
+          attachments: getTweetAttachments(post.id),
+        };
+      })
+      .filter(Boolean); // Remove null entries
 
-		return { timeline };
-	});
+    return { timeline };
+  });

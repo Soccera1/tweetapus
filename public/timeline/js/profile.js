@@ -180,7 +180,6 @@ const renderProfile = (data) => {
     profile.post_count || 0
   } posts`;
 
-  // Update banner
   const bannerElement = document.querySelector(".profile-banner");
   if (profile.banner) {
     bannerElement.style.backgroundImage = `url(${profile.banner})`;
@@ -193,13 +192,12 @@ const renderProfile = (data) => {
   }
 
   const avatarImg = document.getElementById("profileAvatar");
-  avatarImg.src = profile.avatar || `https://unavatar.io/${profile.username}`;
+  avatarImg.src = profile.avatar || `https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png`;
   avatarImg.alt = profile.name || profile.username;
 
   const profileNameEl = document.getElementById("profileDisplayName");
   profileNameEl.textContent = profile.name || profile.username;
 
-  // Add verification badge if user is verified
   if (profile.verified) {
     const existingBadge = profileNameEl.querySelector(".verification-badge");
     if (!existingBadge) {
@@ -230,16 +228,23 @@ const renderProfile = (data) => {
       profileNameEl.appendChild(verificationBadge);
     }
   } else {
-    // Remove verification badge if user is not verified
     const existingBadge = profileNameEl.querySelector(".verification-badge");
     if (existingBadge) {
       existingBadge.remove();
     }
   }
 
-  document.getElementById(
-    "profileUsername"
-  ).textContent = `@${profile.username}`;
+  const usernameEl = document.getElementById("profileUsername");
+  usernameEl.textContent = `@${profile.username}`;
+  
+  if (currentProfile.followsMe && !isOwnProfile) {
+    const followsBadge = document.createElement("span");
+    followsBadge.className = "follows-me-badge";
+    followsBadge.textContent = "Follows you";
+    followsBadge.style.cssText = "margin-left: 8px; padding: 2px 8px; background: rgba(var(--primary-rgb), 0.1); color: rgb(var(--primary-rgb)); border-radius: 4px; font-size: 12px; font-weight: 500;";
+    usernameEl.appendChild(followsBadge);
+  }
+  
   document.getElementById("profilePronouns").textContent =
     profile.pronouns || "";
   document.getElementById("profilePronouns").style.display = profile.pronouns
@@ -297,17 +302,18 @@ const renderProfile = (data) => {
   if (isOwnProfile) {
     document.getElementById("editProfileBtn").style.display = "block";
     document.getElementById("followBtn").style.display = "none";
-    document.getElementById("dmBtn").style.display = "none";
+    document.getElementById("profileDmBtn").style.display = "none";
     document.getElementById("profileDropdown").style.display = "none";
   } else if (authToken) {
     document.getElementById("editProfileBtn").style.display = "none";
     document.getElementById("followBtn").style.display = "block";
-    document.getElementById("dmBtn").style.display = "block";
+    document.getElementById("profileDmBtn").style.display = "block";
     document.getElementById("profileDropdown").style.display = "block";
     updateFollowButton(isFollowing);
+    setupDmButton(profile.username);
     checkBlockStatus(profile.username);
   } else {
-    document.getElementById("dmBtn").style.display = "none";
+    document.getElementById("profileDmBtn").style.display = "none";
     document.getElementById("profileDropdown").style.display = "none";
   }
 
@@ -378,6 +384,14 @@ const updateFollowButton = (isFollowing) => {
       count.textContent = parseInt(count.textContent) + 1;
     };
   }
+};
+
+const setupDmButton = (username) => {
+  const btn = document.getElementById("profileDmBtn");
+  btn.onclick = async () => {
+    const { openOrCreateConversation } = await import("./dm.js");
+    openOrCreateConversation(username);
+  };
 };
 
 const showEditModal = () => {
@@ -591,7 +605,7 @@ const updateEditAvatarDisplay = () => {
 
   if (avatarImg) {
     const avatarSrc =
-      profile.avatar || `https://unavatar.io/${profile.username}`;
+      profile.avatar || `https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png`;
     avatarImg.src = avatarSrc;
     avatarImg.alt = profile.name || profile.username;
   }
@@ -604,7 +618,6 @@ const updateEditAvatarDisplay = () => {
 const handleEditAvatarUpload = async (file) => {
   if (!file) return;
 
-  // Validate file size (5MB max for input)
   if (file.size > 5 * 1024 * 1024) {
     toastQueue.add(
       `<h1>File too large</h1><p>Please choose an image smaller than 5MB.</p>`
@@ -705,10 +718,9 @@ const handleEditAvatarRemoval = async () => {
     if (result.success) {
       currentProfile.profile.avatar = null;
       updateEditAvatarDisplay();
-      // Also update the main profile display
       const profileAvatar = document.getElementById("profileAvatar");
       if (profileAvatar) {
-        profileAvatar.src = `https://unavatar.io/${currentProfile.profile.username}`;
+        profileAvatar.src = `https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png`;
       }
       toastQueue.add(
         `<h1>Avatar removed</h1><p>Your profile picture has been reset to default.</p>`
@@ -1030,7 +1042,7 @@ const handleBlockUser = async () => {
         `<h1>User blocked</h1><p>@${currentUsername} has been blocked.</p>`
       );
 
-			document.getElementById("profileDropdownMenu").classList.remove("show");
+      document.getElementById("profileDropdownMenu").classList.remove("show");
     } else {
       toastQueue.add(`<h1>Failed to block user</h1>`);
     }

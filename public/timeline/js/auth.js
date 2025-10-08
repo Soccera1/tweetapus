@@ -106,14 +106,13 @@ const openDropdown = (dropdown) => {
   }
   _user = user;
   document.querySelector(".account img").src =
-    user.avatar || `https://unavatar.io/${user.username}`;
+    user.avatar || `https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png`;
   const outsideClickHandler = (e) => {
     const accountBtn = document.querySelector(".account");
     const dropdown = document.getElementById("accountDropdown");
 
     if (!dropdown || !accountBtn) return;
 
-    // Check if click is outside both button and dropdown
     if (!accountBtn.contains(e.target) && !dropdown.contains(e.target)) {
       closeDropdown(dropdown);
       document.removeEventListener("click", outsideClickHandler);
