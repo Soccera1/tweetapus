@@ -5,52 +5,29 @@ import { createTweetElement } from "./tweets.js";
 export const authToken = localStorage.getItem("authToken");
 
 let _user;
-const lastDropdownOpenAt = 0;
+let lastDropdownOpenAt = 0;
 
 const closeDropdown = (dropdown) => {
   if (!dropdown) return;
+  // Remove the open class to trigger CSS transition and clear any inline styles
   dropdown.classList.remove("open");
-
-  // Use a more reliable approach for hiding
-  const hideDropdown = () => {
-    dropdown.style.display = "none";
-    dropdown.removeEventListener("transitionend", hideDropdown);
-  };
-
-  dropdown.addEventListener("transitionend", hideDropdown);
-
-  // Fallback in case transition doesn't fire
-  setTimeout(() => {
-    if (!dropdown.classList.contains("open")) {
-      dropdown.style.display = "none";
-    }
-  }, 250);
+  dropdown.style.opacity = "";
+  dropdown.style.visibility = "";
+  dropdown.style.transform = "";
+  dropdown.style.display = "";
 };
 
 const openDropdown = (dropdown) => {
   if (!dropdown) return;
-
-  // Ensure proper initial state
-  dropdown.style.display = "block";
-  dropdown.style.opacity = "0";
-  dropdown.style.visibility = "hidden";
-  dropdown.style.transform = "translateY(-8px)";
-
-  // Force reflow
-  dropdown.offsetHeight;
-
-  // Apply open styles
+  // Ensure no conflicting inline styles and add the open class
+  dropdown.style.opacity = "";
+  dropdown.style.visibility = "";
+  dropdown.style.transform = "";
+  dropdown.style.display = "";
   dropdown.classList.add("open");
 
   // record open time to prevent immediate outside click closures
   lastDropdownOpenAt = Date.now();
-
-  // Set final styles after a short delay
-  setTimeout(() => {
-    dropdown.style.opacity = "";
-    dropdown.style.visibility = "";
-    dropdown.style.transform = "";
-  }, 10);
 };
 
 (async () => {
@@ -121,8 +98,6 @@ const openDropdown = (dropdown) => {
 
     if (!dropdown || !accountBtn) return;
 
-    // Ignore clicks that happen immediately after opening the dropdown
-    // to avoid race conditions with other global click handlers.
     if (Date.now() - lastDropdownOpenAt < 200) return;
 
     if (!accountBtn.contains(e.target) && !dropdown.contains(e.target)) {
@@ -139,6 +114,7 @@ const openDropdown = (dropdown) => {
   accountBtnClone.addEventListener("click", (e) => {
     e.stopPropagation();
     e.preventDefault();
+    e.stopImmediatePropagation();
 
     const dropdown = document.getElementById("accountDropdown");
     if (!dropdown) return;

@@ -84,6 +84,10 @@ const renderPosts = async (posts, isReplies = false) => {
         ).json();
 
         if (error) {
+          if (error === "User is suspended") {
+            profileCache[username] = null;
+            return;
+          }
           toastQueue.add(`<h1>${escapeHTML(error)}</h1>`);
           return;
         }
@@ -95,6 +99,12 @@ const renderPosts = async (posts, isReplies = false) => {
 
   for (const post of posts) {
     const authorProfile = profileCache[post.username];
+
+    if (!authorProfile) {
+      if (post.content_type === "retweet") {
+        continue;
+      }
+    }
 
     const transformedPost = {
       id: post.id,

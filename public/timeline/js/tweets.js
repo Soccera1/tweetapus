@@ -900,14 +900,28 @@ export const createTweetElement = (tweet, config = {}) => {
   }
 
   if (tweet.quoted_tweet) {
-    const quotedTweetEl = createTweetElement(tweet.quoted_tweet, {
-      clickToOpen: true,
-      showTopReply: false,
-      isTopReply: false,
-      size: "preview",
-    });
-
-    tweetEl.appendChild(quotedTweetEl);
+    if (!tweet.quoted_tweet.author) {
+      const unavailableQuoteEl = document.createElement("div");
+      unavailableQuoteEl.className = "tweet-preview unavailable-quote";
+      unavailableQuoteEl.style.cssText = `
+        padding: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        color: var(--text-secondary);
+        text-align: center;
+        margin-top: 8px;
+      `;
+      unavailableQuoteEl.textContent = "Quote tweet unavailable";
+      tweetEl.appendChild(unavailableQuoteEl);
+    } else {
+      const quotedTweetEl = createTweetElement(tweet.quoted_tweet, {
+        clickToOpen: true,
+        showTopReply: false,
+        isTopReply: false,
+        size: "preview",
+      });
+      tweetEl.appendChild(quotedTweetEl);
+    }
   }
 
   const tweetInteractionsEl = document.createElement("div");

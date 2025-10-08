@@ -179,20 +179,30 @@ export default new Elysia({ prefix: "/timeline" })
       userMap[user.id] = user;
     });
 
+    // Pre-fetch top replies (raw) so we can include their IDs when checking
+    // likes/retweets/bookmarks. If we don't, top replies will never show as
+    // liked/retweeted/bookmarked because we only queried the main post IDs.
+    const rawTopReplies = posts
+      .map((post) => getTopReply.get(post.id))
+      .filter(Boolean);
+
     const postIds = posts.map((post) => post.id);
-    const likePlaceholders = postIds.map(() => "?").join(",");
+    const topReplyIds = rawTopReplies.map((r) => r.id);
+    const combinedIds = [...new Set([...postIds, ...topReplyIds])];
+
+    const likePlaceholders = combinedIds.map(() => "?").join(",");
     const getUserLikesQuery = db.query(
       `SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${likePlaceholders})`
     );
 
-    const userLikes = getUserLikesQuery.all(user.id, ...postIds);
+    const userLikes = getUserLikesQuery.all(user.id, ...combinedIds);
     const userLikedPosts = new Set(userLikes.map((like) => like.post_id));
 
     const getUserRetweetsQuery = db.query(
       `SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${likePlaceholders})`
     );
 
-    const userRetweets = getUserRetweetsQuery.all(user.id, ...postIds);
+    const userRetweets = getUserRetweetsQuery.all(user.id, ...combinedIds);
     const userRetweetedPosts = new Set(
       userRetweets.map((retweet) => retweet.post_id)
     );
@@ -201,7 +211,7 @@ export default new Elysia({ prefix: "/timeline" })
       `SELECT post_id FROM bookmarks WHERE user_id = ? AND post_id IN (${likePlaceholders})`
     );
 
-    const userBookmarks = getUserBookmarksQuery.all(user.id, ...postIds);
+    const userBookmarks = getUserBookmarksQuery.all(user.id, ...combinedIds);
     const userBookmarkedPosts = new Set(
       userBookmarks.map((bookmark) => bookmark.post_id)
     );
@@ -275,20 +285,27 @@ export default new Elysia({ prefix: "/timeline" })
       userMap[user.id] = user;
     });
 
+    const rawTopReplies = posts
+      .map((post) => getTopReply.get(post.id))
+      .filter(Boolean);
+
     const postIds = posts.map((post) => post.id);
-    const likePlaceholders = postIds.map(() => "?").join(",");
+    const topReplyIds = rawTopReplies.map((r) => r.id);
+    const combinedIds = [...new Set([...postIds, ...topReplyIds])];
+
+    const likePlaceholders = combinedIds.map(() => "?").join(",");
     const getUserLikesQuery = db.query(
       `SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${likePlaceholders})`
     );
 
-    const userLikes = getUserLikesQuery.all(user.id, ...postIds);
+    const userLikes = getUserLikesQuery.all(user.id, ...combinedIds);
     const userLikedPosts = new Set(userLikes.map((like) => like.post_id));
 
     const getUserRetweetsQuery = db.query(
       `SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${likePlaceholders})`
     );
 
-    const userRetweets = getUserRetweetsQuery.all(user.id, ...postIds);
+    const userRetweets = getUserRetweetsQuery.all(user.id, ...combinedIds);
     const userRetweetedPosts = new Set(
       userRetweets.map((retweet) => retweet.post_id)
     );
@@ -297,7 +314,7 @@ export default new Elysia({ prefix: "/timeline" })
       `SELECT post_id FROM bookmarks WHERE user_id = ? AND post_id IN (${likePlaceholders})`
     );
 
-    const userBookmarks = getUserBookmarksQuery.all(user.id, ...postIds);
+    const userBookmarks = getUserBookmarksQuery.all(user.id, ...combinedIds);
     const userBookmarkedPosts = new Set(
       userBookmarks.map((bookmark) => bookmark.post_id)
     );
