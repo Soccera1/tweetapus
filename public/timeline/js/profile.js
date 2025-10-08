@@ -885,6 +885,7 @@ editRemoveBannerBtn?.addEventListener("click", handleEditBannerRemoval);
 document
   .getElementById("profileDropdownBtn")
   ?.addEventListener("click", (e) => {
+    e.preventDefault();
     e.stopPropagation();
     const menu = document.getElementById("profileDropdownMenu");
     menu.classList.toggle("show");
@@ -892,8 +893,13 @@ document
 
 // Close dropdown when clicking outside
 document.addEventListener("click", (e) => {
-  if (!e.target.closest(".profile-dropdown")) {
-    document.getElementById("profileDropdownMenu")?.classList.remove("show");
+  const dropdown = document.getElementById("profileDropdown");
+  const menu = document.getElementById("profileDropdownMenu");
+  
+  if (!dropdown || !menu) return;
+  
+  if (!dropdown.contains(e.target) && menu.classList.contains("show")) {
+    menu.classList.remove("show");
   }
 });
 

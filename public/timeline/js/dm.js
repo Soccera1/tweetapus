@@ -1250,6 +1250,54 @@ window.saveGroupSettings = saveGroupSettings;
 window.removeParticipantFromGroup = removeParticipantFromGroup;
 window.addParticipantUser = addParticipantUser;
 window.removeParticipantUser = removeParticipantUser;
+async function openOrCreateConversation(username) {
+  if (!authToken) {
+    toastQueue.add("error", "Please log in to send messages");
+    return;
+  }
+
+  await loadConversations();
+
+  const currentUsername = getCurrentUsername();
+  const existing = currentConversations.find((conv) => {
+    if (conv.type === "group") return false;
+    return conv.participants.some(
+      (p) => p.username === username && p.username !== currentUsername
+    );
+  });
+
+  if (existing) {
+    openConversation(existing.id);
+  } else {
+    try {
+      const response = await fetch("/api/dm/conversations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          participantUsernames: [username],
+          isGroup: false,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        toastQueue.add("error", data.error);
+        return;
+      }
+
+      await loadConversations();
+      openConversation(data.conversation.id);
+    } catch (error) {
+      console.error("Failed to create conversation:", error);
+      toastQueue.add("error", "Failed to create conversation");
+    }
+  }
+}
+
 window.goBackToDMList = goBackToDMList;
 window.openGroupSettings = openGroupSettings;
 
@@ -1258,3 +1306,5 @@ export default {
   updateUnreadCount,
   connectWebSocket,
 };
+
+export { openOrCreateConversation };
