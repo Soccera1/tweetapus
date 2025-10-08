@@ -128,7 +128,6 @@ nav {
     margin-top: auto;
     padding: 12px;
     width: 100%;
-    border-radius: 9999px;
     transition: background-color 0.2s ease;
 
     &:hover {

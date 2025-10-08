@@ -82,7 +82,7 @@ window.onunhandledrejection = (event) => {
       currentTimeline = timelineType;
 
       document.querySelector("#composer-container").style.display = "block";
-      document.querySelector(".tweets").style.display = "block";
+      document.querySelector(".tweets").style.display = "flex";
       await loadTimeline(timelineType);
     });
   });

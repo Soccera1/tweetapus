@@ -203,43 +203,29 @@ const adminQueries = {
 };
 
 const requireAdmin = async ({ headers, jwt, set }) => {
-  // stuck cursor true, Opua YT
   const token = headers.authorization?.replace("Bearer ", "");
   if (!token) {
     set.status = 401;
-    return { error: "No token provided" };
-  }
-
-  try {
-    const payload = await jwt.verify(token);
-    if (!payload) {
-      set.status = 401;
-      return { error: "Invalid token" };
-    }
-
-    const userId = payload.userId;
-    const user = adminQueries.findUserById.get(userId);
-
-    if (!user?.admin) {
-      set.status = 403;
-      return { error: "Admin access required" };
-    }
-
     return {
-      user,
-      originalUser: user, // stuck cursor
+      user: {},
     };
-  } catch (_error) {
-    set.status = 401;
-    return { error: "Invalid token" };
   }
-};
 
-const isSuspended = async ({ user, set }) => {
-  if (user.suspended) {
-    set.status = 403;
-    return { error: "User is suspended" };
+  const payload = await jwt.verify(token);
+  if (!payload) {
+    set.status = 401;
+    return {
+      user: {},
+    };
   }
+  console.log(payload)
+
+  const userId = payload.userId;
+  const user = adminQueries.findUserById.get(userId);
+
+  return {
+    user,
+  };
 };
 
 export default new Elysia({ prefix: "/admin" })
@@ -247,9 +233,15 @@ export default new Elysia({ prefix: "/admin" })
     jwt({ name: "jwt", secret: process.env.JWT_SECRET || "your-secret-key" })
   )
   .derive(requireAdmin)
-  .guard({ before: [isSuspended] })
+  .guard({
+    beforeHandle: async ({ user, set }) => {
+      if (!user || user.suspended || !user.admin) {
+        set.status = 403;
+        return { error: "Admin access required" };
+      }
+    },
+  })
 
-  // Dashboard stats
   .get("/stats", async () => {
     const userStats = adminQueries.getUserStats.get();
     const postStats = adminQueries.getPostStats.get();
@@ -533,7 +525,6 @@ export default new Elysia({ prefix: "/admin" })
     const impersonationToken = await jwt.sign({
       userId: targetUser.id,
       username: targetUser.username,
-      originalUserId: user.id,
       impersonation: true,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours

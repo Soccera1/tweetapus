@@ -1056,13 +1056,11 @@ export const createTweetElement = (tweet, config = {}) => {
                 path.setAttribute("stroke", "#00BA7C")
               );
               retweetCountSpan.textContent = currentCount + 1;
-              toastQueue.add(`<h1>Tweet retweeted</h1>`);
             } else {
               svgPaths.forEach((path) =>
                 path.setAttribute("stroke", "currentColor")
               );
               retweetCountSpan.textContent = Math.max(0, currentCount - 1);
-              toastQueue.add(`<h1>Retweet removed</h1>`);
             }
           } else {
             toastQueue.add(`<h1>${result.error || "Failed to retweet"}</h1>`);

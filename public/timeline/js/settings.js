@@ -3,6 +3,7 @@ import { authToken } from "./auth.js";
 import { showPage } from "./pages.js";
 
 let currentUser = null;
+let isRestoringState = false;
 
 const hexToRgb = (hex) => {
   if (!hex) return null;
@@ -41,6 +42,7 @@ initializeGlobalColors();
 
 const settingsPages = [
   { key: "account", title: "Account", content: () => createAccountContent() },
+  { key: "passkeys", title: "Passkeys", content: () => createPasskeysContent() },
   { key: "themes", title: "Themes", content: () => createThemesContent() },
   { key: "other", title: "Other", content: () => createOtherContent() },
 ];
@@ -189,7 +191,6 @@ const createThemesContent = () => {
         .querySelectorAll(".color-option")
         .forEach((opt) => opt.classList.remove("active"));
 
-      // Add active with proper timing
       setTimeout(() => {
         option.classList.add("active");
       }, 10);
@@ -297,6 +298,163 @@ const createAccountContent = () => {
   section.appendChild(createChangePasswordModal());
 
   return section;
+};
+
+const createPasskeysContent = () => {
+  const section = document.createElement("div");
+  section.className = "settings-section";
+
+  const h1 = document.createElement("h1");
+  h1.textContent = "Passkey Management";
+  section.appendChild(h1);
+
+  const group = document.createElement("div");
+  group.className = "setting-group";
+  
+  const h2 = document.createElement("h2");
+  h2.textContent = "Your Passkeys";
+  group.appendChild(h2);
+
+  const description = document.createElement("p");
+  description.style.color = "var(--text-secondary)";
+  description.style.fontSize = "14px";
+  description.style.marginBottom = "16px";
+  description.textContent = "Passkeys allow you to sign in securely without a password. You can use your device's biometric authentication or security key.";
+  group.appendChild(description);
+
+  const addPasskeyItem = document.createElement("div");
+  addPasskeyItem.className = "setting-item";
+  const addPasskeyLabel = document.createElement("div");
+  addPasskeyLabel.className = "setting-label";
+  const addPasskeyTitle = document.createElement("div");
+  addPasskeyTitle.className = "setting-title";
+  addPasskeyTitle.textContent = "Add New Passkey";
+  const addPasskeyDesc = document.createElement("div");
+  addPasskeyDesc.className = "setting-description";
+  addPasskeyDesc.textContent = "Register a new passkey for this account";
+  addPasskeyLabel.appendChild(addPasskeyTitle);
+  addPasskeyLabel.appendChild(addPasskeyDesc);
+  const addPasskeyControl = document.createElement("div");
+  addPasskeyControl.className = "setting-control";
+  const addPasskeyBtn = document.createElement("button");
+  addPasskeyBtn.className = "btn primary";
+  addPasskeyBtn.id = "addPasskeyBtn";
+  addPasskeyBtn.textContent = "Add Passkey";
+  addPasskeyControl.appendChild(addPasskeyBtn);
+  addPasskeyItem.appendChild(addPasskeyLabel);
+  addPasskeyItem.appendChild(addPasskeyControl);
+  group.appendChild(addPasskeyItem);
+
+  section.appendChild(group);
+
+  const passkeyListGroup = document.createElement("div");
+  passkeyListGroup.className = "setting-group";
+  const passkeyListTitle = document.createElement("h2");
+  passkeyListTitle.textContent = "Registered Passkeys";
+  passkeyListGroup.appendChild(passkeyListTitle);
+  
+  const passkeyList = document.createElement("div");
+  passkeyList.id = "passkeyListSettings";
+  passkeyList.style.display = "flex";
+  passkeyList.style.flexDirection = "column";
+  passkeyList.style.gap = "12px";
+  passkeyListGroup.appendChild(passkeyList);
+
+  section.appendChild(passkeyListGroup);
+
+  setTimeout(() => {
+    loadPasskeys();
+  }, 100);
+
+  return section;
+};
+
+const loadPasskeys = async () => {
+  const passkeyList = document.getElementById("passkeyListSettings");
+  if (!passkeyList) return;
+
+  try {
+    const response = await fetch("/api/auth/passkeys", {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const data = await response.json();
+
+    if (data.error) {
+      passkeyList.innerHTML = `<p style="color: var(--text-secondary); font-size: 14px;">Failed to load passkeys</p>`;
+      return;
+    }
+
+    if (!data.passkeys || data.passkeys.length === 0) {
+      passkeyList.innerHTML = `<p style="color: var(--text-secondary); font-size: 14px;">No passkeys registered yet</p>`;
+      return;
+    }
+
+    passkeyList.innerHTML = "";
+    data.passkeys.forEach((passkey) => {
+      const item = document.createElement("div");
+      item.style.display = "flex";
+      item.style.justifyContent = "space-between";
+      item.style.alignItems = "center";
+      item.style.padding = "16px";
+      item.style.backgroundColor = "var(--bg-primary)";
+      item.style.borderRadius = "8px";
+      item.style.border = "1px solid var(--border-primary)";
+
+      const info = document.createElement("div");
+      info.style.flex = "1";
+      
+      const name = document.createElement("div");
+      name.style.fontWeight = "500";
+      name.style.color = "var(--text-primary)";
+      name.style.marginBottom = "4px";
+      name.textContent = passkey.name || "Unnamed Passkey";
+      
+      const createdAt = document.createElement("div");
+      createdAt.style.fontSize = "12px";
+      createdAt.style.color = "var(--text-secondary)";
+      createdAt.textContent = `Created: ${new Date(passkey.created_at).toLocaleDateString()}`;
+      
+      info.appendChild(name);
+      info.appendChild(createdAt);
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "btn danger";
+      deleteBtn.textContent = "Remove";
+      deleteBtn.style.maxWidth = "120px";
+      deleteBtn.onclick = () => deletePasskey(passkey.id);
+
+      item.appendChild(info);
+      item.appendChild(deleteBtn);
+      passkeyList.appendChild(item);
+    });
+  } catch (error) {
+    console.error("Failed to load passkeys:", error);
+    passkeyList.innerHTML = `<p style="color: var(--text-secondary); font-size: 14px;">Failed to load passkeys</p>`;
+  }
+};
+
+const deletePasskey = async (passkeyId) => {
+  if (!confirm("Are you sure you want to remove this passkey?")) return;
+
+  try {
+    const response = await fetch(`/api/auth/passkeys/${passkeyId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      toastQueue.add(`<h1>Error</h1><p>${data.error}</p>`);
+      return;
+    }
+
+    toastQueue.add(`<h1>Success</h1><p>Passkey removed successfully</p>`);
+    loadPasskeys();
+  } catch (error) {
+    console.error("Failed to delete passkey:", error);
+    toastQueue.add(`<h1>Error</h1><p>Failed to remove passkey</p>`);
+  }
 };
 
 const createOtherContent = () => {
@@ -588,7 +746,7 @@ const createSettingsPage = () => {
 			align-items: center;
 			padding: 20px 0;
 			border-bottom: 1px solid var(--border-primary);
-			margin-bottom: 20px;
+			margin-bottom: 12px;
 		}
 		
 		.back-button {
@@ -623,6 +781,7 @@ const createSettingsPage = () => {
 			flex: 1;
 			width: 100%;
 			align-items: flex-start;
+			justify-content: center;
 		}
 		
 		.settings-sidebar {
@@ -666,24 +825,23 @@ const createSettingsPage = () => {
 			padding: 32px;
 			flex: 1;
 			min-width: 0;
-			max-width: 700px;
+			max-width: 900px;
 			overflow-x: hidden;
-			margin: 0 auto;
 		}
 		
 		.settings-section h1 {
-			margin: 0 0 24px 0;
+			margin: 0 0 20px 0;
 			font-size: 24px;
 			font-weight: 700;
 			color: var(--text-primary);
 		}
 		
 		.setting-group {
-			margin-bottom: 32px;
+			margin-bottom: 24px;
 		}
 		
 		.setting-group h2 {
-			margin: 0 0 16px 0;
+			margin: 0 0 18px 0;
 			font-size: 18px;
 			font-weight: 600;
 			color: var(--text-primary);
@@ -692,9 +850,9 @@ const createSettingsPage = () => {
 		.setting-item {
 			display: flex;
 			flex-direction: column;
-			gap: 16px;
+			gap: 14px;
 			align-items: stretch;
-			padding: 20px 0;
+			padding: 18px 0;
 			border-bottom: 1px solid var(--border-primary);
 		}		.setting-item:last-child {
 			border-bottom: none;
@@ -1136,7 +1294,7 @@ const createSettingsPage = () => {
 	`;
 
   document.head.appendChild(style);
-  document.body.appendChild(settingsContainer);
+  document.querySelector(".main-content").appendChild(settingsContainer);
   return settingsContainer;
 };
 
@@ -1176,8 +1334,12 @@ const initializeSettings = () => {
 
     if (tabKey === "themes") {
       setTimeout(() => {
+        isRestoringState = true;
         loadCurrentAccentColor();
         loadCurrentThemeMode();
+        setTimeout(() => {
+          isRestoringState = false;
+        }, 200);
       }, 50);
     }
   };
@@ -1294,6 +1456,10 @@ const setupSettingsEventHandlers = async () => {
       }
     }
 
+    if (target.id === "addPasskeyBtn") {
+      handleAddPasskey();
+    }
+
     if (target.id === "changePasswordBtn") {
       const modal = document.getElementById("changePasswordModal");
       const hasPassword = currentUser?.password_hash !== null;
@@ -1372,10 +1538,6 @@ const setupSettingsEventHandlers = async () => {
     }
     if (event.target.classList.contains("theme-mode-select")) {
       handleThemeModeChange(event.target.value);
-    }
-    if (event.target.classList.contains("custom-color-picker")) {
-      const color = event.target.value;
-      setAccentColor(color);
     }
   });
 };
@@ -1461,15 +1623,17 @@ const handleThemeModeChange = (theme) => {
     localStorage.setItem("theme", "light");
   }
 
-  if (themeToastRef) {
-    toastQueue.delete(themeToastRef.id);
+  if (!isRestoringState) {
+    if (themeToastRef) {
+      toastQueue.delete(themeToastRef.id);
+    }
+    themeToastRef = toastQueue.add(
+      `<h1>Theme Changed</h1><p>Switched to ${theme} mode</p>`
+    );
   }
-  themeToastRef = toastQueue.add(
-    `<h1>Theme Changed</h1><p>Switched to ${theme} mode</p>`
-  );
 };
 
-const setAccentColor = (color) => {
+const setAccentColor = (color, showToast = true) => {
   applyAccentColor(color);
 
   // Update all color options
@@ -1495,10 +1659,12 @@ const setAccentColor = (color) => {
     }
   }
 
-  if (themeToastRef) toastQueue.delete(themeToastRef.id);
-  themeToastRef = toastQueue.add(
-    `<h1>Accent Color Changed</h1><p>Your accent color has been updated</p>`
-  );
+  if (showToast && !isRestoringState) {
+    if (themeToastRef) toastQueue.delete(themeToastRef.id);
+    themeToastRef = toastQueue.add(
+      `<h1>Accent Color Changed</h1><p>Your accent color has been updated</p>`
+    );
+  }
 };
 
 const applyAccentColor = (color) => {
@@ -1575,6 +1741,59 @@ const showModal = (modal) => {
 };
 const hideModal = (modal) => {
   modal.style.display = "none";
+};
+
+const handleAddPasskey = async () => {
+  try {
+    const response = await fetch("/api/auth/passkey/register/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    const options = await response.json();
+
+    if (options.error) {
+      toastQueue.add(`<h1>Error</h1><p>${options.error}</p>`);
+      return;
+    }
+
+    const { startRegistration } = window.SimpleWebAuthnBrowser;
+    let attResp;
+    try {
+      attResp = await startRegistration({ optionsJSON: options });
+    } catch (error) {
+      console.error("Registration failed:", error);
+      toastQueue.add(`<h1>Registration Cancelled</h1><p>Passkey registration was cancelled or failed</p>`);
+      return;
+    }
+
+    const verificationResp = await fetch("/api/auth/passkey/register/finish", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(attResp),
+    });
+
+    const verificationJSON = await verificationResp.json();
+
+    if (verificationJSON.error) {
+      toastQueue.add(`<h1>Verification Failed</h1><p>${verificationJSON.error}</p>`);
+      return;
+    }
+
+    if (verificationJSON.verified) {
+      toastQueue.add(`<h1>Success!</h1><p>Passkey added successfully</p>`);
+      loadPasskeys();
+    }
+  } catch (error) {
+    console.error("Failed to add passkey:", error);
+    toastQueue.add(`<h1>Error</h1><p>Failed to add passkey</p>`);
+  }
 };
 
 const handleUsernameChange = async () => {

@@ -112,7 +112,7 @@
           <li><a href="#" id="myProfileLink">My Profile</a></li>
           <li><a href="#" id="bookmarksLink">Bookmarks</a></li>
           <li><a href="#" id="settingsLink">Settings</a></li>
-          <li><a href="/account">Manage passkeys</a></li>
+          <li><a href="#" id="passkeysLink">Manage passkeys</a></li>
           <li><a href="#" id="signOutLink">Sign Out</a></li>
         </ul>
       </div>
@@ -455,7 +455,6 @@
         </div>
       </div>
 
-      <!-- Group Settings Modal -->
       <div
         class="group-settings-modal"
         id="groupSettingsModal"
@@ -894,6 +893,7 @@
       </div>
 
       <script src="/public/shared/darkmode.js" defer></script>
+      <script src="https://unpkg.com/@simplewebauthn/browser@13.1.2/dist/bundle/index.es5.umd.min.js"></script>
       <script src="/public/timeline/js/index.js" defer type="module"></script>
 
       <div class="loader">
@@ -928,14 +928,4 @@
       </div>
     </div>
   </body>
-  <script>
-    if (
-      ["neko", "getfollowersbot"].includes(
-        JSON.parse(atob(localStorage.getItem("authToken").split(".")[1]))
-          .username
-      )
-    ) {
-      document.body.innerHTML = `<h1>you have been BANNED !!!</h1>`;
-    }
-  </script>
 </html>

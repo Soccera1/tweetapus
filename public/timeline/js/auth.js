@@ -106,7 +106,11 @@ const openDropdown = (dropdown) => {
   }
   _user = user;
   document.querySelector(".account img").src =
-    user.avatar || `https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png`;
+    user.avatar ||
+    `https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png`;
+
+  let outsideClickHandlerAttached = false;
+
   const outsideClickHandler = (e) => {
     const accountBtn = document.querySelector(".account");
     const dropdown = document.getElementById("accountDropdown");
@@ -116,10 +120,15 @@ const openDropdown = (dropdown) => {
     if (!accountBtn.contains(e.target) && !dropdown.contains(e.target)) {
       closeDropdown(dropdown);
       document.removeEventListener("click", outsideClickHandler);
+      outsideClickHandlerAttached = false;
     }
   };
 
-  document.querySelector(".account").addEventListener("click", (e) => {
+  const accountBtn = document.querySelector(".account");
+  const accountBtnClone = accountBtn.cloneNode(true);
+  accountBtn.parentNode.replaceChild(accountBtnClone, accountBtn);
+
+  accountBtnClone.addEventListener("click", (e) => {
     e.stopPropagation();
     e.preventDefault();
 
@@ -128,22 +137,20 @@ const openDropdown = (dropdown) => {
 
     const isOpen = dropdown.classList.contains("open");
 
-    // Close any other open dropdowns
-    document.querySelectorAll(".account-dropdown").forEach((d) => {
-      if (d !== dropdown) closeDropdown(d);
-    });
-
     if (!isOpen) {
       openDropdown(dropdown);
-      // Add outside click handler with delay to prevent immediate closure
-      setTimeout(() => {
-        document.addEventListener("click", outsideClickHandler, {
-          once: false,
-        });
-      }, 50);
+      if (!outsideClickHandlerAttached) {
+        setTimeout(() => {
+          document.addEventListener("click", outsideClickHandler);
+          outsideClickHandlerAttached = true;
+        }, 150);
+      }
     } else {
       closeDropdown(dropdown);
-      document.removeEventListener("click", outsideClickHandler);
+      if (outsideClickHandlerAttached) {
+        document.removeEventListener("click", outsideClickHandler);
+        outsideClickHandlerAttached = false;
+      }
     }
   });
 
@@ -170,6 +177,15 @@ const openDropdown = (dropdown) => {
     const dropdown = document.getElementById("accountDropdown");
     closeDropdown(dropdown);
     openBookmarks();
+  });
+
+  document.getElementById("passkeysLink").addEventListener("click", (e) => {
+    e.preventDefault();
+    const dropdown = document.getElementById("accountDropdown");
+    closeDropdown(dropdown);
+    import("./settings.js").then(({ openSettings }) => {
+      openSettings("passkeys");
+    });
   });
 
   document.getElementById("homeBtn").addEventListener("click", () => {
