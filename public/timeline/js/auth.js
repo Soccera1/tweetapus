@@ -1,34 +1,11 @@
 import toastQueue from "../../shared/toasts.js";
 import switchPage, { addRoute } from "./pages.js";
 import { createTweetElement } from "./tweets.js";
+import { createPopup } from "../../shared/ui-utils.js";
 
 export const authToken = localStorage.getItem("authToken");
 
 let _user;
-let lastDropdownOpenAt = 0;
-
-const closeDropdown = (dropdown) => {
-  if (!dropdown) return;
-  // Remove the open class to trigger CSS transition and clear any inline styles
-  dropdown.classList.remove("open");
-  dropdown.style.opacity = "";
-  dropdown.style.visibility = "";
-  dropdown.style.transform = "";
-  dropdown.style.display = "";
-};
-
-const openDropdown = (dropdown) => {
-  if (!dropdown) return;
-  // Ensure no conflicting inline styles and add the open class
-  dropdown.style.opacity = "";
-  dropdown.style.visibility = "";
-  dropdown.style.transform = "";
-  dropdown.style.display = "";
-  dropdown.classList.add("open");
-
-  // record open time to prevent immediate outside click closures
-  lastDropdownOpenAt = Date.now();
-};
 
 (async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -85,55 +62,83 @@ const openDropdown = (dropdown) => {
     window.location.href = "/";
     return;
   }
-  _user = user;
+    _user = user;
   document.querySelector(".account img").src =
     user.avatar ||
     `https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png`;
 
-  let outsideClickHandlerAttached = false;
-
-  const outsideClickHandler = (e) => {
-    const accountBtn = document.querySelector(".account");
-    const dropdown = document.getElementById("accountDropdown");
-
-    if (!dropdown || !accountBtn) return;
-
-    if (Date.now() - lastDropdownOpenAt < 200) return;
-
-    if (!accountBtn.contains(e.target) && !dropdown.contains(e.target)) {
-      closeDropdown(dropdown);
-      document.removeEventListener("click", outsideClickHandler);
-      outsideClickHandlerAttached = false;
-    }
-  };
-
   const accountBtn = document.querySelector(".account");
-  const accountBtnClone = accountBtn.cloneNode(true);
-  accountBtn.parentNode.replaceChild(accountBtnClone, accountBtn);
-
-  accountBtnClone.addEventListener("click", (e) => {
+  accountBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     e.preventDefault();
-    e.stopImmediatePropagation();
 
-    const dropdown = document.getElementById("accountDropdown");
-    if (!dropdown) return;
+    createPopup({
+      triggerElement: accountBtn,
+      items: [
+        {
+          title: "My Profile",
+          description: "",
+          icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+          onClick: () => {
+            switchPage("profile", {
+              path: `/@${user.username}`,
+              recoverState: async () => {
+                await showProfile(user.username);
+              },
+            });
+          },
+        },
+        {
+          title: "Bookmarks",
+          description: "",
+          icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
+          onClick: () => {
+            openBookmarks();
+          },
+        },
+        {
+          title: "Settings",
+          description: "",
+          icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
+          onClick: () => {
+            switchPage("settings", {
+              path: "/settings",
+              recoverState: async () => {
+                await loadSettings();
+              },
+            });
+          },
+        },
+        {
+          title: "Manage passkeys",
+          description: "",
+          icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg>`,
+          onClick: () => {
+            switchPage("passkeys", {
+              path: "/passkeys",
+              recoverState: async () => {
+                await loadPasskeys();
+              },
+            });
+          },
+        },
+        {
+          title: "Sign Out",
+          description: "",
+          icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
+          onClick: () => {
+            localStorage.removeItem("authToken");
+            window.location.href = "/";
+          },
+        },
+      ],
+    });
+  });
 
-    const isOpen = dropdown.classList.contains("open");
-
-    if (!isOpen) {
-      openDropdown(dropdown);
-      if (!outsideClickHandlerAttached) {
-        document.addEventListener("click", outsideClickHandler);
-        outsideClickHandlerAttached = true;
-      }
-    } else {
-      closeDropdown(dropdown);
-      if (outsideClickHandlerAttached) {
-        document.removeEventListener("click", outsideClickHandler);
-        outsideClickHandlerAttached = false;
-      }
-    }
+  document.getElementById("homeBtn").addEventListener("click", () => {
+    switchPage("timeline", {
+      path: "/",
+    });
   });
 
   document.getElementById("myProfileLink").addEventListener("click", (e) => {

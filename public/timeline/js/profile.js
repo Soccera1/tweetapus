@@ -897,9 +897,11 @@ document
   ?.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    const isBlocked = document.getElementById("blockUserBtn")?.textContent.includes("Unblock");
-    
+
+    const isBlocked = document
+      .getElementById("blockUserBtn")
+      ?.textContent.includes("Unblock");
+
     createPopup({
       triggerElement: e.currentTarget,
       items: [
@@ -910,8 +912,8 @@ document
             <path d="M4.93 4.93l14.14 14.14"/>
           </svg>`,
           title: isBlocked ? "Unblock" : "Block",
-          description: isBlocked 
-            ? `Unblock @${currentUsername}` 
+          description: isBlocked
+            ? `Unblock @${currentUsername}`
             : `Block @${currentUsername}`,
           onClick: () => {
             if (isBlocked) {

@@ -1,8 +1,8 @@
 import DOMPurify from "https://esm.sh/dompurify@2.4.0";
 import { marked } from "https://esm.sh/marked@16.3.0";
 import confetti from "../../shared/confetti.js";
-import { createPopup, createModal } from "../../shared/ui-utils.js";
 import toastQueue from "../../shared/toasts.js";
+import { createModal, createPopup } from "../../shared/ui-utils.js";
 import getUser, { authToken } from "./auth.js";
 import openTweet from "./tweet.js";
 
@@ -72,10 +72,10 @@ async function showInteractionUsers(tweetId, interaction, title) {
         );
         return;
       }
-      
+
       contentContainer.className = "quotes-list";
-      
-      data.tweets.forEach(tweet => {
+
+      data.tweets.forEach((tweet) => {
         const tweetEl = createTweetElement(tweet, {
           clickToOpen: true,
           showTopReply: false,
@@ -107,9 +107,9 @@ async function showInteractionUsers(tweetId, interaction, title) {
 
         userItem.innerHTML = `
           <div class="user-avatar">
-            <img src="${user.avatar || "/public/shared/default-avatar.png"}" alt="${
-          user.name || user.username
-        }" />
+            <img src="${
+              user.avatar || "/public/shared/default-avatar.png"
+            }" alt="${user.name || user.username}" />
           </div>
           <div class="user-info">
             <div class="user-name">${user.name || user.username}</div>
@@ -667,7 +667,6 @@ export const createTweetElement = (tweet, config = {}) => {
     tweetEl.appendChild(pinnedIndicatorEl);
   }
 
-  // Add three-dots menu for user's own tweets
   getUser().then((currentUser) => {
     if (
       currentUser &&
@@ -760,7 +759,10 @@ export const createTweetElement = (tweet, config = {}) => {
                     const existingIndicator =
                       tweetEl.querySelector(".pinned-indicator");
                     if (!existingIndicator) {
-                      tweetEl.insertBefore(pinnedIndicatorEl, tweetEl.firstChild);
+                      tweetEl.insertBefore(
+                        pinnedIndicatorEl,
+                        tweetEl.firstChild
+                      );
                     }
                   } else {
                     const pinnedIndicator =
