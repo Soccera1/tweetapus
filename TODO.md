@@ -1,4 +1,3 @@
-- gif picker
 - better edit profile modal
 - add online / offline indicators and the device with a ghost mode that disables the notification indicator
 
