@@ -105,7 +105,6 @@ img {
   }
 }
 
-/* Popup Styles */
 .popup-overlay {
   position: fixed;
   top: 0;
@@ -115,6 +114,19 @@ img {
   background: transparent;
   z-index: 1000;
   pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
+}
+
+.popup-overlay.visible {
+  opacity: 1;
+}
+
+.popup-overlay.closing {
+  opacity: 0;
 }
 
 .popup {
@@ -127,7 +139,7 @@ img {
   transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: auto;
-  transform-origin: top left;
+  transform-origin: top center;
 
   @starting-style {
     & {
@@ -135,6 +147,16 @@ img {
       transform: scale(0.92);
     }
   }
+}
+
+.popup-overlay.visible .popup {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.popup-overlay.closing .popup {
+  transform: scale(0.92);
+  opacity: 0;
 }
 
 .popup-content {

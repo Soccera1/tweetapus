@@ -392,6 +392,7 @@ nav {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  flex-direction: column;
 }
 
 .compose-tweet {
@@ -526,6 +527,7 @@ nav {
           font-size: 14px;
           color: var(--text-secondary);
           font-weight: 500;
+          user-select: none;
 
           &#over-limit {
             color: #ef4444;
@@ -777,6 +779,10 @@ nav {
       display: flex;
       flex-direction: column;
 
+      &:hover .name {
+        text-decoration: underline;
+      }
+
       p {
         margin: 0px;
         display: flex;
@@ -876,7 +882,7 @@ nav {
   }
   .tweet-interactions {
     display: flex;
-    gap: 15px;
+    gap: 20px;
     user-select: none;
 
     button {
@@ -889,7 +895,7 @@ nav {
       font-family: inherit;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       transition: color 0.3s;
 
       svg {
@@ -909,7 +915,7 @@ nav {
       }
 
       &.engagement {
-        transition: all 0.2s ease;
+        transition: transform 0.2s;
 
         &:active {
           transform: scale(0.95);
@@ -1971,7 +1977,7 @@ nav {
 }
 
 .tweet-preview {
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border-secondary);
   border-radius: 12px;
   padding: 12px;
   background-color: var(--bg-secondary);
@@ -1981,7 +1987,7 @@ nav {
 
   &:hover {
     background-color: var(--bg-secondary);
-    border-color: var(--border-secondary);
+    border-color: var(--border-primary);
   }
 
   .tweet-header {
@@ -1992,6 +1998,8 @@ nav {
 
     .tweet-header-info {
       font-size: 13px;
+      flex-direction: row;
+      gap: 5px;
 
       p.name {
         font-size: 14px;
@@ -1999,7 +2007,7 @@ nav {
       }
 
       p.username {
-        font-size: 12px;
+        font-size: 14px;
       }
     }
   }
@@ -2716,6 +2724,12 @@ nav {
 
   &.active {
     display: flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .dm-conversation {
+    height: calc(100vh - 94px);
   }
 }
 

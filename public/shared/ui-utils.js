@@ -40,91 +40,82 @@ export function createPopup(options) {
 
     button.addEventListener("click", () => {
       closePopup();
-      if (item.onClick) item.onClick();
+      item.onClick && item.onClick();
     });
 
     popupContent.appendChild(button);
   });
 
   popup.appendChild(popupContent);
+  overlay.appendChild(popup);
+  document.body.appendChild(overlay);
 
-  if (triggerElement) {
-    document.body.appendChild(overlay);
-    overlay.appendChild(popup);
-
-    const rect = triggerElement.getBoundingClientRect();
+  requestAnimationFrame(() => {
+    // compute after DOM render to get correct popup size
+    const rect = triggerElement?.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const popupRect = popup.getBoundingClientRect();
-    const popupWidth = popupRect.width || 280;
-    const popupHeight = popupRect.height || 200;
 
-    let top = rect.bottom + 8;
-    let left = rect.left;
-    let transformOriginX = "left";
-    let transformOriginY = "top";
+    if (triggerElement && rect) {
+      let top = rect.bottom + 8;
+      let transformOriginX = "left";
+      let transformOriginY = "top";
 
-    if (left + popupWidth > viewportWidth - 12) {
-      left = rect.right - popupWidth;
-      transformOriginX = "right";
+      popup.style.position = "fixed";
+
+      if (rect.left + popupRect.width > viewportWidth - 12) {
+        popup.style.right = `${viewportWidth - rect.right}px`;
+        popup.style.left = "auto";
+        transformOriginX = "right";
+      } else {
+        popup.style.left = `${Math.max(12, rect.left)}px`;
+        popup.style.right = "auto";
+      }
+
+      if (top + popupRect.height > viewportHeight - 12) {
+        top = rect.top - popupRect.height - 8;
+        transformOriginY = "bottom";
+      }
+
+      popup.style.top = `${Math.max(12, top)}px`;
+      popup.style.transformOrigin = `${transformOriginX} ${transformOriginY}`;
     }
 
-    if (top + popupHeight > viewportHeight - 12) {
-      top = rect.top - popupHeight - 8;
-      transformOriginY = "bottom";
-    }
-
-    if (left < 12) {
-      left = 12;
-      transformOriginX = "left";
-    }
-
-    if (top < 12) {
-      top = rect.bottom + 8;
-      transformOriginY = "top";
-    }
-
-    popup.style.position = "fixed";
-    popup.style.top = `${top}px`;
-    popup.style.left = `${left}px`;
-    popup.style.transformOrigin = `${transformOriginX} ${transformOriginY}`;
-
-    overlay.style.alignItems = "flex-start";
-    overlay.style.justifyContent = "flex-start";
-    overlay.style.background = "transparent";
-  } else {
-    overlay.appendChild(popup);
-  }
+    overlay.classList.add("visible");
+  });
 
   const closePopup = () => {
-    overlay.remove();
+    overlay.classList.remove("visible");
+    overlay.classList.add("closing");
     document.removeEventListener("keydown", handleKeyDown);
-    onClose();
+
+    overlay.addEventListener(
+      "transitionend",
+      () => {
+        overlay.remove();
+        onClose();
+      },
+      { once: true }
+    );
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Escape") {
-      closePopup();
-    }
+    if (e.key === "Escape") closePopup();
   };
 
   overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) {
-      closePopup();
-    }
+    if (e.target === overlay) closePopup();
   });
 
   document.addEventListener("keydown", handleKeyDown);
-
-  if (!triggerElement) {
-    document.body.appendChild(overlay);
-  }
 
   return {
     close: closePopup,
     element: overlay,
   };
 }
+
 
 export function createModal(options) {
   const {

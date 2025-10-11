@@ -769,7 +769,7 @@ export const createTweetElement = (tweet, config = {}) => {
               <line x1="10" y1="11" x2="10" y2="17"></line>
               <line x1="14" y1="11" x2="14" y2="17"></line>
             </svg>`,
-						title: "Delete",
+						title: "Delete tweet",
 						onClick: async () => {
 							if (!confirm("Are you sure you want to delete this tweet?")) {
 								return;
@@ -1182,6 +1182,8 @@ export const createTweetElement = (tweet, config = {}) => {
 	tweetInteractionsBookmarkEl.dataset.bookmarked =
 		tweet.bookmarked_by_user || false;
 	tweetInteractionsBookmarkEl.style.setProperty("--color", "255, 169, 0");
+  tweetInteractionsBookmarkEl.style.marginLeft = "auto";
+  tweetInteractionsBookmarkEl.style.marginRight = "-10px";
 
 	const bookmarkColor = tweet.bookmarked_by_user ? "#FFA900" : "currentColor";
 	const bookmarkFill = tweet.bookmarked_by_user ? "#FFA900" : "none";

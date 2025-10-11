@@ -192,7 +192,7 @@ export const useComposer = (
         const maxSizeMB = maxSize / 1024 / 1024;
         const fileSizeMB = (processedFile.size / 1024 / 1024).toFixed(1);
         toastQueue.add(
-          `<h1>File too large</h1><p>File size: ${fileSizeMB}MB. Maximum allowed: ${maxSizeMB}MB${
+          `<h1>File too large</h1><p>Your file is ${fileSizeMB}MB, but you can only upload up to ${maxSizeMB}MB${
             processedFile.type === "video/mp4"
               ? " (videos will be compressed if needed)"
               : ""
@@ -325,7 +325,6 @@ export const useComposer = (
       replyRestriction = replyRestrictionSelect.value;
       replyRestrictionSelect.style.display = "none";
 
-      // Update button appearance based on selection
       const restrictionTexts = {
         everyone: "Everyone can reply",
         following: "People you follow can reply",
@@ -335,7 +334,6 @@ export const useComposer = (
       replyRestrictionBtn.title = restrictionTexts[replyRestriction];
     });
 
-    // Hide when clicking outside
     document.addEventListener("click", (e) => {
       if (
         !replyRestrictionBtn.contains(e.target) &&
@@ -499,11 +497,11 @@ export const createComposer = async ({
             </div>
             <div class="compose-footer">
               <div class="compose-actions">
-                <button type="button" id="poll-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-column-big-icon lucide-chart-column-big"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><rect x="15" y="5" width="4" height="12" rx="1"/><rect x="7" y="8" width="4" height="9" rx="1"/></svg></button>
                 <button type="button" id="file-upload-btn">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image-icon lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                 </button>
                 <input type="file" id="file-input" multiple accept="image/png,image/webp,image/avif,image/jpeg,image/jpg,image/gif,video/mp4" style="display: none;" title="Images: max 10MB, Videos: max 100MB (auto-compressed if needed)">
+                <button type="button" id="poll-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-bar-big-icon lucide-chart-bar-big"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><rect x="7" y="13" width="9" height="4" rx="1"></rect><rect x="7" y="5" width="12" height="4" rx="1"></rect></svg></button>
                 <div class="reply-restriction-container">
                   <button type="button" id="reply-restriction-btn" title="Who can reply">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
