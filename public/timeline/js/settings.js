@@ -169,8 +169,8 @@ const createThemesContent = () => {
     option.dataset.color = preset.color;
 
     if (preset.color === "custom") {
-      option.style.background =
-        "linear-gradient(45deg, #ff0000 0%, #ff7f00 14%, #ffff00 29%, #00ff00 43%, #0000ff 57%, #4b0082 71%, #9400d3 86%, #ff0000 100%)";
+      // show the saved custom color as a solid swatch instead of a gradient
+      option.style.background = savedColor;
       // mark this option as the custom wrapper so other code can find it
       option.setAttribute("data-is-custom", "true");
       const picker = document.createElement("input");
@@ -798,34 +798,18 @@ const createSettingsPage = () => {
 			margin-bottom: 6px;
 			font-family: inherit;
 			font-weight: 400;
-			transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-			position: relative;
-			overflow: hidden;
+      position: relative;
 		}
 		
-		.settings-tab-btn:hover {
-			background-color: var(--bg-overlay-light);
-			transform: translateX(4px);
-		}
+    .settings-tab-btn:hover {
+      background-color: var(--bg-overlay-light);
+    }
 		
-		.settings-tab-btn.active {
-			background-color: var(--primary);
-			color: #fff;
-			font-weight: 500;
-			box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
-			transform: translateX(0);
-		}
-		
-		.settings-tab-btn.active::before {
-			content: '';
-			position: absolute;
-			left: 0;
-			top: 0;
-			bottom: 0;
-			width: 4px;
-			background: #fff;
-			opacity: 0.8;
-		}
+    .settings-tab-btn.active {
+      background-color: var(--primary);
+      color: #fff;
+      font-weight: 500;
+    }
 		
     .settings-content {
       background-color: var(--bg-secondary);
@@ -909,14 +893,6 @@ const createSettingsPage = () => {
       min-width: 140px;
     }
 		
-    .custom-dropdown-option {
-      padding: 12px 16px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      position: relative;
-    }
-		
     .custom-dropdown-option:hover {
       background: var(--bg-secondary);
     }
@@ -926,9 +902,6 @@ const createSettingsPage = () => {
       color: #fff;
       padding-left: 16px;
     }
-			cursor: pointer;
-			transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-			font-size: 14px;
 			font-weight: 500;
 			position: relative;
 		}
@@ -938,21 +911,11 @@ const createSettingsPage = () => {
 			padding-left: 20px;
 		}
 		
-		.custom-dropdown-option.selected {
-			background: var(--primary);
-			color: #fff;
-			box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2);
-			padding-left: 36px;
-		}
-		
-		.custom-dropdown-option.selected::before {
-			content: '✓';
-			position: absolute;
-			left: 14px;
-			font-weight: 700;
-			font-size: 16px;
-			opacity: 0.95;
-		}
+    .custom-dropdown-option.selected {
+      background: var(--primary);
+      color: #fff;
+      padding-left: 16px;
+    }
 		
 		.theme-mode-select {
 			display: none;

@@ -344,16 +344,7 @@ export const useComposer = (
       if (!isVisible) {
         gifSearchInput.focus();
         if (gifResults.children.length === 0) {
-          gifResults.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 auto 16px;">
-                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-                <circle cx="9" cy="9" r="2"/>
-                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-              </svg>
-              <p>Search for GIFs</p>
-            </div>
-          `;
+          gifResults.innerHTML = "";
         }
       }
     });
@@ -364,16 +355,7 @@ export const useComposer = (
 
     const searchGifs = async (q) => {
       if (!q || q.trim().length === 0) {
-        gifResults.innerHTML = `
-          <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 auto 16px;">
-              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-              <circle cx="9" cy="9" r="2"/>
-              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-            </svg>
-            <p>Search for GIFs</p>
-          </div>
-        `;
+        gifResults.innerHTML = "";
         return;
       }
 
@@ -658,7 +640,7 @@ export const createComposer = async ({
                 </button>
                 <input type="file" id="file-input" multiple accept="image/png,image/webp,image/avif,image/jpeg,image/jpg,image/gif,video/mp4" style="display: none;" title="Images: max 10MB, Videos: max 100MB (auto-compressed if needed)">
                 <button type="button" id="gif-btn" title="Add GIF">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 8h6"/><path d="M7 12h3"/><path d="M17 8v5h-2"/><path d="M17 10.5h2"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M144,72V184a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm88-8H176a8,8,0,0,0-8,8V184a8,8,0,0,0,16,0V136h40a8,8,0,0,0,0-16H184V80h48a8,8,0,0,0,0-16ZM96,120H72a8,8,0,0,0,0,16H88v16a24,24,0,0,1-48,0V104A24,24,0,0,1,64,80c11.19,0,21.61,7.74,24.25,18a8,8,0,0,0,15.5-4C99.27,76.62,82.56,64,64,64a40,40,0,0,0-40,40v48a40,40,0,0,0,80,0V128A8,8,0,0,0,96,120Z"></path></svg>
                 </button>
                 <button type="button" id="poll-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-bar-big-icon lucide-chart-bar-big"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><rect x="7" y="13" width="9" height="4" rx="1"></rect><rect x="7" y="5" width="12" height="4" rx="1"></rect></svg></button>
                 <div class="reply-restriction-container">
@@ -688,7 +670,7 @@ export const createComposer = async ({
             <div id="attachment-preview"></div>
             <div id="gif-picker" style="display: none;">
               <div class="gif-picker-header">
-                <input type="text" id="gif-search-input" placeholder="Search for GIFs" />
+                <input type="text" id="gif-search-input" placeholder="Search Tenor…" />
                 <button type="button" id="gif-picker-close">×</button>
               </div>
               <div id="gif-results"></div>
