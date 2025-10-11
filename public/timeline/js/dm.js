@@ -46,9 +46,9 @@ function connectSSE() {
   eventSource.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-      if (data.type === "new_message") {
+      if (data.type === "m") {
         handleNewMessage(data);
-      } else if (data.type === "unread_counts") {
+      } else if (data.type === "u") {
         if (data.notifications !== undefined) {
           displayNotificationCount(data.notifications);
         }

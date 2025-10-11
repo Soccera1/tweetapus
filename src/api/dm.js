@@ -378,7 +378,7 @@ export default new Elysia({ prefix: "/dm" })
           .filter((p) => p.user_id !== user.id);
         for (const participant of otherParticipants) {
           broadcastToUser(participant.user_id, {
-            type: "new_message",
+            type: "m",
             conversationId: id,
             message: {
               ...message,

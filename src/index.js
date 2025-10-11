@@ -53,7 +53,7 @@ export function sendUnreadCounts(userId) {
   const dmResult = getUnreadDMCount.get(userId, userId);
 
   broadcastToUser(userId, {
-    type: "unread_counts",
+    type: "u",
     notifications: notifResult?.count || 0,
     dms: dmResult?.count || 0,
   });
@@ -104,7 +104,7 @@ new Elysia()
         try {
           controller.enqueue(
             `data: ${JSON.stringify({
-              type: "unread_counts",
+              type: "u",
               notifications: notifResult?.count || 0,
               dms: dmResult?.count || 0,
             })}\n\n`
