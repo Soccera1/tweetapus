@@ -8,6 +8,7 @@ class AdminPanel {
       posts: 1,
       suspensions: 1,
       dms: 1,
+      moderationLogs: 1,
     };
 
     this.init();
@@ -105,6 +106,9 @@ class AdminPanel {
         break;
       case "dms":
         this.loadDMs();
+        break;
+      case "moderation-logs":
+        this.loadModerationLogs();
         break;
     }
   }
@@ -763,7 +767,7 @@ class AdminPanel {
         </div>
       `;
 
-      document.getElementById("userModalFooter").innerHTML = `
+  document.getElementById("userModalFooter").innerHTML = `
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         <button type="button" class="btn btn-primary" id="editProfileBtn" onclick="adminPanel.toggleEditMode(true)">Edit Profile</button>
         <button type="button" class="btn btn-success d-none" id="saveProfileBtn" onclick="adminPanel.saveProfile('${
@@ -787,6 +791,8 @@ class AdminPanel {
       `;
 
       new bootstrap.Modal(document.getElementById("userModal")).show();
+      // Ensure fields are readonly/disabled until Edit Profile is clicked
+      this.toggleEditMode(false);
     } catch {
       this.showError("Failed to load user details");
     }
@@ -794,31 +800,27 @@ class AdminPanel {
 
   toggleEditMode(enable) {
     const form = document.getElementById("editProfileForm");
-    const fields = form.querySelectorAll("input, textarea");
+    const inputs = form.querySelectorAll(
+      "input[type=text], textarea, input[type=number]"
+    );
 
-    fields.forEach((field) => {
-      if (
-        field.id !== "editProfileId" &&
-        field.id !== "editProfileVerified" &&
-        field.id !== "editProfileAdmin"
-      ) {
-        field.readOnly = !enable;
-      }
-      if (
-        field.type === "checkbox" &&
-        field.id !== "editProfileVerified" &&
-        field.id !== "editProfileAdmin"
-      ) {
-        field.disabled = !enable;
-      }
+    // Make non-checkbox/text inputs readonly/disabled by default
+    inputs.forEach((field) => {
+      if (field.id === "editProfileId") return;
+      field.readOnly = !enable;
     });
 
-    document
-      .getElementById("editProfileBtn")
-      .classList.toggle("d-none", enable);
-    document
-      .getElementById("saveProfileBtn")
-      .classList.toggle("d-none", !enable);
+    // Checkboxes for verified/admin should be enabled/disabled based on mode
+    const verifiedCheckbox = document.getElementById("editProfileVerified");
+    const adminCheckbox = document.getElementById("editProfileAdmin");
+    if (verifiedCheckbox) verifiedCheckbox.disabled = !enable;
+    if (adminCheckbox) adminCheckbox.disabled = !enable;
+
+    // Toggle buttons
+    const editBtn = document.getElementById("editProfileBtn");
+    const saveBtn = document.getElementById("saveProfileBtn");
+    if (editBtn) editBtn.classList.toggle("d-none", enable);
+    if (saveBtn) saveBtn.classList.toggle("d-none", !enable);
   }
 
   async saveProfile(userId) {
@@ -828,12 +830,6 @@ class AdminPanel {
       bio: document.getElementById("editProfileBio").value,
       verified: document.getElementById("editProfileVerified").checked,
       admin: document.getElementById("editProfileAdmin").checked,
-      followers: parseInt(
-        document.getElementById("editProfileFollowers").value
-      ),
-      following: parseInt(
-        document.getElementById("editProfileFollowing").value
-      ),
     };
 
     try {
@@ -1453,6 +1449,188 @@ class AdminPanel {
     document.body.appendChild(container);
     return container;
   }
+
+  // Create user methods
+  showCreateUserModal() {
+    document.getElementById("createUserForm").reset();
+    new bootstrap.Modal(document.getElementById("createUserModal")).show();
+  }
+
+  async createUser() {
+    const username = document.getElementById("createUsername").value.trim();
+    const name = document.getElementById("createName").value.trim();
+    const bio = document.getElementById("createBio").value.trim();
+    const verified = document.getElementById("createVerified").checked;
+    const isAdmin = document.getElementById("createAdmin").checked;
+
+    if (!username) {
+      this.showError("Username is required");
+      return;
+    }
+
+    try {
+      await this.apiCall("/api/admin/users", {
+        method: "POST",
+        body: JSON.stringify({ username, name, bio, verified, admin: isAdmin }),
+      });
+
+      bootstrap.Modal.getInstance(document.getElementById("createUserModal")).hide();
+      this.showSuccess("User created successfully");
+      this.loadUsers(this.currentPage.users || 1);
+    } catch (err) {
+      this.showError(err.message || "Failed to create user");
+    }
+  }
+
+  async loadModerationLogs(page = 1) {
+    try {
+      const data = await this.apiCall(`/api/admin/moderation-logs?page=${page}&limit=50`);
+      this.currentPage.moderationLogs = page;
+      this.renderModerationLogs(data.logs, data.pagination);
+    } catch {
+      this.showError("Failed to load moderation logs");
+    }
+  }
+
+  renderModerationLogs(logs, pagination) {
+    const container = document.getElementById("moderationLogsTable");
+    
+    if (!logs || logs.length === 0) {
+      container.innerHTML = `
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> No moderation logs found.
+        </div>
+      `;
+      return;
+    }
+
+    const actionIcons = {
+      'verify_user': '✓',
+      'unverify_user': '✗',
+      'suspend_user': '🚫',
+      'unsuspend_user': '✓',
+      'delete_user': '🗑️',
+      'delete_post': '🗑️',
+      'edit_post': '✏️',
+      'create_post_as_user': '📝',
+      'edit_user_profile': '✏️',
+      'delete_conversation': '🗑️',
+      'delete_message': '🗑️'
+    };
+
+    const actionColors = {
+      'verify_user': 'success',
+      'unverify_user': 'warning',
+      'suspend_user': 'danger',
+      'unsuspend_user': 'success',
+      'delete_user': 'danger',
+      'delete_post': 'danger',
+      'edit_post': 'info',
+      'create_post_as_user': 'primary',
+      'edit_user_profile': 'info',
+      'delete_conversation': 'danger',
+      'delete_message': 'warning'
+    };
+
+    const actionLabels = {
+      'verify_user': 'Verified User',
+      'unverify_user': 'Unverified User',
+      'suspend_user': 'Suspended User',
+      'unsuspend_user': 'Unsuspended User',
+      'delete_user': 'Deleted User',
+      'delete_post': 'Deleted Post',
+      'edit_post': 'Edited Post',
+      'create_post_as_user': 'Created Post As User',
+      'edit_user_profile': 'Edited User Profile',
+      'delete_conversation': 'Deleted Conversation',
+      'delete_message': 'Deleted Message'
+    };
+
+    container.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Moderator</th>
+              <th>Action</th>
+              <th>Target</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${logs.map(log => {
+              const date = new Date(log.created_at);
+              const formattedDate = date.toLocaleString();
+              const icon = actionIcons[log.action] || '•';
+              const color = actionColors[log.action] || 'secondary';
+              const label = actionLabels[log.action] || log.action;
+              
+              let detailsHtml = '';
+              if (log.details) {
+                const details = log.details;
+                if (details.username) {
+                  detailsHtml += `<strong>User:</strong> @${this.escapeHtml(details.username)}<br>`;
+                }
+                if (details.reason) {
+                  detailsHtml += `<strong>Reason:</strong> ${this.escapeHtml(details.reason)}<br>`;
+                }
+                if (details.changes) {
+                  detailsHtml += '<strong>Changes:</strong><br>';
+                  for (const [key, value] of Object.entries(details.changes)) {
+                    if (value.old !== undefined && value.new !== undefined) {
+                      detailsHtml += `&nbsp;&nbsp;${key}: ${this.escapeHtml(String(value.old))} → ${this.escapeHtml(String(value.new))}<br>`;
+                    }
+                  }
+                }
+                if (details.content) {
+                  detailsHtml += `<strong>Content:</strong> ${this.escapeHtml(details.content)}<br>`;
+                }
+                if (details.targetUser) {
+                  detailsHtml += `<strong>Target User:</strong> @${this.escapeHtml(details.targetUser)}<br>`;
+                }
+                if (details.author) {
+                  detailsHtml += `<strong>Author:</strong> @${this.escapeHtml(details.author)}<br>`;
+                }
+                if (details.severity) {
+                  detailsHtml += `<strong>Severity:</strong> ${details.severity}<br>`;
+                }
+                if (details.duration) {
+                  detailsHtml += `<strong>Duration:</strong> ${details.duration} minutes<br>`;
+                }
+              }
+
+              return `
+                <tr>
+                  <td>
+                    <small class="text-muted">${formattedDate}</small>
+                  </td>
+                  <td>
+                    <strong>@${this.escapeHtml(log.moderator_username)}</strong>
+                    ${log.moderator_name ? `<br><small class="text-muted">${this.escapeHtml(log.moderator_name)}</small>` : ''}
+                  </td>
+                  <td>
+                    <span class="badge bg-${color}">
+                      ${icon} ${label}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">${this.escapeHtml(log.target_type)}</span>
+                    <br><small class="text-muted font-monospace">${this.escapeHtml(log.target_id.substring(0, 8))}...</small>
+                  </td>
+                  <td>
+                    <small>${detailsHtml || '<em class="text-muted">No details</em>'}</small>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    this.renderPagination('moderationLogsPagination', pagination, (page) => this.loadModerationLogs(page));
+  }
 }
 
 const adminPanel = new AdminPanel();
@@ -1543,7 +1721,6 @@ function deleteConversation() {
 }
 
 window.deleteConversation = deleteConversation;
-
 function loadConversationMessages(page) {
   adminPanel.loadConversationMessages(page);
 }

@@ -104,7 +104,9 @@ export default new Elysia({ prefix: "/hashtags" })
         liked_by_user: userLikedPosts.has(post.id),
         retweeted_by_user: userRetweetedPosts.has(post.id),
         bookmarked_by_user: userBookmarkedPosts.has(post.id),
-        attachments: db.query("SELECT * FROM attachments WHERE post_id = ?").all(post.id),
+        attachments: db
+          .query("SELECT * FROM attachments WHERE post_id = ?")
+          .all(post.id),
       }));
 
       return { success: true, hashtag, tweets };
@@ -127,7 +129,9 @@ export const extractAndSaveHashtags = (content, postId) => {
 
   for (const hashtagName of hashtags) {
     try {
-      let hashtag = db.query("SELECT * FROM hashtags WHERE name = ?").get(hashtagName);
+      let hashtag = db
+        .query("SELECT * FROM hashtags WHERE name = ?")
+        .get(hashtagName);
 
       if (!hashtag) {
         const hashtagId = Bun.randomUUIDv7();

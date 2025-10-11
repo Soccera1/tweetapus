@@ -1,6 +1,5 @@
 import DOMPurify from "https://esm.sh/dompurify@2.4.0";
 import { marked } from "https://esm.sh/marked@16.3.0";
-import confetti from "../../shared/confetti.js";
 import toastQueue from "../../shared/toasts.js";
 import { createModal, createPopup } from "../../shared/ui-utils.js";
 import query from "./api.js";
@@ -185,35 +184,34 @@ const linkifyText = (text) => {
   const el = document.createElement("div");
 
   el.innerHTML = DOMPurify.sanitize(processedHtml, {
-      ALLOWED_TAGS: [
-        "b",
-        "i",
-        "u",
-        "s",
-        "a",
-        "p",
-        "br",
-        "marquee",
-        "strong",
-        "em",
-        "code",
-        "pre",
-        "blockquote",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "ul",
-        "ol",
-        "li",
-        "span",
-        "big",
-      ],
-      ALLOWED_ATTR: ["href", "target", "rel", "class"],
-    }
-  );
+    ALLOWED_TAGS: [
+      "b",
+      "i",
+      "u",
+      "s",
+      "a",
+      "p",
+      "br",
+      "marquee",
+      "strong",
+      "em",
+      "code",
+      "pre",
+      "blockquote",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "ul",
+      "ol",
+      "li",
+      "span",
+      "big",
+    ],
+    ALLOWED_ATTR: ["href", "target", "rel", "class"],
+  });
 
   el.querySelectorAll("a").forEach((a) => {
     a.setAttribute("target", "_blank");
@@ -1010,14 +1008,6 @@ export const createTweetElement = (tweet, config = {}) => {
     e.stopPropagation();
 
     try {
-      if (Math.random() < 0.0067) {
-        // six seven :skull:
-        confetti(tweetInteractionsLikeEl, {
-          count: 30,
-          fade: true,
-        });
-      }
-
       const result = await query(`/tweets/${tweet.id}/like`, {
         method: "POST",
       });
@@ -1055,7 +1045,7 @@ export const createTweetElement = (tweet, config = {}) => {
   tweetInteractionsReplyEl.innerHTML = `<svg
           width="19"
           height="19"
-          viewBox="0 0 19 19"
+          viewBox="0 0 20 20"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >

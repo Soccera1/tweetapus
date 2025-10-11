@@ -1,4 +1,3 @@
-import confetti from "../../shared/confetti.js";
 import { isConvertibleImage } from "../../shared/image-utils.js";
 import toastQueue from "../../shared/toasts.js";
 import query from "./api.js";
@@ -687,13 +686,6 @@ export const useComposer = (
       }
 
       callback(tweet);
-
-      if (!replyTo) {
-        confetti(tweetButton, {
-          count: 40,
-          fade: true,
-        });
-      }
     } catch {
       toastQueue.add(`<h1>Network error. Please try again.</h1>`);
     } finally {

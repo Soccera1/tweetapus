@@ -1,46 +1,4 @@
-export const createReaction = (emoji, x, y) => {
-  const reaction = document.createElement("div");
-  reaction.textContent = emoji;
-  reaction.style.cssText = `
-    position: fixed;
-    left: ${x}px;
-    top: ${y}px;
-    font-size: 32px;
-    pointer-events: none;
-    z-index: 9999;
-    animation: float-up 2s ease-out forwards;
-    user-select: none;
-  `;
-
-  const styleSheet = document.createElement("style");
-  styleSheet.textContent = `
-    @keyframes float-up {
-      0% {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-      }
-      50% {
-        transform: translateY(-100px) scale(1.2);
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-200px) scale(0.8);
-        opacity: 0;
-      }
-    }
-  `;
-
-  if (!document.getElementById("reaction-styles")) {
-    styleSheet.id = "reaction-styles";
-    document.head.appendChild(styleSheet);
-  }
-
-  document.body.appendChild(reaction);
-
-  setTimeout(() => {
-    reaction.remove();
-  }, 2000);
-};
+// Removed emoji reactions, Easter eggs, and achievement celebrations
 
 export const randomReaction = () => {
   const reactions = [

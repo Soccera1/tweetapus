@@ -1034,7 +1034,8 @@ nav {
         position: relative;
       }
 
-      &[data-liked="true"], &[data-retweeted="true"]  {
+      &[data-liked="true"],
+      &[data-retweeted="true"] {
         color: rgb(var(--color));
         font-weight: 600;
       }

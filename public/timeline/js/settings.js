@@ -49,7 +49,11 @@ const settingsPages = [
   },
   { key: "themes", title: "Themes", content: () => createThemesContent() },
   { key: "privacy", title: "Privacy", content: () => createPrivacyContent() },
-  { key: "scheduled", title: "Scheduled", content: () => createScheduledContent() },
+  {
+    key: "scheduled",
+    title: "Scheduled",
+    content: () => createScheduledContent(),
+  },
   { key: "other", title: "Other", content: () => createOtherContent() },
 ];
 

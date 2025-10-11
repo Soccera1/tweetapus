@@ -136,7 +136,8 @@ export const createPresenceIndicator = (online, lastSeen, device) => {
 
   if (online && device) {
     const deviceIcon = document.createElement("span");
-    deviceIcon.textContent = device === "mobile" ? "📱" : device === "tablet" ? "📱" : "💻";
+    deviceIcon.textContent =
+      device === "mobile" ? "📱" : device === "tablet" ? "📱" : "💻";
     deviceIcon.style.fontSize = "12px";
     indicator.appendChild(deviceIcon);
   } else if (!online && lastSeen) {

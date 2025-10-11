@@ -315,6 +315,22 @@ CREATE TABLE IF NOT EXISTS user_presence (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_presence_user_id ON user_presence(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_presence_online ON user_presence(online);`);
+CREATE INDEX IF NOT EXISTS idx_user_presence_online ON user_presence(online);
+
+CREATE TABLE IF NOT EXISTS moderation_logs (
+  id TEXT PRIMARY KEY,
+  moderator_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  details TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (moderator_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_moderation_logs_moderator_id ON moderation_logs(moderator_id);
+CREATE INDEX IF NOT EXISTS idx_moderation_logs_target_id ON moderation_logs(target_id);
+CREATE INDEX IF NOT EXISTS idx_moderation_logs_action ON moderation_logs(action);
+CREATE INDEX IF NOT EXISTS idx_moderation_logs_created_at ON moderation_logs(created_at);`);
 
 export default db;

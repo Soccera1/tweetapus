@@ -1,10 +1,10 @@
 import { jwt } from "@elysiajs/jwt";
 import { staticPlugin } from "@elysiajs/static";
 import { Elysia, file } from "elysia";
+import { processScheduledPosts } from "./api/scheduled.js";
 import api from "./api.js";
 import { compression } from "./compress.js";
 import db from "./db.js";
-import { processScheduledPosts } from "./api/scheduled.js";
 
 const connectedUsers = new Map();
 const sseConnections = new Map();

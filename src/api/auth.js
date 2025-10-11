@@ -101,8 +101,12 @@ export default new Elysia({ prefix: "/auth" })
         user: {
           id: user.id,
           username: user.username,
+          name: user.name || null,
           avatar: user.avatar,
+          verified: user.verified || false,
           admin: user.admin || false,
+          theme: user.theme || null,
+          accent_color: user.accent_color || null,
         },
         passkeys: passkeys.map((passkey) => ({
           id: passkey.cred_id,

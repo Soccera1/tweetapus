@@ -1,3 +1,5 @@
+import { initializePresence } from "../../shared/presence.js";
+import { initTrendingWidget } from "../../shared/trending.js";
 import toastQueue from "../../shared/toasts.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
@@ -5,8 +7,6 @@ import { createComposer } from "./composer.js";
 import dm from "./dm.js";
 import switchPage, { addRoute, showPage } from "./pages.js";
 import { addTweetToTimeline } from "./tweets.js";
-import { initializePresence } from "../../shared/presence.js";
-import { celebrateAchievement, enableReactionOnDoubleClick } from "../../shared/reactions.js";
 import "./profile.js";
 import "./notifications.js";
 import "./settings.js";
@@ -40,6 +40,7 @@ window.onunhandledrejection = (event) => {
   if (!authToken) return;
 
   initializePresence();
+  initTrendingWidget();
 
   let currentTimeline = "home";
 
@@ -189,23 +190,3 @@ addRoute(
     })();
   }
 );
-
-let secretCode = "";
-const secretTrigger = "tweetapus";
-let secretTimeout = null;
-
-document.addEventListener("keypress", (e) => {
-  clearTimeout(secretTimeout);
-  secretCode += e.key.toLowerCase();
-
-  if (secretCode.includes(secretTrigger)) {
-    celebrateAchievement("You found the secret Tweetapus!");
-    secretCode = "";
-  }
-
-  secretTimeout = setTimeout(() => {
-    secretCode = "";
-  }, 2000);
-});
-
-enableReactionOnDoubleClick();

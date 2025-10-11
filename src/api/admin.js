@@ -2,6 +2,29 @@ import { jwt } from "@elysiajs/jwt";
 import { Elysia, t } from "elysia";
 import db from "../db.js";
 
+const logModerationAction = (
+  moderatorId,
+  action,
+  targetType,
+  targetId,
+  details = null
+) => {
+  const logId = Bun.randomUUIDv7();
+  db.query(
+    `
+    INSERT INTO moderation_logs (id, moderator_id, action, target_type, target_id, details)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `
+  ).run(
+    logId,
+    moderatorId,
+    action,
+    targetType,
+    targetId,
+    details ? JSON.stringify(details) : null
+  );
+};
+
 const adminQueries = {
   // User queries
   findUserById: db.query("SELECT * FROM users WHERE id = ?"),
@@ -199,6 +222,33 @@ const adminQueries = {
 
   deleteConversation: db.query("DELETE FROM conversations WHERE id = ?"),
   deleteMessage: db.query("DELETE FROM dm_messages WHERE id = ?"),
+
+  getModerationLogs: db.query(`
+    SELECT ml.*, u.username as moderator_username, u.name as moderator_name
+    FROM moderation_logs ml
+    JOIN users u ON ml.moderator_id = u.id
+    ORDER BY ml.created_at DESC
+    LIMIT ? OFFSET ?
+  `),
+  getModerationLogsCount: db.query(
+    "SELECT COUNT(*) as count FROM moderation_logs"
+  ),
+  getModerationLogsByTarget: db.query(`
+    SELECT ml.*, u.username as moderator_username, u.name as moderator_name
+    FROM moderation_logs ml
+    JOIN users u ON ml.moderator_id = u.id
+    WHERE ml.target_id = ?
+    ORDER BY ml.created_at DESC
+    LIMIT 50
+  `),
+  getModerationLogsByModerator: db.query(`
+    SELECT ml.*, u.username as moderator_username, u.name as moderator_name
+    FROM moderation_logs ml
+    JOIN users u ON ml.moderator_id = u.id
+    WHERE ml.moderator_id = ?
+    ORDER BY ml.created_at DESC
+    LIMIT ? OFFSET ?
+  `),
 };
 
 const requireAdmin = async ({ headers, jwt, set }) => {
@@ -291,6 +341,49 @@ export default new Elysia({ prefix: "/admin" })
     };
   })
 
+  .post(
+    "/users",
+    async ({ body, user: moderator }) => {
+      const { username, name, bio, verified, admin: isAdmin } = body;
+      if (!username || !username.trim()) {
+        return { error: "Username is required" };
+      }
+
+      const existing = adminQueries.findUserByUsername.get(username.trim());
+      if (existing) {
+        return { error: "Username already taken" };
+      }
+
+      const id = Bun.randomUUIDv7();
+
+      db.query(
+        `INSERT INTO users (id, username, name, bio, verified, admin) VALUES (?, ?, ?, ?, ?, ?)`
+      ).run(
+        id,
+        username.trim(),
+        name || null,
+        bio || null,
+        verified ? 1 : 0,
+        isAdmin ? 1 : 0
+      );
+
+      logModerationAction(moderator.id, "create_user", "user", id, {
+        username: username.trim(),
+      });
+
+      return { success: true, id };
+    },
+    {
+      body: t.Object({
+        username: t.String(),
+        name: t.Optional(t.String()),
+        bio: t.Optional(t.String()),
+        verified: t.Optional(t.Boolean()),
+        admin: t.Optional(t.Boolean()),
+      }),
+    }
+  )
+
   .get("/users/:id", async ({ params }) => {
     const user = adminQueries.getUserWithDetails.get(params.id);
     if (!user) {
@@ -309,9 +402,17 @@ export default new Elysia({ prefix: "/admin" })
 
   .patch(
     "/users/:id/verify",
-    async ({ params, body }) => {
+    async ({ params, body, user }) => {
       const { verified } = body;
+      const targetUser = adminQueries.findUserById.get(params.id);
       adminQueries.updateUserVerified.run(verified, params.id);
+      logModerationAction(
+        user.id,
+        verified ? "verify_user" : "unverify_user",
+        "user",
+        params.id,
+        { username: targetUser?.username, verified }
+      );
       return { success: true };
     },
     {
@@ -326,6 +427,7 @@ export default new Elysia({ prefix: "/admin" })
     async ({ params, body, user }) => {
       const { reason, severity, duration, notes } = body;
       const suspensionId = Bun.randomUUIDv7();
+      const targetUser = adminQueries.findUserById.get(params.id);
 
       const expiresAt = duration
         ? new Date(Date.now() + duration * 60 * 1000).toISOString()
@@ -343,6 +445,14 @@ export default new Elysia({ prefix: "/admin" })
 
       adminQueries.updateUserSuspended.run(true, params.id);
 
+      logModerationAction(user.id, "suspend_user", "user", params.id, {
+        username: targetUser?.username,
+        reason,
+        severity,
+        duration,
+        notes,
+      });
+
       return { success: true };
     },
     {
@@ -355,13 +465,21 @@ export default new Elysia({ prefix: "/admin" })
     }
   )
 
-  .post("/users/:id/unsuspend", async ({ params }) => {
+  .post("/users/:id/unsuspend", async ({ params, user }) => {
+    const targetUser = adminQueries.findUserById.get(params.id);
     adminQueries.updateUserSuspended.run(false, params.id);
     adminQueries.updateSuspensionStatus.run("lifted", params.id);
+    logModerationAction(user.id, "unsuspend_user", "user", params.id, {
+      username: targetUser?.username,
+    });
     return { success: true };
   })
 
-  .delete("/users/:id", async ({ params }) => {
+  .delete("/users/:id", async ({ params, user }) => {
+    const targetUser = adminQueries.findUserById.get(params.id);
+    logModerationAction(user.id, "delete_user", "user", params.id, {
+      username: targetUser?.username,
+    });
     adminQueries.deleteUser.run(params.id);
     return { success: true };
   })
@@ -392,13 +510,21 @@ export default new Elysia({ prefix: "/admin" })
     };
   })
 
-  .delete("/posts/:id", async ({ params }) => {
+  .delete("/posts/:id", async ({ params, user }) => {
+    const post = adminQueries.getPostById.get(params.id);
+    const postAuthor = post
+      ? adminQueries.findUserById.get(post.user_id)
+      : null;
     db.transaction(() => {
       db.query("DELETE FROM likes WHERE post_id = ?").run(params.id);
       db.query("DELETE FROM posts WHERE reply_to = ?").run(params.id);
       db.query("DELETE FROM retweets WHERE post_id = ?").run(params.id);
       adminQueries.deletePost.run(params.id);
     })();
+    logModerationAction(user.id, "delete_post", "post", params.id, {
+      author: postAuthor?.username,
+      content: post?.content?.substring(0, 100),
+    });
     return { success: true };
   })
 
@@ -431,17 +557,29 @@ export default new Elysia({ prefix: "/admin" })
 
   .patch(
     "/posts/:id",
-    async ({ params, body }) => {
+    async ({ params, body, user }) => {
       const post = adminQueries.getPostById.get(params.id);
       if (!post) {
         return { error: "Post not found" };
       }
-      // Enforce per-user content length (verified users have higher limit)
       const postOwner = adminQueries.findUserById.get(post.user_id);
       const maxLength = postOwner && postOwner.verified ? 5500 : 400;
       if (body.content && body.content.length > maxLength) {
         return { error: `Content must be ${maxLength} characters or less` };
       }
+
+      const changes = {};
+      if (body.content !== post.content)
+        changes.content = {
+          old: post.content?.substring(0, 100),
+          new: body.content?.substring(0, 100),
+        };
+      if (body.likes !== undefined && body.likes !== post.like_count)
+        changes.likes = { old: post.like_count, new: body.likes };
+      if (body.retweets !== undefined && body.retweets !== post.retweet_count)
+        changes.retweets = { old: post.retweet_count, new: body.retweets };
+      if (body.replies !== undefined && body.replies !== post.reply_count)
+        changes.replies = { old: post.reply_count, new: body.replies };
 
       adminQueries.updatePost.run(
         body.content,
@@ -450,6 +588,12 @@ export default new Elysia({ prefix: "/admin" })
         body.replies,
         params.id
       );
+
+      logModerationAction(user.id, "edit_post", "post", params.id, {
+        author: postOwner?.username,
+        changes,
+      });
+
       return { success: true };
     },
     {
@@ -464,7 +608,7 @@ export default new Elysia({ prefix: "/admin" })
 
   .post(
     "/tweets",
-    async ({ body }) => {
+    async ({ body, user }) => {
       const postId = Bun.randomUUIDv7();
       const targetUser = adminQueries.findUserById.get(body.userId);
       if (!targetUser) return { error: "User not found" };
@@ -482,6 +626,12 @@ export default new Elysia({ prefix: "/admin" })
         body.userId,
         body.content.trim()
       );
+
+      logModerationAction(user.id, "create_post_as_user", "post", postId, {
+        targetUser: targetUser.username,
+        content: body.content.substring(0, 100),
+      });
+
       return { success: true, id: postId };
     },
     {
@@ -495,7 +645,7 @@ export default new Elysia({ prefix: "/admin" })
   // User profile management
   .patch(
     "/users/:id",
-    async ({ params, body }) => {
+    async ({ params, body, user: moderator }) => {
       const user = adminQueries.findUserById.get(params.id);
       if (!user) {
         return { error: "User not found" };
@@ -508,6 +658,21 @@ export default new Elysia({ prefix: "/admin" })
         }
       }
 
+      const changes = {};
+      if (body.username && body.username !== user.username)
+        changes.username = { old: user.username, new: body.username };
+      if (body.name !== undefined && body.name !== user.name)
+        changes.name = { old: user.name, new: body.name };
+      if (body.bio !== undefined && body.bio !== user.bio)
+        changes.bio = {
+          old: user.bio?.substring(0, 50),
+          new: body.bio?.substring(0, 50),
+        };
+      if (body.verified !== undefined && body.verified !== user.verified)
+        changes.verified = { old: user.verified, new: body.verified };
+      if (body.admin !== undefined && body.admin !== user.admin)
+        changes.admin = { old: user.admin, new: body.admin };
+
       adminQueries.updateUser.run(
         body.username || user.username,
         body.name !== undefined ? body.name : user.name,
@@ -515,6 +680,14 @@ export default new Elysia({ prefix: "/admin" })
         body.verified !== undefined ? body.verified : user.verified,
         body.admin !== undefined ? body.admin : user.admin,
         params.id
+      );
+
+      logModerationAction(
+        moderator.id,
+        "edit_user_profile",
+        "user",
+        params.id,
+        { username: user.username, changes }
       );
 
       return { success: true };
@@ -653,17 +826,75 @@ export default new Elysia({ prefix: "/admin" })
     };
   })
 
-  .delete("/dms/:id", async ({ params }) => {
+  .delete("/dms/:id", async ({ params, user }) => {
     const conversation = adminQueries.getConversationDetails.get(params.id);
     if (!conversation) {
       return { error: "Conversation not found" };
     }
 
     adminQueries.deleteConversation.run(params.id);
+    logModerationAction(
+      user.id,
+      "delete_conversation",
+      "conversation",
+      params.id,
+      { conversation: conversation.participants }
+    );
     return { success: true };
   })
 
-  .delete("/dms/messages/:id", async ({ params }) => {
+  .delete("/dms/messages/:id", async ({ params, user }) => {
     adminQueries.deleteMessage.run(params.id);
+    logModerationAction(user.id, "delete_message", "message", params.id, {});
     return { success: true };
+  })
+
+  .get("/moderation-logs", async ({ query }) => {
+    const page = parseInt(query.page) || 1;
+    const limit = parseInt(query.limit) || 50;
+    const offset = (page - 1) * limit;
+
+    const logs = adminQueries.getModerationLogs.all(limit, offset);
+    const totalCount = adminQueries.getModerationLogsCount.get();
+
+    const logsWithDetails = logs.map((log) => ({
+      ...log,
+      details: log.details ? JSON.parse(log.details) : null,
+    }));
+
+    return {
+      logs: logsWithDetails,
+      pagination: {
+        page,
+        limit,
+        total: totalCount.count,
+        pages: Math.ceil(totalCount.count / limit),
+      },
+    };
+  })
+
+  .get("/moderation-logs/target/:id", async ({ params }) => {
+    const logs = adminQueries.getModerationLogsByTarget.all(params.id);
+    const logsWithDetails = logs.map((log) => ({
+      ...log,
+      details: log.details ? JSON.parse(log.details) : null,
+    }));
+    return { logs: logsWithDetails };
+  })
+
+  .get("/moderation-logs/moderator/:id", async ({ params, query }) => {
+    const page = parseInt(query.page) || 1;
+    const limit = parseInt(query.limit) || 50;
+    const offset = (page - 1) * limit;
+
+    const logs = adminQueries.getModerationLogsByModerator.all(
+      params.id,
+      limit,
+      offset
+    );
+    const logsWithDetails = logs.map((log) => ({
+      ...log,
+      details: log.details ? JSON.parse(log.details) : null,
+    }));
+    return { logs: logsWithDetails };
   });
