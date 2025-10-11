@@ -105,6 +105,7 @@ export function createPopup(options) {
   };
 
   overlay.addEventListener("click", (e) => {
+    console.log("overlay lcick")
     if (e.target === overlay) closePopup();
   });
 
