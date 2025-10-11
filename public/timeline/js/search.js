@@ -155,3 +155,77 @@ export const initializeSearchPage = () => {
 
   showEmptyState();
 };
+
+export const openHashtagView = async (hashtag) => {
+  const searchPage = document.querySelector(".search-page");
+  if (!searchPage) return;
+
+  searchPage.style.display = "flex";
+
+  const searchPageInput = document.getElementById("searchPageInput");
+  const filterBtns = document.querySelectorAll(".filter-btn");
+  const searchEmpty = document.getElementById("searchEmpty");
+  const usersSection = document.getElementById("usersSection");
+  const tweetsSection = document.getElementById("tweetsSection");
+  const tweetsResults = document.querySelector(".tweets-results-page");
+
+  searchEmpty.style.display = "none";
+  usersSection.style.display = "none";
+  tweetsSection.style.display = "block";
+
+  filterBtns.forEach((b) => b.classList.remove("active"));
+  const tweetFilter = Array.from(filterBtns).find(
+    (b) => b.dataset.filter === "tweets"
+  );
+  if (tweetFilter) tweetFilter.classList.add("active");
+
+  if (searchPageInput) {
+    searchPageInput.value = `#${hashtag}`;
+  }
+
+  tweetsResults.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: center; padding: 40px;">
+      <div class="spinner"></div>
+    </div>
+  `;
+
+  try {
+    const result = await query(`/hashtags/${hashtag}`);
+
+    if (result.error) {
+      tweetsResults.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+          <p>${result.error}</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (!result.tweets || result.tweets.length === 0) {
+      tweetsResults.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+          <p>No tweets found for #${hashtag}</p>
+        </div>
+      `;
+      return;
+    }
+
+    tweetsResults.innerHTML = "";
+    result.tweets.forEach((tweet) => {
+      const tweetEl = createTweetElement(tweet, {
+        clickToOpen: true,
+        showTopReply: false,
+        isTopReply: false,
+        size: "normal",
+      });
+      tweetsResults.appendChild(tweetEl);
+    });
+  } catch (error) {
+    console.error("Error loading hashtag:", error);
+    tweetsResults.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+        <p>Failed to load tweets for #${hashtag}</p>
+      </div>
+    `;
+  }
+};

@@ -7,7 +7,7 @@ import getUser from "./auth.js";
 export const useComposer = (
   element,
   callback,
-  { replyTo = null, quoteTweet = null } = {}
+  { replyTo = null, quoteTweet = null, maxChars = 400 } = {}
 ) => {
   const textarea = element.querySelector("#tweet-textarea");
   const charCount = element.querySelector("#char-count");
@@ -28,17 +28,25 @@ export const useComposer = (
   const replyRestrictionSelect = element.querySelector(
     "#reply-restriction-select"
   );
+  const scheduleBtn = element.querySelector("#schedule-btn");
+  const scheduleModal = element.querySelector("#schedule-modal");
+  const scheduleModalClose = element.querySelector("#schedule-modal-close");
+  const scheduleDateInput = element.querySelector("#schedule-date");
+  const scheduleTimeInput = element.querySelector("#schedule-time");
+  const confirmScheduleBtn = element.querySelector("#confirm-schedule-btn");
+  const clearScheduleBtn = element.querySelector("#clear-schedule-btn");
 
   let pollEnabled = false;
   let pendingFiles = [];
   let replyRestriction = "everyone";
   let selectedGif = null;
+  let scheduledFor = null;
 
   const updateCharacterCount = () => {
     const length = textarea.value.length;
     charCount.textContent = length;
 
-    if (length > 400) {
+    if (length > maxChars) {
       charCount.parentElement.id = "over-limit";
       tweetButton.disabled = true;
     } else {
@@ -443,6 +451,48 @@ export const useComposer = (
     });
   }
 
+  if (scheduleBtn && scheduleModal && scheduleModalClose) {
+    scheduleBtn.addEventListener("click", () => {
+      scheduleModal.style.display = "flex";
+      const now = new Date();
+      now.setMinutes(now.getMinutes() + 5);
+      const dateStr = now.toISOString().split("T")[0];
+      const timeStr = now.toTimeString().slice(0, 5);
+      scheduleDateInput.value = dateStr;
+      scheduleTimeInput.value = timeStr;
+    });
+
+    scheduleModalClose.addEventListener("click", () => {
+      scheduleModal.style.display = "none";
+    });
+
+    confirmScheduleBtn.addEventListener("click", () => {
+      const date = scheduleDateInput.value;
+      const time = scheduleTimeInput.value;
+      if (date && time) {
+        scheduledFor = new Date(`${date}T${time}`);
+        scheduleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+        scheduleBtn.style.color = "var(--primary)";
+        scheduleBtn.title = `Scheduled for ${scheduledFor.toLocaleString()}`;
+        scheduleModal.style.display = "none";
+      }
+    });
+
+    clearScheduleBtn.addEventListener("click", () => {
+      scheduledFor = null;
+      scheduleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+      scheduleBtn.style.color = "";
+      scheduleBtn.title = "Schedule tweet";
+      scheduleModal.style.display = "none";
+    });
+
+    scheduleModal.addEventListener("click", (e) => {
+      if (e.target === scheduleModal) {
+        scheduleModal.style.display = "none";
+      }
+    });
+  }
+
   if (addPollOptionBtn) {
     addPollOptionBtn.addEventListener("click", () => addPollOption());
   }
@@ -480,9 +530,9 @@ export const useComposer = (
   tweetButton.addEventListener("click", async () => {
     const content = textarea.value.trim();
 
-    if (!content || content.length > 400) {
+    if (!content || content.length > maxChars) {
       toastQueue.add(
-        `<h1>Invalid tweet</h1><p>Make sure your tweet is 1 to 400 characters long.</p>`
+        `<h1>Invalid tweet</h1><p>Make sure your tweet is 1 to ${maxChars} characters long.</p>`
       );
       return;
     }
@@ -527,6 +577,66 @@ export const useComposer = (
           toastQueue.add(`<h1>Upload failed</h1><p>${uploadResult.error}</p>`);
           return;
         }
+      }
+
+      if (scheduledFor) {
+        const requestBody = {
+          content,
+          scheduled_for: scheduledFor.toISOString(),
+          files: uploadedFiles,
+          reply_restriction: replyRestriction,
+        };
+
+        if (selectedGif) {
+          requestBody.gif_url = selectedGif;
+        }
+
+        if (poll) {
+          requestBody.poll = poll;
+        }
+
+        const { error, scheduledPost } = await query("/scheduled/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!scheduledPost) {
+          toastQueue.add(`<h1>${error || "Failed to schedule tweet"}</h1>`);
+          return;
+        }
+
+        textarea.value = "";
+        charCount.textContent = "0";
+        textarea.style.height = "25px";
+
+        pendingFiles = [];
+        selectedGif = null;
+        scheduledFor = null;
+        attachmentPreview.innerHTML = "";
+
+        if (scheduleBtn) {
+          scheduleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+          scheduleBtn.style.color = "";
+          scheduleBtn.title = "Schedule tweet";
+        }
+
+        if (pollEnabled && pollContainer) {
+          pollContainer
+            .querySelectorAll(".poll-option")
+            .forEach((option) => option.remove());
+          togglePoll();
+        }
+
+        toastQueue.add(
+          `<h1>Tweet Scheduled!</h1><p>Your tweet will be posted at ${new Date(
+            scheduledPost.scheduled_for
+          ).toLocaleString()}</p>`
+        );
+
+        return;
       }
 
       const requestBody = {
@@ -613,7 +723,7 @@ export const createComposer = async ({
         <div class="compose-header">
           <img src="" alt="Your avatar" id="compose-avatar">
           <div class="compose-input">
-            <textarea maxlength="400" id="tweet-textarea" style="overflow:hidden"></textarea>
+            <textarea id="tweet-textarea" style="overflow:hidden"></textarea>
             <div id="quoted-tweet-container"></div>
             <div id="poll-container" style="display: none;">
               <div class="poll-options"></div>
@@ -643,6 +753,12 @@ export const createComposer = async ({
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M144,72V184a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm88-8H176a8,8,0,0,0-8,8V184a8,8,0,0,0,16,0V136h40a8,8,0,0,0,0-16H184V80h48a8,8,0,0,0,0-16ZM96,120H72a8,8,0,0,0,0,16H88v16a24,24,0,0,1-48,0V104A24,24,0,0,1,64,80c11.19,0,21.61,7.74,24.25,18a8,8,0,0,0,15.5-4C99.27,76.62,82.56,64,64,64a40,40,0,0,0-40,40v48a40,40,0,0,0,80,0V128A8,8,0,0,0,96,120Z"></path></svg>
                 </button>
                 <button type="button" id="poll-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-bar-big-icon lucide-chart-bar-big"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><rect x="7" y="13" width="9" height="4" rx="1"></rect><rect x="7" y="5" width="12" height="4" rx="1"></rect></svg></button>
+                <button type="button" id="schedule-btn" title="Schedule tweet">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </button>
                 <div class="reply-restriction-container">
                   <button type="button" id="reply-restriction-btn" title="Who can reply">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -675,6 +791,28 @@ export const createComposer = async ({
               </div>
               <div id="gif-results"></div>
             </div>
+            <div id="schedule-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+              <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 400px; width: 90%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                  <h3 style="margin: 0; font-size: 20px;">Schedule Tweet</h3>
+                  <button type="button" id="schedule-modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Date</label>
+                    <input type="date" id="schedule-date" style="width: 100%; padding: 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" />
+                  </div>
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Time</label>
+                    <input type="time" id="schedule-time" style="width: 100%; padding: 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" />
+                  </div>
+                  <div style="display: flex; gap: 12px; margin-top: 8px;">
+                    <button type="button" id="clear-schedule-btn" style="flex: 1; padding: 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 500;">Clear</button>
+                    <button type="button" id="confirm-schedule-btn" style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--primary); color: white; cursor: pointer; font-weight: 500;">Schedule</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>`;
   el.querySelector("#tweet-textarea").placeholder = placeholder;
@@ -700,7 +838,24 @@ export const createComposer = async ({
       "/public/shared/default-avatar.png";
   }
 
-  useComposer(el, callback, { replyTo, quoteTweet });
+  // Determine max characters based on whether user is verified
+  try {
+    const user = await getUser();
+    const maxChars = user?.verified ? 5500 : 400;
+
+    // update the counter display to show the right max
+    const counter = el.querySelector(".character-counter");
+    if (counter) {
+      counter.innerHTML = `<span id="char-count">0</span>/${maxChars}`;
+    }
+
+    const textareaEl = el.querySelector("#tweet-textarea");
+    if (textareaEl) textareaEl.setAttribute("maxlength", String(maxChars));
+
+    useComposer(el, callback, { replyTo, quoteTweet, maxChars });
+  } catch {
+    useComposer(el, callback, { replyTo, quoteTweet });
+  }
 
   return el;
 };

@@ -217,7 +217,7 @@ const requireAdmin = async ({ headers, jwt, set }) => {
       user: {},
     };
   }
-  
+
   const userId = payload.userId;
   const user = adminQueries.findUserById.get(userId);
 
@@ -436,6 +436,12 @@ export default new Elysia({ prefix: "/admin" })
       if (!post) {
         return { error: "Post not found" };
       }
+      // Enforce per-user content length (verified users have higher limit)
+      const postOwner = adminQueries.findUserById.get(post.user_id);
+      const maxLength = postOwner && postOwner.verified ? 5500 : 400;
+      if (body.content && body.content.length > maxLength) {
+        return { error: `Content must be ${maxLength} characters or less` };
+      }
 
       adminQueries.updatePost.run(
         body.content,
@@ -460,7 +466,22 @@ export default new Elysia({ prefix: "/admin" })
     "/tweets",
     async ({ body }) => {
       const postId = Bun.randomUUIDv7();
-      adminQueries.createPostAsUser.run(postId, body.userId, body.content);
+      const targetUser = adminQueries.findUserById.get(body.userId);
+      if (!targetUser) return { error: "User not found" };
+
+      const maxLength = targetUser.verified ? 5500 : 400;
+      if (!body.content || body.content.trim().length === 0) {
+        return { error: "Content is required" };
+      }
+      if (body.content.length > maxLength) {
+        return { error: `Content must be ${maxLength} characters or less` };
+      }
+
+      adminQueries.createPostAsUser.run(
+        postId,
+        body.userId,
+        body.content.trim()
+      );
       return { success: true, id: postId };
     },
     {

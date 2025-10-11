@@ -951,6 +951,17 @@ nav {
       font-weight: 500;
     }
 
+    .tweet-hashtag {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+
+      &:hover {
+        text-decoration: underline;
+        color: var(--primary-hover, var(--primary));
+      }
+    }
+
     h1 {
       font-size: 1.6em;
       margin: 0.67em 0;
@@ -1023,8 +1034,7 @@ nav {
         position: relative;
       }
 
-      &[data-liked="true"],
-      &[data-retweeted="true"] {
+      &[data-liked="true"], &[data-retweeted="true"]  {
         color: rgb(var(--color));
         font-weight: 600;
       }
@@ -1467,23 +1477,11 @@ nav {
       .verification-badge {
         display: inline-flex;
         align-items: center;
-        position: relative;
 
         svg {
           width: 20px;
           height: 20px;
           flex-shrink: 0;
-        }
-      }
-
-      @keyframes balloonSlideIn {
-        from {
-          opacity: 0;
-          transform: translateX(-50%) translateY(5px);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(-50%) translateY(0);
         }
       }
 

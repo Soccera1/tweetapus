@@ -4,6 +4,7 @@ import { rateLimit } from "elysia-rate-limit";
 import db from "./../db.js";
 import ratelimit from "../helpers/ratelimit.js";
 import { addNotification } from "./notifications.js";
+import { extractAndSaveHashtags } from "./hashtags.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -319,8 +320,10 @@ export default new Elysia({ prefix: "/tweets" })
         return { error: "Tweet content is required" };
       }
 
-      if (tweetContent.length > 400) {
-        return { error: "Tweet content must be 400 characters or less" };
+      // Allow longer tweets for verified users
+      const maxTweetLength = user.verified ? 5500 : 400;
+      if (tweetContent.length > maxTweetLength) {
+        return { error: `Tweet content must be ${maxTweetLength} characters or less` };
       }
 
       if (gif_url) {
@@ -428,6 +431,9 @@ export default new Elysia({ prefix: "/tweets" })
         quote_tweet_id || null,
         replyRestriction
       );
+
+      extractAndSaveHashtags(tweetContent, tweetId);
+
       if (reply_to) {
         updatePostCounts.run(reply_to);
         const originalTweet = getTweetById.get(reply_to);

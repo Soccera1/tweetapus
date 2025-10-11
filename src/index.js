@@ -4,6 +4,7 @@ import { Elysia, file } from "elysia";
 import api from "./api.js";
 import { compression } from "./compress.js";
 import db from "./db.js";
+import { processScheduledPosts } from "./api/scheduled.js";
 
 const connectedUsers = new Map();
 const sseConnections = new Map();
@@ -190,4 +191,10 @@ new Elysia()
     console.log(
       "Happies tweetapus app is running on http://localhost:3000 ✅✅✅✅✅✅✅✅✅"
     );
+
+    setInterval(() => {
+      processScheduledPosts().catch((error) => {
+        console.error("Error processing scheduled posts:", error);
+      });
+    }, 60000);
   });

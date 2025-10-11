@@ -258,6 +258,63 @@ CREATE TABLE IF NOT EXISTS bookmarks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_bookmarks_user_id ON bookmarks(user_id);
-CREATE INDEX IF NOT EXISTS idx_bookmarks_post_id ON bookmarks(post_id);`);
+CREATE INDEX IF NOT EXISTS idx_bookmarks_post_id ON bookmarks(post_id);
+
+CREATE TABLE IF NOT EXISTS hashtags (
+  id TEXT PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL,
+  tweet_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_hashtags_name ON hashtags(name);
+CREATE INDEX IF NOT EXISTS idx_hashtags_tweet_count ON hashtags(tweet_count);
+
+CREATE TABLE IF NOT EXISTS post_hashtags (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL,
+  hashtag_id TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+  FOREIGN KEY (hashtag_id) REFERENCES hashtags(id) ON DELETE CASCADE,
+  UNIQUE(post_id, hashtag_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_post_hashtags_post_id ON post_hashtags(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_hashtags_hashtag_id ON post_hashtags(hashtag_id);
+
+CREATE TABLE IF NOT EXISTS scheduled_posts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  scheduled_for TIMESTAMP NOT NULL,
+  poll_data TEXT DEFAULT NULL,
+  files_data TEXT DEFAULT NULL,
+  gif_url TEXT DEFAULT NULL,
+  reply_restriction TEXT DEFAULT 'everyone',
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  posted_at TIMESTAMP DEFAULT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_scheduled_posts_user_id ON scheduled_posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_scheduled_posts_scheduled_for ON scheduled_posts(scheduled_for);
+CREATE INDEX IF NOT EXISTS idx_scheduled_posts_status ON scheduled_posts(status);
+
+CREATE TABLE IF NOT EXISTS user_presence (
+  id TEXT PRIMARY KEY,
+  user_id TEXT UNIQUE NOT NULL,
+  online BOOLEAN DEFAULT FALSE,
+  last_seen TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  device TEXT DEFAULT NULL,
+  ghost_mode BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  updated_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_presence_user_id ON user_presence(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_presence_online ON user_presence(online);`);
 
 export default db;

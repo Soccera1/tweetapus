@@ -5,8 +5,11 @@ import auth from "./api/auth.js";
 import blocking from "./api/blocking.js";
 import bookmarks from "./api/bookmarks.js";
 import dm from "./api/dm.js";
+import hashtags from "./api/hashtags.js";
 import notifications from "./api/notifications.js";
+import presence from "./api/presence.js";
 import profile, { avatarRoutes } from "./api/profile.js";
+import scheduled from "./api/scheduled.js";
 import search from "./api/search.js";
 import tenor from "./api/tenor.js";
 import timeline from "./api/timeline.js";
@@ -67,5 +70,8 @@ export default new Elysia({
   .use(notifications)
   .use(dm)
   .use(tenor)
+  .use(hashtags)
+  .use(scheduled)
+  .use(presence)
   .use(avatarRoutes)
   .use(uploadRoutes);

@@ -162,6 +162,7 @@ DOMPurify.addHook("uponSanitizeElement", (node, data) => {
 
 const linkifyText = (text) => {
   const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+  const hashtagRegex = /#([a-zA-Z0-9_]+)/g;
 
   const html = marked.parse(text.trim(), {
     breaks: true,
@@ -171,14 +172,19 @@ const linkifyText = (text) => {
     mangle: false,
   });
 
+  let processedHtml = html.replace(
+    mentionRegex,
+    '<a href="javascript:" class="tweet-mention" data-username="$1">@$1</a>'
+  );
+
+  processedHtml = processedHtml.replace(
+    hashtagRegex,
+    '<a href="javascript:" class="tweet-hashtag" data-hashtag="$1">#$1</a>'
+  );
+
   const el = document.createElement("div");
 
-  el.innerHTML = DOMPurify.sanitize(
-    html.replace(
-      mentionRegex,
-      '<a href="javascript:" class="tweet-mention" data-username="$1">@$1</a>'
-    ),
-    {
+  el.innerHTML = DOMPurify.sanitize(processedHtml, {
       ALLOWED_TAGS: [
         "b",
         "i",
@@ -908,6 +914,15 @@ export const createTweetElement = (tweet, config = {}) => {
       const username = e.target.dataset.username;
       import("./profile.js").then(({ default: openProfile }) => {
         openProfile(username);
+      });
+    }
+
+    if (e.target.classList.contains("tweet-hashtag")) {
+      e.preventDefault();
+      e.stopPropagation();
+      const hashtag = e.target.dataset.hashtag;
+      import("./search.js").then(({ openHashtagView }) => {
+        openHashtagView(hashtag);
       });
     }
   });
