@@ -3,11 +3,24 @@ import { staticPlugin } from "@elysiajs/static";
 import { Elysia, file } from "elysia";
 import api from "./api.js";
 import { compression } from "./compress.js";
+import db from "./db.js";
 
 const connectedUsers = new Map();
-
 const sseConnections = new Map();
 const sseRateLimits = new Map();
+
+const getUnreadNotificationsCount = db.prepare(
+  "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = FALSE"
+);
+
+const getUnreadDMCount = db.prepare(`
+  SELECT COUNT(DISTINCT dm.conversation_id) as count
+  FROM dm_messages dm
+  JOIN conversation_participants cp ON dm.conversation_id = cp.conversation_id
+  WHERE cp.user_id = ?
+  AND dm.created_at > COALESCE(cp.last_read_at, '1970-01-01')
+  AND dm.sender_id != ?
+`);
 
 export function broadcastToUser(userId, message) {
   const userSockets = connectedUsers.get(userId);
@@ -33,6 +46,17 @@ export function broadcastToUser(userId, message) {
       }
     }
   }
+}
+
+export function sendUnreadCounts(userId) {
+  const notifResult = getUnreadNotificationsCount.get(userId);
+  const dmResult = getUnreadDMCount.get(userId, userId);
+
+  broadcastToUser(userId, {
+    type: "unread_counts",
+    notifications: notifResult?.count || 0,
+    dms: dmResult?.count || 0,
+  });
 }
 
 new Elysia()
@@ -73,6 +97,19 @@ new Elysia()
         }
         const client = { controller };
         sseConnections.get(userId).add(client);
+
+        const notifResult = getUnreadNotificationsCount.get(userId);
+        const dmResult = getUnreadDMCount.get(userId, userId);
+        
+        try {
+          controller.enqueue(`data: ${JSON.stringify({
+            type: "unread_counts",
+            notifications: notifResult?.count || 0,
+            dms: dmResult?.count || 0,
+          })}\n\n`);
+        } catch (error) {
+          console.error("Error sending initial unread counts:", error);
+        }
 
         const keepAlive = setInterval(() => {
           try {

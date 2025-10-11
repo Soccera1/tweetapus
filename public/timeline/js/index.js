@@ -109,7 +109,6 @@ window.onunhandledrejection = (event) => {
   handleUrlParams();
 
   dm.connectSSE();
-  dm.updateUnreadCount();
 
   const composer = await createComposer({
     callback: (tweet) => {

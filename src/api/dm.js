@@ -3,17 +3,19 @@ import { Elysia, t } from "elysia";
 import db from "../db.js";
 import { addNotification } from "./notifications.js";
 
-let broadcastToUser;
+let broadcastToUser, sendUnreadCounts;
 try {
-	const { broadcastToUser: broadcast } = await import("../index.js");
-	broadcastToUser = broadcast;
+	const indexModule = await import("../index.js");
+	broadcastToUser = indexModule.broadcastToUser;
+	sendUnreadCounts = indexModule.sendUnreadCounts;
 } catch {
 	broadcastToUser = () => {};
+	sendUnreadCounts = () => {};
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
+const getUserByUsername = db.query("SELECT id, username, name, avatar, verified FROM users WHERE username = ?");
 
 const createConversation = db.query(`
   INSERT INTO conversations (id, type, title)
@@ -373,7 +375,6 @@ export default new Elysia({ prefix: "/dm" })
 					.all(id)
 					.filter((p) => p.user_id !== user.id);
 				for (const participant of otherParticipants) {
-					// Send real-time update via WebSocket
 					broadcastToUser(participant.user_id, {
 						type: "new_message",
 						conversationId: id,
@@ -386,6 +387,7 @@ export default new Elysia({ prefix: "/dm" })
 							attachments,
 						},
 					});
+					sendUnreadCounts(participant.user_id);
 				}
 
 				return {
@@ -436,6 +438,7 @@ export default new Elysia({ prefix: "/dm" })
 			if (!participant) return { error: "Access denied" };
 
 			updateLastReadAt.run(id, user.id);
+			sendUnreadCounts(user.id);
 
 			return { success: true };
 		} catch (error) {

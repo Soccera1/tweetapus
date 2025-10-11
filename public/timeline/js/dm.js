@@ -46,7 +46,16 @@ function connectSSE() {
   eventSource.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-      if (data.type === "new_message") handleNewMessage(data);
+      if (data.type === "new_message") {
+        handleNewMessage(data);
+      } else if (data.type === "unread_counts") {
+        if (data.notifications !== undefined) {
+          displayNotificationCount(data.notifications);
+        }
+        if (data.dms !== undefined) {
+          displayDMCount(data.dms);
+        }
+      }
     } catch (error) {
       console.error("Error parsing SSE message:", error);
     }
@@ -69,7 +78,30 @@ function handleNewMessage(data) {
   }
 
   loadConversations();
-  updateUnreadCount();
+}
+
+function displayDMCount(count) {
+  const countElement = document.getElementById("dmCount");
+  if (countElement) {
+    if (count > 0) {
+      countElement.textContent = count > 99 ? "99+" : count.toString();
+      countElement.style.display = "flex";
+    } else {
+      countElement.style.display = "none";
+    }
+  }
+}
+
+function displayNotificationCount(count) {
+  const countElement = document.getElementById("notificationCount");
+  if (countElement) {
+    if (count > 0) {
+      countElement.textContent = count > 99 ? "99+" : count.toString();
+      countElement.style.display = "block";
+    } else {
+      countElement.style.display = "none";
+    }
+  }
 }
 
 async function loadConversations() {
@@ -88,7 +120,6 @@ async function loadConversations() {
 
     currentConversations = data.conversations || [];
     renderConversations();
-    updateUnreadCount();
   } catch (error) {
     console.error("Failed to load conversations:", error);
     toastQueue.add("error", "Failed to load conversations");
@@ -391,23 +422,6 @@ async function markConversationAsRead(conversationId) {
     loadConversations();
   } catch (error) {
     console.error("Failed to mark conversation as read:", error);
-  }
-}
-
-function updateUnreadCount() {
-  const unreadCount = currentConversations.reduce(
-    (sum, conv) => sum + (conv.unread_count || 0),
-    0
-  );
-  const countElement = document.getElementById("dmCount");
-
-  if (countElement) {
-    if (unreadCount > 0) {
-      countElement.textContent = unreadCount;
-      countElement.style.display = "flex";
-    } else {
-      countElement.style.display = "none";
-    }
   }
 }
 
@@ -1199,7 +1213,6 @@ window.openGroupSettings = openGroupSettings;
 
 export default {
   loadConversations,
-  updateUnreadCount,
   connectSSE,
 };
 

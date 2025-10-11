@@ -1,7 +1,15 @@
 import { Elysia } from "elysia";
 import db from "../db.js";
 
-const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
+let sendUnreadCounts;
+try {
+  const indexModule = await import("../index.js");
+  sendUnreadCounts = indexModule.sendUnreadCounts;
+} catch {
+  sendUnreadCounts = () => {};
+}
+
+const getUserByUsername = db.query("SELECT id FROM users WHERE username = ?");
 
 const getNotifications = db.prepare(`
   SELECT id, type, content, related_id, read, created_at
@@ -68,6 +76,7 @@ export function addNotification(userId, type, content, relatedId = null) {
   const id = Bun.randomUUIDv7();
 
   createNotification.run(id, userId, type, content, relatedId);
+  sendUnreadCounts(userId);
   return id;
 }
 
@@ -151,6 +160,7 @@ export default new Elysia({ prefix: "/notifications" })
     if (!user) return { error: "User not found" };
 
     markAsRead.run(id, user.id);
+    sendUnreadCounts(user.id);
     return { success: true };
   })
 
@@ -163,5 +173,6 @@ export default new Elysia({ prefix: "/notifications" })
     if (!user) return { error: "User not found" };
 
     markAllAsRead.run(user.id);
+    sendUnreadCounts(user.id);
     return { success: true };
   });

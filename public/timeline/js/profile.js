@@ -930,9 +930,6 @@ document
             <path d="M4.93 4.93l14.14 14.14"/>
           </svg>`,
           title: isBlocked ? "Unblock" : "Block",
-          description: isBlocked
-            ? `Unblock @${currentUsername}`
-            : `Block @${currentUsername}`,
           onClick: () => {
             if (isBlocked) {
               handleUnblockUser();

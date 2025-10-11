@@ -6,14 +6,6 @@ import { createTweetElement } from "./tweets.js";
 
 let currentNotifications = [];
 
-async function updateUnreadCount() {
-  if (!authToken) return;
-
-  const { count } = await query("/notifications/unread-count");
-
-  displayUnreadCount(count || 0);
-}
-
 function displayUnreadCount(count) {
   const countElement = document.getElementById("notificationCount");
   if (countElement) {
@@ -221,7 +213,6 @@ function createNotificationElement(notification) {
         if (notification) {
           notification.read = true;
           renderNotifications();
-          updateUnreadCount();
         }
       } catch (error) {
         console.error("Failed to mark notification as read:", error);
@@ -292,7 +283,6 @@ async function markAllAsRead() {
     notification.read = true;
   });
   renderNotifications();
-  updateUnreadCount();
 }
 
 document
@@ -307,8 +297,5 @@ document
 
 addRoute((pathname) => pathname === "/notifications", openNotifications);
 
-setInterval(updateUnreadCount, 30000);
-updateUnreadCount();
-
-export default { updateUnreadCount };
+export default { displayUnreadCount };
 export { openNotifications, loadNotifications, markAllAsRead };
