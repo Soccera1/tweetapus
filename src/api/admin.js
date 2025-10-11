@@ -509,8 +509,7 @@ export default new Elysia({ prefix: "/admin" })
     }
   )
 
-  // Impersonation
-  .post("/impersonate/:id", async ({ params, jwt, user }) => {
+  .post("/impersonate/:id", async ({ params, jwt }) => {
     const targetUser = adminQueries.findUserById.get(params.id);
     if (!targetUser) {
       return { error: "User not found" };
