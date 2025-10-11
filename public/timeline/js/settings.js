@@ -1,7 +1,6 @@
 import toastQueue from "../../shared/toasts.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
-import { showPage } from "./pages.js";
 
 let currentUser = null;
 let isRestoringState = false;
@@ -226,6 +225,21 @@ const createThemesContent = () => {
   colorItem.appendChild(colorLabel);
   colorItem.appendChild(colorControl);
   group.appendChild(colorItem);
+
+  const saveItem = document.createElement("div");
+  saveItem.className = "setting-item";
+  const saveLabel = document.createElement("div");
+  saveLabel.className = "setting-label";
+  const saveControl = document.createElement("div");
+  saveControl.className = "setting-control";
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "btn primary";
+  saveBtn.id = "saveThemeBtn";
+  saveBtn.textContent = "Save to Account";
+  saveControl.appendChild(saveBtn);
+  saveItem.appendChild(saveLabel);
+  saveItem.appendChild(saveControl);
+  group.appendChild(saveItem);
 
   section.appendChild(group);
   return section;
@@ -1309,11 +1323,12 @@ const createSettingsPage = () => {
 };
 
 let settingsPage;
+let settingsInitialized = false;
+let eventHandlersSetup = false;
 
 const initializeSettings = () => {
-  if (!settingsPage) {
-    settingsPage = createSettingsPage();
-  }
+  if (settingsInitialized) return;
+  settingsInitialized = true;
 
   const contentArea = settingsPage.querySelector("#settings-content");
   const tabButtons = settingsPage.querySelectorAll(".settings-tab-btn");
@@ -1321,7 +1336,8 @@ const initializeSettings = () => {
   const switchTab = (tabKey) => {
     const page = settingsPages.find((p) => p.key === tabKey);
     if (!page) {
-      window.location.href = "/settings/account";
+      window.history.replaceState(null, null, "/settings/account");
+      openSettings("account");
       return;
     }
 
@@ -1339,7 +1355,7 @@ const initializeSettings = () => {
 
     const newPath = `/settings/${tabKey}`;
     if (window.location.pathname !== newPath) {
-      window.history.pushState(null, null, newPath);
+      window.history.replaceState(null, null, newPath);
     }
 
     if (tabKey === "themes") {
@@ -1361,24 +1377,15 @@ const initializeSettings = () => {
   });
 
   const backButton = settingsPage.querySelector(".back-button");
-  backButton.addEventListener("click", () => {
+  backButton.addEventListener("click", (e) => {
+    e.preventDefault();
     window.location.href = "/";
   });
 
-  const pathParts = window.location.pathname.split("/");
-  let initialTab = pathParts[2];
-  if (!initialTab || !settingsPages.find((p) => p.key === initialTab)) {
-    initialTab = "account";
-    window.history.replaceState(null, null, "/settings/account");
+  if (!eventHandlersSetup) {
+    eventHandlersSetup = true;
+    setupSettingsEventHandlers();
   }
-  switchTab(initialTab);
-
-  setupSettingsEventHandlers();
-
-  setTimeout(() => {
-    loadCurrentAccentColor();
-    loadCurrentThemeMode();
-  }, 100);
 };
 
 const setupSettingsEventHandlers = async () => {
@@ -1389,11 +1396,12 @@ const setupSettingsEventHandlers = async () => {
     if (data.user) {
       currentUser = data.user;
 
-      // If server provides theme/accent, apply them (account-wide)
       if (currentUser.theme) {
+        localStorage.setItem("theme", currentUser.theme);
         handleThemeModeChange(currentUser.theme);
       }
       if (currentUser.accent_color) {
+        localStorage.setItem("accentColor", currentUser.accent_color);
         applyAccentColor(currentUser.accent_color);
       }
     }
@@ -1576,7 +1584,7 @@ const saveThemeToServer = async () => {
     "#1185fe";
 
   try {
-    const res = await query(`/profile/${currentUser.username}`, {
+    const data = await query(`/profile/${currentUser.username}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -1584,17 +1592,14 @@ const saveThemeToServer = async () => {
       body: JSON.stringify({ theme, accent_color: accent }),
     });
 
-    const data = await res.json();
     if (data.error) {
       toastQueue.add(`<h1>Save Failed</h1><p>${data.error}</p>`);
       return;
     }
 
     if (data.success) {
-      // update local copy
       currentUser.theme = theme;
       currentUser.accent_color = accent;
-      // apply locally as well
       handleThemeModeChange(theme);
       applyAccentColor(accent);
       toastQueue.add(
@@ -1685,10 +1690,15 @@ const applyAccentColor = (color) => {
 };
 
 const loadCurrentThemeMode = () => {
-  const savedTheme = localStorage.getItem("theme");
   let currentTheme = "auto";
-  if (savedTheme === "dark") currentTheme = "dark";
-  else if (savedTheme === "light") currentTheme = "light";
+
+  if (currentUser?.theme) {
+    currentTheme = currentUser.theme;
+  } else {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") currentTheme = "dark";
+    else if (savedTheme === "light") currentTheme = "light";
+  }
 
   const select = document.querySelector(".theme-mode-select");
   if (select) select.value = currentTheme;
@@ -1711,7 +1721,13 @@ const loadCurrentThemeMode = () => {
 };
 
 const loadCurrentAccentColor = () => {
-  const savedColor = localStorage.getItem("accentColor") || "#1185fe";
+  let savedColor = "#1185fe";
+
+  if (currentUser?.accent_color) {
+    savedColor = currentUser.accent_color;
+  } else {
+    savedColor = localStorage.getItem("accentColor") || "#1185fe";
+  }
 
   setTimeout(() => {
     document.querySelectorAll(".color-option").forEach((option) => {
@@ -1915,15 +1931,13 @@ const handleAccountDeletion = async () => {
   }
 
   try {
-    const response = await query(`/profile/${currentUser.username}`, {
+    const data = await query(`/profile/${currentUser.username}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ confirmationText }),
     });
-
-    const data = await response.json();
 
     if (data.error) {
       toastQueue.add(`<h1>Account Deletion Failed</h1><p>${data.error}</p>`);
@@ -1949,21 +1963,56 @@ const handleAccountDeletion = async () => {
 };
 
 export const openSettings = (section = "account") => {
-  try {
-    const page = showPage("settings", {
-      path: `/settings/${section}`,
-      recoverState: () => initializeSettings(),
+  if (!settingsPage) {
+    settingsPage = createSettingsPage();
+  }
+
+  Object.values(
+    document.querySelectorAll(
+      ".timeline, .tweetPage, .profile, .notifications, .search-page, .bookmarks-page, .direct-messages, .dm-conversation"
+    )
+  ).forEach((p) => {
+    if (p) {
+      p.style.display = "none";
+      p.classList.remove("page-active");
+    }
+  });
+
+  settingsPage.style.display = "flex";
+  settingsPage.classList.add("page-active");
+
+  if (!settingsInitialized) {
+    initializeSettings();
+  }
+
+  const tabButtons = settingsPage.querySelectorAll(".settings-tab-btn");
+  const contentArea = settingsPage.querySelector("#settings-content");
+  const page = settingsPages.find((p) => p.key === section);
+
+  if (page) {
+    tabButtons.forEach((btn) => {
+      if (btn.dataset.tab === section) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
     });
 
-    if (!page) {
-      initializeSettings();
-      showPage("settings", { path: `/settings/${section}` });
-    }
+    contentArea.textContent = "";
+    const node = page.content();
+    contentArea.appendChild(node);
 
-    return settingsPage;
-  } catch (error) {
-    console.error("Error opening settings:", error);
-    initializeSettings();
-    return settingsPage;
+    if (section === "themes") {
+      setTimeout(() => {
+        isRestoringState = true;
+        loadCurrentAccentColor();
+        loadCurrentThemeMode();
+        setTimeout(() => {
+          isRestoringState = false;
+        }, 200);
+      }, 50);
+    }
   }
+
+  return settingsPage;
 };

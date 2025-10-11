@@ -39,6 +39,14 @@ window.onunhandledrejection = (event) => {
 
   let currentTimeline = "home";
 
+  if (
+    window.location.pathname === "/settings" ||
+    window.location.pathname === "/settings/"
+  ) {
+    window.location.replace("/settings/account");
+    return;
+  }
+
   const loadTimeline = async (type = "home") => {
     const endpoint =
       type === "following" ? "/timeline/following" : "/timeline/";
@@ -128,34 +136,6 @@ window.onunhandledrejection = (event) => {
     });
 })();
 
-const currentPath = window.location.pathname;
-if (currentPath.startsWith("/settings")) {
-  // Handle settings routing
-  (async () => {
-    const { openSettings } = await import("./settings.js");
-    const pathParts = currentPath.split("/");
-    const section = pathParts[2] || "account";
-    openSettings(section);
-  })();
-} else if (currentPath === "/search") {
-  showPage("search");
-} else if (currentPath.startsWith("/@")) {
-  const username = currentPath.slice(2);
-  (async () => {
-    const { loadProfile } = await import("./profile.js");
-    loadProfile(username);
-  })();
-} else if (currentPath.startsWith("/tweet/")) {
-  const tweetId = currentPath.split("/tweet/")[1];
-  (async () => {
-    const openTweet = await import("./tweet.js");
-
-    openTweet.default(tweetId);
-  })();
-} else {
-  showPage("timeline");
-}
-
 addRoute(
   (pathname) => pathname === "/",
   () => showPage("timeline")
@@ -169,11 +149,39 @@ addRoute(
 addRoute(
   (pathname) => pathname.startsWith("/settings"),
   (pathname) => {
+    if (pathname === "/settings" || pathname === "/settings/") {
+      window.location.replace("/settings/account");
+      return;
+    }
+
     (async () => {
-      const { openSettings } = await import("./settings.js");
       const pathParts = pathname.split("/");
       const section = pathParts[2] || "account";
+
+      const { openSettings } = await import("./settings.js");
       openSettings(section);
+    })();
+  }
+);
+
+addRoute(
+  (pathname) => pathname.startsWith("/@"),
+  (pathname) => {
+    const username = pathname.slice(2);
+    (async () => {
+      const { loadProfile } = await import("./profile.js");
+      loadProfile(username);
+    })();
+  }
+);
+
+addRoute(
+  (pathname) => pathname.startsWith("/tweet/"),
+  (pathname) => {
+    const tweetId = pathname.split("/tweet/")[1];
+    (async () => {
+      const openTweet = await import("./tweet.js");
+      openTweet.default(tweetId);
     })();
   }
 );

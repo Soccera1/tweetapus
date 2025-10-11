@@ -60,6 +60,65 @@ let _user;
     return;
   }
   _user = user;
+
+  if (user.theme) {
+    localStorage.setItem("theme", user.theme);
+    const root = document.documentElement;
+    if (user.theme === "dark") {
+      root.classList.add("dark");
+    } else if (user.theme === "light") {
+      root.classList.remove("dark");
+    } else {
+      const systemDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      if (systemDark) {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+    }
+  }
+
+  if (user.accent_color) {
+    localStorage.setItem("accentColor", user.accent_color);
+    const root = document.documentElement;
+    root.style.setProperty("--primary", user.accent_color);
+
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result
+        ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16),
+          }
+        : null;
+    };
+
+    const adjustBrightness = (hex, percent) => {
+      const rgb = hexToRgb(hex);
+      if (!rgb) return hex;
+      const adjust = (color) =>
+        Math.max(0, Math.min(255, Math.round(color + (color * percent) / 100)));
+      return `#${adjust(rgb.r).toString(16).padStart(2, "0")}${adjust(rgb.g)
+        .toString(16)
+        .padStart(2, "0")}${adjust(rgb.b).toString(16).padStart(2, "0")}`;
+    };
+
+    const rgb = hexToRgb(user.accent_color);
+    if (rgb)
+      root.style.setProperty("--primary-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+    root.style.setProperty(
+      "--primary-hover",
+      adjustBrightness(user.accent_color, -10)
+    );
+    root.style.setProperty(
+      "--primary-focus",
+      adjustBrightness(user.accent_color, -20)
+    );
+  }
+
   document.querySelector(".account img").src =
     user.avatar ||
     `https://upload.wikimedia.org/wikipedia/commons/0/03/Twitter_default_profile_400x400.png`;
@@ -99,7 +158,7 @@ let _user;
           icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
           onClick: () => {
             switchPage("settings", {
-              path: "/settings",
+              path: "/settings/account",
               recoverState: async () => {
                 openSettings("account");
               },
@@ -111,8 +170,8 @@ let _user;
           description: "",
           icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg>`,
           onClick: () => {
-            switchPage("passkeys", {
-              path: "/passkeys",
+            switchPage("settings", {
+              path: "/settings/passkeys",
               recoverState: async () => {
                 openSettings("passkeys");
               },

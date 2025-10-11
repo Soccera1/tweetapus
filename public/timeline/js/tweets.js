@@ -694,9 +694,9 @@ export const createTweetElement = (tweet, config = {}) => {
         title: "Copy link",
         onClick: async () => {
           const tweetUrl = `${window.location.origin}/tweet/${tweet.id}`;
+
           try {
-            await navigator.clipboard.writeText(tweetUrl);
-            toastQueue.add(`<h1>Link copied to clipboard!</h1>`);
+            navigator.clipboard.writeText(tweetUrl);
           } catch {
             const textArea = document.createElement("textarea");
             textArea.value = tweetUrl;
@@ -704,8 +704,71 @@ export const createTweetElement = (tweet, config = {}) => {
             textArea.select();
             document.execCommand("copy");
             document.body.removeChild(textArea);
-            toastQueue.add(`<h1>Link copied to clipboard!</h1>`);
           }
+        },
+      },
+      {
+        id: "share-image",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>`,
+        title: "Share as image",
+        onClick: async () => {
+          const tweetElClone = document.createElement("div");
+          tweetElClone.innerHTML = tweetEl.outerHTML;
+
+          const wrapper = document.createElement("div");
+          wrapper.style.display = "flex";
+          wrapper.style.justifyContent = "center";
+          wrapper.style.alignItems = "center";
+          wrapper.style.padding = "120px 80px";
+          wrapper.style.background =
+            "linear-gradient(135deg, rgb(10, 207, 254), rgb(73, 90, 255))";
+
+          const tweetContainer = document.createElement("div");
+          tweetContainer.style.backgroundColor = getComputedStyle(
+            document.documentElement
+          )
+            .getPropertyValue("--bg-primary")
+            .trim();
+          tweetContainer.style.borderRadius = "16px";
+          tweetContainer.style.padding = "16px";
+          tweetContainer.style.width = "460px";
+          tweetContainer.style.boxSizing = "border-box";
+
+          const stats = tweetElClone.querySelector(".expanded-tweet-stats");
+          if (stats) stats.remove();
+
+          tweetContainer.appendChild(tweetElClone);
+          wrapper.appendChild(tweetContainer);
+
+          wrapper.style.position = "fixed";
+          wrapper.style.top = "-9999px";
+          wrapper.style.left = "-9999px";
+          document.body.appendChild(wrapper);
+
+          // load html2canvas
+          const script = document.createElement("script");
+          script.src =
+            "https://html2canvas.hertzen.com/dist/html2canvas.min.js";
+          script.onload = () => {
+            window
+              .html2canvas(wrapper, {
+                backgroundColor: "transparent",
+                scale: 3,
+                width: wrapper.offsetWidth,
+              })
+              .then((canvas) => {
+                canvas.toBlob((blob) => {
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `tweetapus_${tweet.id}.png`;
+                  a.click();
+
+                  wrapper.remove();
+                });
+              });
+          };
+          document.head.appendChild(script);
         },
       },
     ];

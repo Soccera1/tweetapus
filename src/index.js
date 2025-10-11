@@ -178,7 +178,7 @@ new Elysia()
   .get("/admin", () => file("./public/admin/index.html"))
   .get("/profile/:username", () => file("./public/timeline/index.html"))
   .get("/settings", ({ redirect }) => redirect("/settings/account"))
-  .get("/settings/:page", () => file("./public/account/index.html"))
+  .get("/settings/:page", () => file("./public/timeline/index.html"))
   .get("/legal", () => file("./public/legal.html"))
   .get("*", ({ cookie, redirect }) => {
     return cookie.agree?.value === "yes"

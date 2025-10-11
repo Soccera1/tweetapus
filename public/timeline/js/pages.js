@@ -24,6 +24,12 @@ function showPage(page, options = {}) {
     }
   });
 
+  const settingsElement = document.querySelector(".settings");
+  if (settingsElement) {
+    settingsElement.style.display = "none";
+    settingsElement.classList.remove("page-active");
+  }
+
   if (pages[page]) {
     pages[page].style.display = "flex";
     pages[page].classList.add("page-active");
@@ -45,12 +51,16 @@ function showPage(page, options = {}) {
         );
     }
   } else if (page === "settings") {
-    const settingsElement = document.querySelector(".settings");
-    if (settingsElement) {
-      pages.settings = settingsElement;
-      settingsElement.style.display = "flex";
-      settingsElement.classList.add("page-active");
-      requestAnimationFrame(() => recoverState(settingsElement));
+    requestAnimationFrame(() => {
+      try {
+        recoverState();
+      } catch (error) {
+        console.error(`Error in recoverState for settings:`, error);
+      }
+    });
+    const updatedSettingsElement = document.querySelector(".settings");
+    if (updatedSettingsElement) {
+      pages.settings = updatedSettingsElement;
     }
   }
 

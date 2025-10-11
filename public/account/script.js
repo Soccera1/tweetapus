@@ -11,9 +11,6 @@ const elements = {
   loginForm: document.getElementById("login-form"),
   userInfo: document.getElementById("user-info"),
   status: document.getElementById("status"),
-  addPasskeyBtn: document.getElementById("addPasskey"),
-  passkeyStatus: document.getElementById("passkeyStatus"),
-  passkeyList: document.getElementById("passkeyList"),
   basicLoginModal: document.getElementById("basicLoginModal"),
 };
 
@@ -89,8 +86,6 @@ function showUserInfo(user) {
   elements.title.textContent = `@${user.user.username}`;
   elements.loginForm.style.display = "none";
   elements.userInfo.style.display = "block";
-
-  loadPasskeys(user.passkeys);
 }
 
 function showLoginForm() {
@@ -304,247 +299,6 @@ async function handleAuthentication() {
   }
 }
 
-const escapeHtml = (str) => str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-const timeAgo = (input) => {
-  const date = new Date(input).getTime();
-  const now = Date.now();
-  let diff = Math.floor((date - now) / 1000);
-  const past = diff < 0;
-  diff = Math.abs(diff);
-
-  let str;
-  if (diff < 60) str = `${diff}s`;
-  else if (diff < 3600) str = `${Math.floor(diff / 60)}m`;
-  else if (diff < 86400) str = `${Math.floor(diff / 3600)}h`;
-  else if (diff < 604800) str = `${Math.floor(diff / 86400)}d`;
-  else if (diff < 2419200) str = `${Math.floor(diff / 604800)}w`;
-  else {
-    const d = new Date(date);
-    if (Math.abs(now - date) < 31536000000) {
-      str = d.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-      });
-    } else {
-      str = d.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "2-digit",
-      });
-    }
-    return str;
-  }
-
-  return past ? `${str} ago` : `in ${str}`;
-};
-
-const apiRequest = async (path, options = {}) => {
-  return await query(`/api${path}`, {
-    // why is cursor stuck, Tr?
-    headers: {
-      "Content-Type": options.body ? "application/json" : undefined,
-      ...(authToken && { Authorization: `Bearer ${authToken}` }),
-      ...options.headers,
-    },
-    ...options,
-  });
-};
-
-const loadPasskeys = async (preload) => {
-  if (!authToken || !currentUser) return;
-
-  try {
-    if (preload) return displayPasskeys(preload);
-
-    const { passkeys, error } = await apiRequest("/auth/passkeys");
-
-    if (error) {
-      toastQueue.add(`<h1>Failed to load passkey</h1><p>${error}</p>`);
-      return;
-    }
-
-    displayPasskeys(passkeys);
-  } catch (error) {
-    console.error("Load passkeys error:", error);
-    toastQueue.add(`<h1>Failed to load passkey</h1><p>${error.message}</p>`);
-  }
-};
-
-const displayPasskeys = (passkeys) => {
-  elements.passkeyList.innerHTML = "";
-
-  passkeys.forEach((passkey) => {
-    const element = document.createElement("div");
-    element.className = "passkey-item";
-    element.innerHTML = `
-		<div class="passkey-info">
-			<div class="passkey-name">${escapeHtml(passkey.name)}</div>
-			<div class="passkey-details">
-			created ${timeAgo(passkey.createdAt)}, last used ${
-      passkey.lastUsed ? timeAgo(passkey.lastUsed) : "never"
-    } • ${passkey.backupEligible ? "synced" : "device-bound"}
-			</div>
-		</div>
-		<div class="passkey-actions">
-			<button ${
-        passkeys.length <= 1
-          ? 'disabled title="Cannot delete the last passkey"'
-          : ""
-      }><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash2-icon lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-		</div>`;
-
-    elements.passkeyList.appendChild(element);
-
-    element.querySelector(".passkey-name").addEventListener("click", () => {
-      if (element.querySelector(".passkey-name input")) return;
-      handleRenamePasskey(passkey, element);
-    });
-
-    element
-      .querySelector("button")
-      .addEventListener("click", () => handleDeletePasskey(passkey));
-  });
-};
-
-const handleRenamePasskey = (passkey, element) => {
-  const passkeyName = element.querySelector(".passkey-name");
-  passkeyName.innerHTML = `<input type="text" value="${escapeHtml(
-    passkey.name
-  )}" class="rename-input" maxlength="50" />`;
-  const input = passkeyName.querySelector("input");
-  input.focus();
-  input.select();
-
-  let active = true;
-
-  const save = async () => {
-    const newName = input.value.trim();
-
-    if (!newName || newName === passkey.name || newName.trim().length === 0) {
-      passkeyName.textContent = newName;
-      return;
-    }
-
-    if (newName.length > 50) {
-      toastQueue.add(
-        `<h1>Name too long</h1><p>A passkey's name must be less than 50 characters</p>`
-      );
-      return;
-    }
-
-    passkeyName.textContent = newName;
-    passkeyName.style.opacity = "0.6";
-    passkeyName.style.pointerEvents = "none";
-
-    active = false;
-
-    const { error, passkeys } = await apiRequest(
-      `/auth/passkeys/${passkey.id}/name`,
-      {
-        method: "PUT",
-        body: JSON.stringify({ name: newName.trim() }),
-      }
-    );
-    passkeyName.style.opacity = "1";
-    passkeyName.style.pointerEvents = "all";
-
-    if (error) {
-      toastQueue.add(`<h1>Unable to rename passkey</h1><p>${error}</p>`);
-      return;
-    }
-    toastQueue.add(`<h1>Name changed successfully!</h1>`);
-
-    loadPasskeys(passkeys);
-  };
-
-  setTimeout(() => {
-    document.addEventListener("click", (e) => {
-      if (!passkeyName.contains(e.target) && input && active) save();
-    });
-  }, 100);
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      passkeyName.textContent = passkey.name;
-      active = false;
-    }
-
-    if (e.key === "Enter") save();
-  });
-};
-
-const handleDeletePasskey = async (passkey) => {
-  if (
-    !confirm(
-      "Are you sure you want to delete this passkey? This action cannot be undone."
-    )
-  ) {
-    return;
-  }
-
-  const { error, passkeys } = await apiRequest(`/auth/passkeys/${passkey.id}`, {
-    method: "DELETE",
-  });
-
-  if (error) {
-    toastQueue.add(`<h1>Unable to delete passkey</h1><p>${error}</p>`);
-  }
-
-  toastQueue.add(`<h1>Passkey deleted successfully!</h1>`);
-  await loadPasskeys(passkeys);
-};
-
-const handleAddPasskey = async () => {
-  if (!currentUser) return;
-
-  elements.addPasskeyBtn.disabled = true;
-
-  try {
-    const { options, challenge, error } = await apiRequest(
-      "/auth/generate-registration-options",
-      {
-        method: "POST",
-        body: JSON.stringify({ username: currentUser.username }),
-      }
-    );
-
-    if (error) {
-      toastQueue.add(`<h1>Unable to add passkey</h1><p>${error}</p>`);
-      return;
-    }
-
-    const registrationResponse = await startRegistration({
-      optionsJSON: options,
-    });
-
-    const { verified } = await apiRequest("/auth/verify-registration", {
-      method: "POST",
-      body: JSON.stringify({
-        username: currentUser.username,
-        credential: registrationResponse,
-        challenge,
-      }),
-    });
-
-    if (verified) return await loadPasskeys();
-
-    toastQueue.add(`<h1>Unable to add passkey</h1><p>Passkey not verified</p>`);
-  } catch (error) {
-    console.error("Add passkey error:", error);
-
-    if (error.name === "InvalidStateError") {
-      toastQueue.add(
-        `<h1>Passkey already registered</h1><p>You have already added that passkey</p>`
-      );
-    } else if (error.name !== "NotAllowedError") {
-      toastQueue.add(`<h1>Failed to add passkey</h1><p>${error.message}</p>`);
-    }
-  } finally {
-    elements.addPasskeyBtn.disabled = false;
-  }
-};
-
 // Tab functionality
 document.querySelectorAll(".tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -566,7 +320,6 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
 
 elements.register.addEventListener("click", handleRegistration);
 elements.login.addEventListener("click", handleAuthentication);
-elements.addPasskeyBtn?.addEventListener("click", handleAddPasskey);
 elements.username.addEventListener("input", (e) => {
   e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
 });

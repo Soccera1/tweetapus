@@ -167,7 +167,7 @@ img {
   width: calc(100% - 8px);
   background: transparent;
   border: none;
-  padding: 6px;
+  padding: 12px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -175,7 +175,8 @@ img {
   transition: transform 0.15s, background-color 0.15s;
   font-family: inherit;
   text-align: left;
-  border-radius: 6px;
+  border-radius: 7px;
+  height: 35px;
   margin: 4px;
 
   &:hover {
