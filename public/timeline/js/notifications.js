@@ -11,7 +11,7 @@ function displayUnreadCount(count) {
   if (countElement) {
     if (count > 0) {
       countElement.textContent = count > 99 ? "99+" : count.toString();
-      countElement.style.display = "block";
+      countElement.style.display = "flex";
     } else {
       countElement.style.display = "none";
     }
@@ -125,7 +125,7 @@ function createNotificationElement(notification) {
 		</svg>`,
     mention: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
 			<path d="M18.6471 15.3333V18.6667M18.6471 18.6667L18.6471 22M18.6471 18.6667H22M18.6471 18.6667H15.2941M3 22C3 17.7044 6.69722 14.2222 11.258 14.2222C12.0859 14.2222 12.8854 14.3369 13.6394 14.5505M16.4118 6.44444C16.4118 8.89904 14.4102 10.8889 11.9412 10.8889C9.47214 10.8889 7.47059 8.89904 7.47059 6.44444C7.47059 3.98985 9.47214 2 11.9412 2C14.4102 2 16.4118 3.98985 16.4118 6.44444Z"/>
-		</svg>`
+		</svg>`,
   };
 
   const iconClasses = {
@@ -134,7 +134,7 @@ function createNotificationElement(notification) {
     reply: "reply-icon",
     follow: "follow-icon",
     quote: "quote-icon",
-    mention: "mention-icon"
+    mention: "mention-icon",
   };
 
   const notificationEl = document.createElement("div");
