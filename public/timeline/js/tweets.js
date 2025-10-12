@@ -174,9 +174,13 @@ const linkifyText = (text) => {
 			}
 			if (inFence) continue;
 			if (/^[ \t]{4,}/.test(line)) continue;
-			const m = line.match(/^([ \t]{0,3})([+])(\s+)(.*)$/);
-			if (m) {
-				lines[i] = `${m[1]}*${m[3]}${m[4]}`;
+			const mDash = line.match(/^([ \t]{0,3})(-)(\s+)(.*)$/);
+			if (mDash) {
+				lines[i] = `${mDash[1]}\\-${mDash[3]}${mDash[4]}`;
+			}
+			const mPlus = line.match(/^([ \t]{0,3})([+])(\s+)(.*)$/);
+			if (mPlus) {
+				lines[i] = `${mPlus[1]}*${mPlus[3]}${mPlus[4]}`;
 			}
 		}
 		return lines.join("\n");

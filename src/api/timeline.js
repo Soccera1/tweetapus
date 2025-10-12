@@ -183,7 +183,7 @@ export default new Elysia({ prefix: "/timeline" })
     }
 
     const beforeId = query.before;
-    const posts = beforeId 
+    const posts = beforeId
       ? getTimelinePostsBefore.all(user.id, beforeId)
       : getTimelinePosts.all(user.id);
 

@@ -8,4 +8,4 @@
 ## later
 
 - keyboard shortcuts
-- db indexes for speed s
+- db indexes for speedse's
