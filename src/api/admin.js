@@ -80,7 +80,7 @@ const adminQueries = {
     SELECT u.username, s.created_at
     FROM suspensions s
     JOIN users u ON s.user_id = u.id
-    WHERE s.status = 'active'
+    WHERE s.status = 'active' AND (s.expires_at IS NULL OR s.expires_at > datetime('now'))
     ORDER BY s.created_at DESC
     LIMIT 15
   `),
@@ -139,12 +139,12 @@ const adminQueries = {
     FROM suspensions s
     JOIN users u ON s.user_id = u.id
     JOIN users suspended_by_user ON s.suspended_by = suspended_by_user.id
-    WHERE s.status = 'active'
+    WHERE s.status = 'active' AND (s.expires_at IS NULL OR s.expires_at > datetime('now'))
     ORDER BY s.created_at DESC
     LIMIT ? OFFSET ?
   `),
   getSuspensionsCount: db.query(
-    "SELECT COUNT(*) as count FROM suspensions WHERE status = 'active'"
+    "SELECT COUNT(*) as count FROM suspensions WHERE status = 'active' AND (expires_at IS NULL OR expires_at > datetime('now'))"
   ),
 
   // New queries for editing functionality

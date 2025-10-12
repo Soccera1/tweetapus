@@ -19,8 +19,14 @@ import db from "./db.js";
 import ratelimit from "./helpers/ratelimit.js";
 
 const isSuspendedQuery = db.query(`
-  SELECT * FROM suspensions WHERE user_id = ? AND status = 'active'
+  SELECT * FROM suspensions WHERE user_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > datetime('now'))
 `);
+
+const liftSuspension = db.query(`
+  UPDATE suspensions SET status = 'lifted' WHERE id = ?
+`);
+
+const updateUserSuspended = db.query("UPDATE users SET suspended = ? WHERE id = ?");
 
 const suspensionCache = new Map();
 const CACHE_TTL = 30_000;
@@ -46,7 +52,17 @@ export default new Elysia({
     let cached = suspensionCache.get(userId);
 
     if (!cached || cached.expiry < now) {
-      const suspension = isSuspendedQuery.get(userId);
+      let suspension = isSuspendedQuery.get(userId);
+
+      if (suspension?.expires_at) {
+        const expiresAt = new Date(suspension.expires_at).getTime();
+        if (Date.now() > expiresAt) {
+          liftSuspension.run(suspension.id);
+          updateUserSuspended.run(false, userId);
+          suspension = null;
+        }
+      }
+
       cached = { suspension, expiry: now + CACHE_TTL };
       suspensionCache.set(userId, cached);
     }
