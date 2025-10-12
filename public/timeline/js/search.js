@@ -157,10 +157,11 @@ export const initializeSearchPage = () => {
 };
 
 export const openHashtagView = async (hashtag) => {
+  const switchPage = (await import("./pages.js")).default;
+  switchPage("search", { path: `/search?q=%23${hashtag}` });
+
   const searchPage = document.querySelector(".search-page");
   if (!searchPage) return;
-
-  searchPage.style.display = "flex";
 
   const searchPageInput = document.getElementById("searchPageInput");
   const filterBtns = document.querySelectorAll(".filter-btn");

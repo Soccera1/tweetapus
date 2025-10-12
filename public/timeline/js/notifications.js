@@ -166,7 +166,7 @@ function createNotificationElement(notification) {
   contentEl.className = "notification-content";
 
   const contentP = document.createElement("p");
-  contentP.innerHTML = `${notification.content} <span class="notification-time">• ${timeAgo}</span>`;
+  contentP.innerHTML = `${notification.content} <span class="notification-time">· ${timeAgo}</span>`;
 
   contentEl.appendChild(contentP);
 

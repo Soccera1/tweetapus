@@ -185,9 +185,13 @@
                     <i class="bi bi-arrow-clockwise"></i>
                     Refresh
                   </button>
-                    <button class="btn btn-success" onclick="adminPanel.showCreateUserModal()">
-                      <i class="bi bi-plus-lg"></i> Create User
-                    </button>
+                  <button
+                    class="btn btn-success"
+                    onclick="adminPanel.showCreateUserModal()"
+                  >
+                    <i class="bi bi-plus-lg"></i>
+                    Create User
+                  </button>
                 </div>
               </div>
 
@@ -293,10 +297,19 @@
 
             <!-- Moderation Logs Section -->
             <div id="moderation-logs-section" class="section d-none">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4><i class="bi bi-journal-text"></i> Moderation Logs</h4>
-                <button class="btn btn-secondary" onclick="adminPanel.loadModerationLogs()">
-                  <i class="bi bi-arrow-clockwise"></i> Refresh
+              <div
+                class="d-flex justify-content-between align-items-center mb-3"
+              >
+                <h4>
+                  <i class="bi bi-journal-text"></i>
+                  Moderation Logs
+                </h4>
+                <button
+                  class="btn btn-secondary"
+                  onclick="adminPanel.loadModerationLogs()"
+                >
+                  <i class="bi bi-arrow-clockwise"></i>
+                  Refresh
                 </button>
               </div>
 
@@ -566,13 +579,22 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Create User</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
           </div>
           <div class="modal-body">
             <form id="createUserForm">
               <div class="mb-3">
                 <label class="form-label">Username *</label>
-                <input type="text" id="createUsername" class="form-control" required />
+                <input
+                  type="text"
+                  id="createUsername"
+                  class="form-control"
+                  required
+                />
               </div>
               <div class="mb-3">
                 <label class="form-label">Display Name</label>
@@ -580,21 +602,45 @@
               </div>
               <div class="mb-3">
                 <label class="form-label">Bio</label>
-                <textarea id="createBio" class="form-control" rows="3"></textarea>
+                <textarea
+                  id="createBio"
+                  class="form-control"
+                  rows="3"
+                ></textarea>
               </div>
               <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="createVerified">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="createVerified"
+                />
                 <label class="form-check-label">Verified</label>
               </div>
               <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="createAdmin">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="createAdmin"
+                />
                 <label class="form-check-label">Admin</label>
               </div>
             </form>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" onclick="adminPanel.createUser()">Create</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="adminPanel.createUser()"
+            >
+              Create
+            </button>
           </div>
         </div>
       </div>

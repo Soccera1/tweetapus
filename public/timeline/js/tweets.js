@@ -631,7 +631,7 @@ export const createTweetElement = (tweet, config = {}) => {
     sourceIconEl.innerHTML = `${source_icons[tweet.source]}`;
     tweetHeaderUsernameEl.appendChild(sourceIconEl);
   } else if (tweet.source) {
-    tweetHeaderUsernameEl.textContent += ` • ${tweet.source}`;
+    tweetHeaderUsernameEl.textContent += ` · ${tweet.source}`;
   }
 
   tweetHeaderInfoEl.appendChild(tweetHeaderNameEl);
@@ -915,14 +915,7 @@ export const createTweetElement = (tweet, config = {}) => {
       });
     }
 
-    if (e.target.classList.contains("tweet-hashtag")) {
-      e.preventDefault();
-      e.stopPropagation();
-      const hashtag = e.target.dataset.hashtag;
-      import("./search.js").then(({ openHashtagView }) => {
-        openHashtagView(hashtag);
-      });
-    }
+
   });
 
   tweetEl.appendChild(tweetContentEl);

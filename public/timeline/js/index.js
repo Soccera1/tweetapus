@@ -1,5 +1,4 @@
 import { initializePresence } from "../../shared/presence.js";
-import { initTrendingWidget } from "../../shared/trending.js";
 import toastQueue from "../../shared/toasts.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
@@ -40,7 +39,6 @@ window.onunhandledrejection = (event) => {
   if (!authToken) return;
 
   initializePresence();
-  initTrendingWidget();
 
   let currentTimeline = "home";
 

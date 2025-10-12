@@ -767,7 +767,7 @@ class AdminPanel {
         </div>
       `;
 
-  document.getElementById("userModalFooter").innerHTML = `
+      document.getElementById("userModalFooter").innerHTML = `
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         <button type="button" class="btn btn-primary" id="editProfileBtn" onclick="adminPanel.toggleEditMode(true)">Edit Profile</button>
         <button type="button" class="btn btn-success d-none" id="saveProfileBtn" onclick="adminPanel.saveProfile('${
@@ -800,27 +800,50 @@ class AdminPanel {
 
   toggleEditMode(enable) {
     const form = document.getElementById("editProfileForm");
-    const inputs = form.querySelectorAll(
-      "input[type=text], textarea, input[type=number]"
-    );
+    if (!form) return;
 
-    // Make non-checkbox/text inputs readonly/disabled by default
-    inputs.forEach((field) => {
-      if (field.id === "editProfileId") return;
-      field.readOnly = !enable;
+    // Enable/disable all relevant controls in the form (more robust than only using readOnly)
+    const controls = form.querySelectorAll("input, textarea, select");
+    controls.forEach((field) => {
+      // keep hidden/id field untouched
+      if (field.id === "editProfileId" || field.type === "hidden") return;
+
+      // skip buttons
+      if (field.tagName === "BUTTON") return;
+
+      // skip input types that shouldn't be toggled (file, submit, reset)
+      if (
+        field.tagName === "INPUT" &&
+        ["button", "submit", "reset", "file"].includes(field.type)
+      )
+        return;
+
+      // Use disabled for all controls so they cannot be interacted with
+      field.disabled = !enable;
+
+      // For textual inputs and textareas also set readOnly to allow styling/selection differences
+      if (
+        field.tagName === "TEXTAREA" ||
+        (field.tagName === "INPUT" &&
+          ["text", "number", "email", "tel", "password"].includes(field.type))
+      ) {
+        field.readOnly = !enable;
+      }
     });
 
-    // Checkboxes for verified/admin should be enabled/disabled based on mode
-    const verifiedCheckbox = document.getElementById("editProfileVerified");
-    const adminCheckbox = document.getElementById("editProfileAdmin");
-    if (verifiedCheckbox) verifiedCheckbox.disabled = !enable;
-    if (adminCheckbox) adminCheckbox.disabled = !enable;
-
-    // Toggle buttons
+    // Toggle buttons visibility
     const editBtn = document.getElementById("editProfileBtn");
     const saveBtn = document.getElementById("saveProfileBtn");
     if (editBtn) editBtn.classList.toggle("d-none", enable);
     if (saveBtn) saveBtn.classList.toggle("d-none", !enable);
+
+    // Focus the first editable field when enabling edit mode
+    if (enable) {
+      const firstEditable = form.querySelector(
+        "input:not([disabled]):not([type=hidden]), textarea:not([disabled])"
+      );
+      if (firstEditable) firstEditable.focus();
+    }
   }
 
   async saveProfile(userId) {
@@ -1419,7 +1442,7 @@ class AdminPanel {
       if (this.currentConversationId) {
         this.viewConversation(this.currentConversationId);
       }
-    } catch{
+    } catch {
       this.showError("Failed to delete message");
     }
   }
@@ -1474,7 +1497,9 @@ class AdminPanel {
         body: JSON.stringify({ username, name, bio, verified, admin: isAdmin }),
       });
 
-      bootstrap.Modal.getInstance(document.getElementById("createUserModal")).hide();
+      bootstrap.Modal.getInstance(
+        document.getElementById("createUserModal")
+      ).hide();
       this.showSuccess("User created successfully");
       this.loadUsers(this.currentPage.users || 1);
     } catch (err) {
@@ -1484,7 +1509,9 @@ class AdminPanel {
 
   async loadModerationLogs(page = 1) {
     try {
-      const data = await this.apiCall(`/api/admin/moderation-logs?page=${page}&limit=50`);
+      const data = await this.apiCall(
+        `/api/admin/moderation-logs?page=${page}&limit=50`
+      );
       this.currentPage.moderationLogs = page;
       this.renderModerationLogs(data.logs, data.pagination);
     } catch {
@@ -1494,7 +1521,7 @@ class AdminPanel {
 
   renderModerationLogs(logs, pagination) {
     const container = document.getElementById("moderationLogsTable");
-    
+
     if (!logs || logs.length === 0) {
       container.innerHTML = `
         <div class="alert alert-info">
@@ -1505,45 +1532,45 @@ class AdminPanel {
     }
 
     const actionIcons = {
-      'verify_user': '✓',
-      'unverify_user': '✗',
-      'suspend_user': '🚫',
-      'unsuspend_user': '✓',
-      'delete_user': '🗑️',
-      'delete_post': '🗑️',
-      'edit_post': '✏️',
-      'create_post_as_user': '📝',
-      'edit_user_profile': '✏️',
-      'delete_conversation': '🗑️',
-      'delete_message': '🗑️'
+      verify_user: "✓",
+      unverify_user: "✗",
+      suspend_user: "🚫",
+      unsuspend_user: "✓",
+      delete_user: "🗑️",
+      delete_post: "🗑️",
+      edit_post: "✏️",
+      create_post_as_user: "📝",
+      edit_user_profile: "✏️",
+      delete_conversation: "🗑️",
+      delete_message: "🗑️",
     };
 
     const actionColors = {
-      'verify_user': 'success',
-      'unverify_user': 'warning',
-      'suspend_user': 'danger',
-      'unsuspend_user': 'success',
-      'delete_user': 'danger',
-      'delete_post': 'danger',
-      'edit_post': 'info',
-      'create_post_as_user': 'primary',
-      'edit_user_profile': 'info',
-      'delete_conversation': 'danger',
-      'delete_message': 'warning'
+      verify_user: "success",
+      unverify_user: "warning",
+      suspend_user: "danger",
+      unsuspend_user: "success",
+      delete_user: "danger",
+      delete_post: "danger",
+      edit_post: "info",
+      create_post_as_user: "primary",
+      edit_user_profile: "info",
+      delete_conversation: "danger",
+      delete_message: "warning",
     };
 
     const actionLabels = {
-      'verify_user': 'Verified User',
-      'unverify_user': 'Unverified User',
-      'suspend_user': 'Suspended User',
-      'unsuspend_user': 'Unsuspended User',
-      'delete_user': 'Deleted User',
-      'delete_post': 'Deleted Post',
-      'edit_post': 'Edited Post',
-      'create_post_as_user': 'Created Post As User',
-      'edit_user_profile': 'Edited User Profile',
-      'delete_conversation': 'Deleted Conversation',
-      'delete_message': 'Deleted Message'
+      verify_user: "Verified User",
+      unverify_user: "Unverified User",
+      suspend_user: "Suspended User",
+      unsuspend_user: "Unsuspended User",
+      delete_user: "Deleted User",
+      delete_post: "Deleted Post",
+      edit_post: "Edited Post",
+      create_post_as_user: "Created Post As User",
+      edit_user_profile: "Edited User Profile",
+      delete_conversation: "Deleted Conversation",
+      delete_message: "Deleted Message",
     };
 
     container.innerHTML = `
@@ -1559,55 +1586,76 @@ class AdminPanel {
             </tr>
           </thead>
           <tbody>
-            ${logs.map(log => {
-              const date = new Date(log.created_at);
-              const formattedDate = date.toLocaleString();
-              const icon = actionIcons[log.action] || '•';
-              const color = actionColors[log.action] || 'secondary';
-              const label = actionLabels[log.action] || log.action;
-              
-              let detailsHtml = '';
-              if (log.details) {
-                const details = log.details;
-                if (details.username) {
-                  detailsHtml += `<strong>User:</strong> @${this.escapeHtml(details.username)}<br>`;
-                }
-                if (details.reason) {
-                  detailsHtml += `<strong>Reason:</strong> ${this.escapeHtml(details.reason)}<br>`;
-                }
-                if (details.changes) {
-                  detailsHtml += '<strong>Changes:</strong><br>';
-                  for (const [key, value] of Object.entries(details.changes)) {
-                    if (value.old !== undefined && value.new !== undefined) {
-                      detailsHtml += `&nbsp;&nbsp;${key}: ${this.escapeHtml(String(value.old))} → ${this.escapeHtml(String(value.new))}<br>`;
+            ${logs
+              .map((log) => {
+                const date = new Date(log.created_at);
+                const formattedDate = date.toLocaleString();
+                const icon = actionIcons[log.action] || "•";
+                const color = actionColors[log.action] || "secondary";
+                const label = actionLabels[log.action] || log.action;
+
+                let detailsHtml = "";
+                if (log.details) {
+                  const details = log.details;
+                  if (details.username) {
+                    detailsHtml += `<strong>User:</strong> @${this.escapeHtml(
+                      details.username
+                    )}<br>`;
+                  }
+                  if (details.reason) {
+                    detailsHtml += `<strong>Reason:</strong> ${this.escapeHtml(
+                      details.reason
+                    )}<br>`;
+                  }
+                  if (details.changes) {
+                    detailsHtml += "<strong>Changes:</strong><br>";
+                    for (const [key, value] of Object.entries(
+                      details.changes
+                    )) {
+                      if (value.old !== undefined && value.new !== undefined) {
+                        detailsHtml += `&nbsp;&nbsp;${key}: ${this.escapeHtml(
+                          String(value.old)
+                        )} → ${this.escapeHtml(String(value.new))}<br>`;
+                      }
                     }
                   }
+                  if (details.content) {
+                    detailsHtml += `<strong>Content:</strong> ${this.escapeHtml(
+                      details.content
+                    )}<br>`;
+                  }
+                  if (details.targetUser) {
+                    detailsHtml += `<strong>Target User:</strong> @${this.escapeHtml(
+                      details.targetUser
+                    )}<br>`;
+                  }
+                  if (details.author) {
+                    detailsHtml += `<strong>Author:</strong> @${this.escapeHtml(
+                      details.author
+                    )}<br>`;
+                  }
+                  if (details.severity) {
+                    detailsHtml += `<strong>Severity:</strong> ${details.severity}<br>`;
+                  }
+                  if (details.duration) {
+                    detailsHtml += `<strong>Duration:</strong> ${details.duration} minutes<br>`;
+                  }
                 }
-                if (details.content) {
-                  detailsHtml += `<strong>Content:</strong> ${this.escapeHtml(details.content)}<br>`;
-                }
-                if (details.targetUser) {
-                  detailsHtml += `<strong>Target User:</strong> @${this.escapeHtml(details.targetUser)}<br>`;
-                }
-                if (details.author) {
-                  detailsHtml += `<strong>Author:</strong> @${this.escapeHtml(details.author)}<br>`;
-                }
-                if (details.severity) {
-                  detailsHtml += `<strong>Severity:</strong> ${details.severity}<br>`;
-                }
-                if (details.duration) {
-                  detailsHtml += `<strong>Duration:</strong> ${details.duration} minutes<br>`;
-                }
-              }
 
-              return `
+                return `
                 <tr>
                   <td>
                     <small class="text-muted">${formattedDate}</small>
                   </td>
                   <td>
                     <strong>@${this.escapeHtml(log.moderator_username)}</strong>
-                    ${log.moderator_name ? `<br><small class="text-muted">${this.escapeHtml(log.moderator_name)}</small>` : ''}
+                    ${
+                      log.moderator_name
+                        ? `<br><small class="text-muted">${this.escapeHtml(
+                            log.moderator_name
+                          )}</small>`
+                        : ""
+                    }
                   </td>
                   <td>
                     <span class="badge bg-${color}">
@@ -1615,21 +1663,30 @@ class AdminPanel {
                     </span>
                   </td>
                   <td>
-                    <span class="badge bg-secondary">${this.escapeHtml(log.target_type)}</span>
-                    <br><small class="text-muted font-monospace">${this.escapeHtml(log.target_id.substring(0, 8))}...</small>
+                    <span class="badge bg-secondary">${this.escapeHtml(
+                      log.target_type
+                    )}</span>
+                    <br><small class="text-muted font-monospace">${this.escapeHtml(
+                      log.target_id.substring(0, 8)
+                    )}...</small>
                   </td>
                   <td>
-                    <small>${detailsHtml || '<em class="text-muted">No details</em>'}</small>
+                    <small>${
+                      detailsHtml || '<em class="text-muted">No details</em>'
+                    }</small>
                   </td>
                 </tr>
               `;
-            }).join('')}
+              })
+              .join("")}
           </tbody>
         </table>
       </div>
     `;
 
-    this.renderPagination('moderationLogsPagination', pagination, (page) => this.loadModerationLogs(page));
+    this.renderPagination("moderationLogsPagination", pagination, (page) =>
+      this.loadModerationLogs(page)
+    );
   }
 }
 
