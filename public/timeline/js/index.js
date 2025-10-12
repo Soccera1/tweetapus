@@ -1,8 +1,8 @@
 import { initializePresence } from "../../shared/presence.js";
 import toastQueue from "../../shared/toasts.js";
+import AccountSwitcher from "./accountSwitcher.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
-import AccountSwitcher from "./accountSwitcher.js";
 import { createComposer } from "./composer.js";
 import dm from "./dm.js";
 import switchPage, { addRoute, showPage } from "./pages.js";
@@ -140,9 +140,9 @@ window.onunhandledrejection = (event) => {
     });
 
   // Alt+click the account avatar to open account switcher
-  const accountBtn = document.querySelector('.account');
+  const accountBtn = document.querySelector(".account");
   if (accountBtn) {
-    accountBtn.addEventListener('click', (e) => {
+    accountBtn.addEventListener("click", (e) => {
       if (e.altKey) {
         e.preventDefault();
         AccountSwitcher.openSwitcher();

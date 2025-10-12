@@ -217,7 +217,10 @@ function renderUI() {
 
       const switchBtn = document.createElement("button");
       switchBtn.textContent = acc.id === activeId ? "Active" : "Use";
-      switchBtn.className = acc.id === activeId ? "profile-btn profile-btn-secondary" : "profile-btn";
+      switchBtn.className =
+        acc.id === activeId
+          ? "profile-btn profile-btn-secondary"
+          : "profile-btn";
       switchBtn.addEventListener("click", () => setActive(acc.id));
 
       const delBtn = document.createElement("button");
