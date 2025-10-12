@@ -9,14 +9,17 @@ export default async function openTweet(
 ) {
   const { default: query } = await import("./api.js");
 
-  if (!tweet.id) return;
+  if (!tweet?.id || !tweet) return;
 
   if (!tweet?.author) {
     const apiOutput = await query(`/tweets/${tweet.id}`);
     tweet = apiOutput.tweet;
-    threadPostsCache = apiOutput.threadPosts;
-    repliesCache = apiOutput.replies;
-    tweet.extendedStats = apiOutput.extendedStats;
+    threadPostsCache = apiOutput?.threadPosts || [{
+      ...tweet,
+      content: "failed to load tweet. it might have been deleted",
+    }];
+    repliesCache = apiOutput?.replies || [];
+    tweet.extendedStats = apiOutput?.extendedStats || [];
 
     if (!tweet) {
       switchPage("timeline");
