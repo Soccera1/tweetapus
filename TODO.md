@@ -3,6 +3,9 @@
 ## others
 
 - tweetapus Gronk ✨
-- db indexes for speed (after everything is done)
 - communities
+
+## later
+
 - keyboard shortcuts
+- db indexes for speed

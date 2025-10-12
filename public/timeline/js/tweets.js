@@ -898,7 +898,65 @@ export const createTweetElement = (tweet, config = {}) => {
 
   const tweetContentEl = document.createElement("div");
   tweetContentEl.className = "tweet-content";
-  tweetContentEl.innerHTML = linkifyText(tweet.content.trim());
+
+  const rawContent = tweet.content ? tweet.content.trim() : "";
+
+  const isExpandedView = Boolean(showStats) || clickToOpen === false;
+  const shouldTrim = rawContent.length > 300 && !isExpandedView && !tweet.extended && !tweet.isExpanded;
+
+  const applyLinkified = (text) => {
+    tweetContentEl.innerHTML = linkifyText(text);
+  };
+
+  if (shouldTrim) {
+    let trimmed = rawContent.slice(0, 300);
+    const lastSpace = Math.max(trimmed.lastIndexOf(" "), trimmed.lastIndexOf("\n"));
+    if (lastSpace > 0) trimmed = trimmed.slice(0, lastSpace);
+
+    applyLinkified(trimmed);
+
+    const ellipsis = document.createElement("span");
+    ellipsis.className = "tweet-ellipsis";
+    ellipsis.innerText = "Show more…";
+    ellipsis.title = "Show more";
+    ellipsis.setAttribute("role", "button");
+    ellipsis.tabIndex = 0;
+
+    const expand = () => {
+      applyLinkified(rawContent);
+      ellipsis.remove();
+
+      const collapse = document.createElement("button");
+      collapse.className = "tweet-collapse-btn";
+      collapse.type = "button";
+      collapse.innerText = "Show less";
+      collapse.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        applyLinkified(trimmed);
+        tweetContentEl.appendChild(ellipsis);
+        collapse.remove();
+      });
+
+      tweetContentEl.appendChild(collapse);
+    };
+
+    ellipsis.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      expand();
+    });
+    ellipsis.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        expand();
+      }
+    });
+
+    tweetContentEl.appendChild(ellipsis);
+  } else {
+    applyLinkified(rawContent);
+  }
 
   tweetContentEl.addEventListener("click", (e) => {
     if (e.target.classList.contains("tweet-mention")) {
