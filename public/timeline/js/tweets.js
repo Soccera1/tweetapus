@@ -902,7 +902,11 @@ export const createTweetElement = (tweet, config = {}) => {
   const rawContent = tweet.content ? tweet.content.trim() : "";
 
   const isExpandedView = Boolean(showStats) || clickToOpen === false;
-  const shouldTrim = rawContent.length > 300 && !isExpandedView && !tweet.extended && !tweet.isExpanded;
+  const shouldTrim =
+    rawContent.length > 300 &&
+    !isExpandedView &&
+    !tweet.extended &&
+    !tweet.isExpanded;
 
   const applyLinkified = (text) => {
     tweetContentEl.innerHTML = linkifyText(text);
@@ -910,7 +914,10 @@ export const createTweetElement = (tweet, config = {}) => {
 
   if (shouldTrim) {
     let trimmed = rawContent.slice(0, 300);
-    const lastSpace = Math.max(trimmed.lastIndexOf(" "), trimmed.lastIndexOf("\n"));
+    const lastSpace = Math.max(
+      trimmed.lastIndexOf(" "),
+      trimmed.lastIndexOf("\n")
+    );
     if (lastSpace > 0) trimmed = trimmed.slice(0, lastSpace);
 
     applyLinkified(trimmed);
