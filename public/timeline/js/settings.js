@@ -561,7 +561,7 @@ const createPrivacyContent = () => {
           e.target.checked = !enabled;
           toastQueue.add(`<h1>Failed to update ghost mode</h1>`);
         }
-      } catch (error) {
+      } catch {
         e.target.checked = !enabled;
         toastQueue.add(`<h1>Failed to update ghost mode</h1>`);
       }
@@ -670,7 +670,7 @@ const loadScheduledPosts = async () => {
             } else {
               toastQueue.add(`<h1>Error</h1><p>Failed to delete post</p>`);
             }
-          } catch (error) {
+          } catch {
             toastQueue.add(`<h1>Error</h1><p>Failed to delete post</p>`);
           }
         }
@@ -1928,7 +1928,6 @@ const setAccentColor = (color, showToast = true) => {
   );
   if (customOption && !document.querySelector(`[data-color="${color}"]`)) {
     customOption.classList.add("active");
-    // ensure the custom option shows the selected color (remove gradient)
     customOption.style.background = color;
     const picker = customOption.querySelector(".custom-color-picker");
     if (picker) {
