@@ -177,7 +177,6 @@ const createThemesContent = () => {
     if (preset.color === "custom") {
       option.style.background =
         "linear-gradient(45deg, #ff0000 0%, #ff7f00 14%, #ffff00 29%, #00ff00 43%, #0000ff 57%, #4b0082 71%, #9400d3 86%, #ff0000 100%)";
-      // mark this option as the custom wrapper so other code can find it
       option.setAttribute("data-is-custom", "true");
       const picker = document.createElement("input");
       picker.type = "color";
@@ -1890,7 +1889,6 @@ const saveThemeToServer = async () => {
   }
 };
 
-let themeToastRef = null;
 const handleThemeModeChange = (theme) => {
   const root = document.documentElement;
   const select = document.querySelector(".theme-mode-select");
@@ -1912,21 +1910,11 @@ const handleThemeModeChange = (theme) => {
     root.classList.remove("dark");
     localStorage.setItem("theme", "light");
   }
-
-  if (!isRestoringState) {
-    if (themeToastRef) {
-      toastQueue.delete(themeToastRef.id);
-    }
-    themeToastRef = toastQueue.add(
-      `<h1>Theme Changed</h1><p>Switched to ${theme} mode</p>`
-    );
-  }
 };
 
 const setAccentColor = (color, showToast = true) => {
   applyAccentColor(color);
 
-  // Update all color options
   document.querySelectorAll(".color-option").forEach((option) => {
     option.classList.remove("active");
     if (option.dataset.color === color) {
@@ -1950,8 +1938,7 @@ const setAccentColor = (color, showToast = true) => {
   }
 
   if (showToast && !isRestoringState) {
-    if (themeToastRef) toastQueue.delete(themeToastRef.id);
-    themeToastRef = toastQueue.add(
+    toastQueue.add(
       `<h1>Accent Color Changed</h1><p>Your accent color has been updated</p>`
     );
   }
