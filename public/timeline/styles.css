@@ -1095,6 +1095,10 @@ nav {
 				&:active {
 					transform: scale(0.96);
 				}
+
+				.retweet-count:empty, .like-count:empty, .reply-count:empty {
+					display: none;
+				}
 			}
 		}
 	}

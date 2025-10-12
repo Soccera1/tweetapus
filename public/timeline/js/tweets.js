@@ -1072,7 +1072,7 @@ export const createTweetElement = (tweet, config = {}) => {
             stroke-linecap="round"
             stroke-linejoin="round"
           />
-        </svg> <span class="like-count">${tweet.like_count}</span>`;
+        </svg> <span class="like-count">${tweet.like_count || ""}</span>`;
 
   tweetInteractionsLikeEl.addEventListener("click", async (e) => {
     e.preventDefault();
@@ -1090,7 +1090,7 @@ export const createTweetElement = (tweet, config = {}) => {
         const svg = tweetInteractionsLikeEl.querySelector("svg path");
         const likeCountSpan =
           tweetInteractionsLikeEl.querySelector(".like-count");
-        const currentCount = parseInt(likeCountSpan.textContent);
+        const currentCount = parseInt(likeCountSpan.textContent || "0");
 
         if (newIsLiked) {
           svg.setAttribute("fill", "#F91980");
@@ -1127,7 +1127,7 @@ export const createTweetElement = (tweet, config = {}) => {
             stroke-linecap="round"
             stroke-linejoin="round"
           />
-        </svg> ${tweet.reply_count}`;
+        </svg> ${tweet.reply_count || ""}`;
 
   tweetInteractionsReplyEl.addEventListener("click", async (e) => {
     if (!clickToOpen) return;
@@ -1166,7 +1166,7 @@ export const createTweetElement = (tweet, config = {}) => {
                 stroke-linecap="round"
                 stroke-linejoin="round"
               />
-            </svg> <span class="retweet-count">${tweet.retweet_count}</span>`;
+            </svg> <span class="retweet-count">${tweet.retweet_count || ""}</span>`;
 
   tweetInteractionsRetweetEl.addEventListener("click", async (e) => {
     e.preventDefault();
@@ -1193,7 +1193,7 @@ export const createTweetElement = (tweet, config = {}) => {
                 tweetInteractionsRetweetEl.querySelectorAll("svg path");
               const retweetCountSpan =
                 tweetInteractionsRetweetEl.querySelector(".retweet-count");
-              const currentCount = parseInt(retweetCountSpan.textContent);
+              const currentCount = parseInt(retweetCountSpan.textContent || "0");
 
               if (newIsRetweeted) {
                 svgPaths.forEach((path) =>

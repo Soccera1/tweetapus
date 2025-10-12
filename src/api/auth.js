@@ -104,6 +104,7 @@ export default new Elysia({ prefix: "/auth" })
           name: user.name || null,
           avatar: user.avatar,
           verified: user.verified || false,
+          gold: user.gold || false,
           admin: user.admin || false,
           theme: user.theme || null,
           accent_color: user.accent_color || null,
