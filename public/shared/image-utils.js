@@ -7,26 +7,18 @@
  */
 export async function convertToWebPAvatar(file, size = 250, quality = 0.8) {
 	return new Promise((resolve, reject) => {
-		// Check if file is already WebP and correct size
-		if (file.type === "image/webp" && file.size < 1024 * 1024) {
-			// Still process it to ensure it's the right size
-		}
-
 		const canvas = document.createElement("canvas");
 		const ctx = canvas.getContext("2d");
 		const img = new Image();
 
 		img.onload = () => {
-			// Set canvas size to target size
 			canvas.width = size;
 			canvas.height = size;
 
-			// Calculate dimensions to maintain aspect ratio and crop to square
 			const minDimension = Math.min(img.width, img.height);
 			const sourceX = (img.width - minDimension) / 2;
 			const sourceY = (img.height - minDimension) / 2;
 
-			// Draw the image cropped and resized to square
 			ctx.drawImage(
 				img,
 				sourceX,
@@ -39,7 +31,6 @@ export async function convertToWebPAvatar(file, size = 250, quality = 0.8) {
 				size,
 			);
 
-			// Convert to WebP
 			canvas.toBlob(
 				(blob) => {
 					if (!blob) {
@@ -47,7 +38,6 @@ export async function convertToWebPAvatar(file, size = 250, quality = 0.8) {
 						return;
 					}
 
-					// Create a new File object with WebP MIME type
 					const webpFile = new File([blob], `${file.name.split(".")[0]}.webp`, {
 						type: "image/webp",
 						lastModified: Date.now(),
@@ -59,7 +49,6 @@ export async function convertToWebPAvatar(file, size = 250, quality = 0.8) {
 				quality,
 			);
 
-			// Clean up the object URL
 			URL.revokeObjectURL(objectUrl);
 		};
 
