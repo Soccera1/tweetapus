@@ -1777,5 +1777,4 @@ export const addTweetToTimeline = (tweet, prepend = false) => {
   return tweetEl;
 };
 
-
-// stuck -> 
+// stuck ->
