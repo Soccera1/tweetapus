@@ -6,7 +6,7 @@
 #include <math.h>
 
 #define MAX_AGE_HOURS 72
-#define FRESH_TWEET_HOURS 6
+#define HALFTIME_HOURS 12
 #define VIRAL_THRESHOLD 100
 #define MIN_ENGAGEMENT_RATIO 0.01
 
@@ -21,14 +21,14 @@ static inline int safe_max(int a, int b) {
 static double calculate_time_decay(double age_hours) {
     if (age_hours < 0.0) age_hours = 0.0;
     
-    if (age_hours < FRESH_TWEET_HOURS) {
-        return 1.0 + (FRESH_TWEET_HOURS - age_hours) / FRESH_TWEET_HOURS * 0.8;
+    if (age_hours < HALFTIME_HOURS) {
+        return 1.0 - (age_hours / HALFTIME_HOURS) * 0.5;
     } else if (age_hours < 24.0) {
-        return 1.0 - (age_hours - FRESH_TWEET_HOURS) / (24.0 - FRESH_TWEET_HOURS) * 0.3;
+        return 0.5 - (age_hours - HALFTIME_HOURS) / (24.0 - HALFTIME_HOURS) * 0.2;
     } else if (age_hours < MAX_AGE_HOURS) {
-        return 0.7 - (age_hours - 24.0) / (MAX_AGE_HOURS - 24.0) * 0.5;
+        return 0.3 - (age_hours - 24.0) / (MAX_AGE_HOURS - 24.0) * 0.2;
     } else {
-        return 0.2 * exp(-(age_hours - MAX_AGE_HOURS) / 24.0);
+        return 0.1 * exp(-(age_hours - MAX_AGE_HOURS) / 24.0);
     }
 }
 
@@ -97,8 +97,8 @@ double calculate_score(
     
     int total_engagement = like_count + retweet_count + reply_count + quote_count;
     
-    if (age_hours > MAX_AGE_HOURS && total_engagement < 5) {
-        return 0.0;
+    if (age_hours > MAX_AGE_HOURS && total_engagement == 0) {
+        return 0.05;
     }
     
     double time_decay = calculate_time_decay(age_hours);
@@ -112,7 +112,7 @@ double calculate_score(
     double base_score = safe_log(like_count + 1) * 2.0 +
                        safe_log(retweet_count + 1) * 3.0 +
                        safe_log(reply_count + 1) * 1.5 +
-                       safe_log(quote_count + 1) * 2.5;
+                       safe_log(quote_count + 1) * 2.8;
     
     double diversity_bonus = 1.0;
     int engagement_types = 0;
@@ -122,13 +122,16 @@ double calculate_score(
     if (quote_count > 0) engagement_types++;
     diversity_bonus = 1.0 + (engagement_types - 1) * 0.15;
     
+    double quote_boost = quote_count > 0 ? 1.1 : 1.0;
+    
     double final_score = base_score * 
                         time_decay * 
                         engagement_quality * 
                         virality_boost * 
-                        diversity_bonus;
+                        diversity_bonus * 
+                        quote_boost;
     
-    if (final_score < 0.0) final_score = 0.0;
+    if (final_score < 0.01) final_score = 0.01;
     
     return final_score;
 }

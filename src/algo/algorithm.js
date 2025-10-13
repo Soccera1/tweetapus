@@ -10,7 +10,7 @@ if (existsSync(libPath)) {
   try {
     lib = dlopen(libPath, {
       calculate_score: {
-        args: [FFIType.i64, FFIType.i32, FFIType.i32],
+        args: [FFIType.i64, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.i32],
         returns: FFIType.double,
       },
     });
@@ -33,33 +33,32 @@ export const calculateScore = (
   like_count,
   retweet_count,
   reply_count = 0,
-  quote_count = 0
+  quote_count = 0,
+  has_media = false
 ) => {
   if (!lib) {
     const now = Math.floor(Date.now() / 1000);
     const ageHours = (now - created_at) / 3600;
 
     const MAX_AGE_HOURS = 72;
-    const FRESH_TWEET_HOURS = 6;
+    const HALFTIME_HOURS = 12;
 
     const totalEngagement =
       like_count + retweet_count + reply_count + quote_count;
 
-    if (ageHours > MAX_AGE_HOURS && totalEngagement < 5) {
-      return 0;
+    if (ageHours > MAX_AGE_HOURS && totalEngagement === 0) {
+      return 0.05;
     }
 
     const calculateTimeDecay = (age) => {
-      if (age < FRESH_TWEET_HOURS) {
-        return 1.0 + ((FRESH_TWEET_HOURS - age) / FRESH_TWEET_HOURS) * 0.8;
+      if (age < HALFTIME_HOURS) {
+        return 1.0 - (age / HALFTIME_HOURS) * 0.5;
       } else if (age < 24) {
-        return (
-          1.0 - ((age - FRESH_TWEET_HOURS) / (24 - FRESH_TWEET_HOURS)) * 0.3
-        );
+        return 0.5 - ((age - HALFTIME_HOURS) / (24 - HALFTIME_HOURS)) * 0.2;
       } else if (age < MAX_AGE_HOURS) {
-        return 0.7 - ((age - 24) / (MAX_AGE_HOURS - 24)) * 0.5;
+        return 0.3 - ((age - 24) / (MAX_AGE_HOURS - 24)) * 0.2;
       } else {
-        return 0.2 * Math.exp(-(age - MAX_AGE_HOURS) / 24);
+        return 0.1 * Math.exp(-(age - MAX_AGE_HOURS) / 24);
       }
     };
 
@@ -92,7 +91,7 @@ export const calculateScore = (
       Math.log(like_count + 1) * 2.0 +
       Math.log(retweet_count + 1) * 3.0 +
       Math.log(reply_count + 1) * 1.5 +
-      Math.log(quote_count + 1) * 2.5;
+      Math.log(quote_count + 1) * 2.8;
 
     let engagementTypes = 0;
     if (like_count > 0) engagementTypes++;
@@ -101,12 +100,21 @@ export const calculateScore = (
     if (quote_count > 0) engagementTypes++;
     const diversityBonus = 1.0 + (engagementTypes - 1) * 0.15;
 
+    const mediaBoost = has_media ? 1.15 : 1.0;
+    const quoteBoost = quote_count > 0 ? 1.1 : 1.0;
+
     const timeDecay = calculateTimeDecay(ageHours);
 
-    return Math.max(
-      0,
-      baseScore * timeDecay * qualityScore * viralityBoost * diversityBonus
-    );
+    const finalScore =
+      baseScore *
+      timeDecay *
+      qualityScore *
+      viralityBoost *
+      diversityBonus *
+      mediaBoost *
+      quoteBoost;
+
+    return Math.max(0.01, finalScore);
   }
 
   const timestamp =
@@ -123,24 +131,43 @@ export const calculateScore = (
   );
 };
 
-export const rankTweets = (tweets, seenIds = new Set()) => {
-  const unseenTweets = tweets.filter((tweet) => !seenIds.has(tweet.id));
+export const rankTweets = (
+  tweets,
+  seenIds = new Set(),
+  attachmentsMap = new Map()
+) => {
+  const tweetsWithScores = tweets.map((tweet) => {
+    let timestamp;
+    if (typeof tweet.created_at === "string") {
+      const date = new Date(
+        tweet.created_at.includes("T")
+          ? tweet.created_at
+          : tweet.created_at.replace(" ", "T") + "Z"
+      );
+      timestamp = Math.floor(date.getTime() / 1000);
+    } else {
+      timestamp = tweet.created_at;
+    }
 
-  const tweetsWithScores = unseenTweets.map((tweet) => {
-    const timestamp =
-      typeof tweet.created_at === "string"
-        ? Math.floor(new Date(tweet.created_at).getTime() / 1000)
-        : tweet.created_at;
+    const hasMedia =
+      attachmentsMap.has(tweet.id) && attachmentsMap.get(tweet.id).length > 0;
+
+    let score = calculateScore(
+      timestamp,
+      tweet.like_count || 0,
+      tweet.retweet_count || 0,
+      tweet.reply_count || 0,
+      tweet.quote_count || 0,
+      hasMedia
+    );
+
+    if (seenIds.has(tweet.id)) {
+      score *= 0.3;
+    }
 
     return {
       ...tweet,
-      _score: calculateScore(
-        timestamp,
-        tweet.like_count || 0,
-        tweet.retweet_count || 0,
-        tweet.reply_count || 0,
-        tweet.quote_count || 0
-      ),
+      _score: score,
     };
   });
 
