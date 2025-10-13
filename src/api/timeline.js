@@ -232,7 +232,7 @@ export default new Elysia({ prefix: "/timeline" })
             `SELECT * FROM attachments WHERE post_id IN (${attachmentPlaceholders})`
           )
           .all(...postIds);
-        
+
         const attachmentMap = new Map();
         allAttachments.forEach((attachment) => {
           if (!attachmentMap.has(attachment.post_id)) {
@@ -445,7 +445,7 @@ export default new Elysia({ prefix: "/timeline" })
             `SELECT * FROM attachments WHERE post_id IN (${attachmentPlaceholders})`
           )
           .all(...postIds);
-        
+
         const attachmentMap = new Map();
         allAttachments.forEach((attachment) => {
           if (!attachmentMap.has(attachment.post_id)) {

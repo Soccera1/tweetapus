@@ -150,29 +150,31 @@ double calculate_score(
     double seen_penalty = 1.0;
     if (hours_since_seen >= 0.0) {
         if (hours_since_seen < 0.5) {
-            seen_penalty = 0.14;
+            seen_penalty = 0.05;
         } else if (hours_since_seen < 2.0) {
-            seen_penalty = 0.22;
+            seen_penalty = 0.08;
         } else if (hours_since_seen < 6.0) {
-            seen_penalty = 0.34;
+            seen_penalty = 0.12;
         } else if (hours_since_seen < 12.0) {
-            seen_penalty = 0.48;
+            seen_penalty = 0.20;
         } else if (hours_since_seen < 24.0) {
-            seen_penalty = 0.65;
+            seen_penalty = 0.35;
         } else if (hours_since_seen < 48.0) {
-            seen_penalty = 0.8;
+            seen_penalty = 0.55;
         } else if (hours_since_seen < 96.0) {
-            seen_penalty = 0.9;
+            seen_penalty = 0.75;
+        } else if (hours_since_seen < 168.0) {
+            seen_penalty = 0.88;
         } else {
-            seen_penalty = 0.96;
+            seen_penalty = 0.95;
         }
     }
 
-    double author_penalty = 1.0 / (1.0 + (double)author_repeats * 0.45);
-    if (author_penalty < 0.38) author_penalty = 0.38;
+    double author_penalty = 1.0 / (1.0 + (double)author_repeats * 0.75);
+    if (author_penalty < 0.15) author_penalty = 0.15;
 
-    double content_penalty = 1.0 / (1.0 + (double)content_repeats * 0.6);
-    if (content_penalty < 0.28) content_penalty = 0.28;
+    double content_penalty = 1.0 / (1.0 + (double)content_repeats * 1.5);
+    if (content_penalty < 0.08) content_penalty = 0.08;
 
     double recency_adjust = 1.0;
     if (age_hours < 0.5) {
@@ -201,10 +203,10 @@ double calculate_score(
     if (novelty_boost < 0.75) novelty_boost = 0.75;
     if (novelty_boost > 1.5) novelty_boost = 1.5;
 
-    double random_span = all_seen_flag ? 0.55 : 0.1;
-    double random_offset = all_seen_flag ? 0.25 : 0.04;
+    double random_span = all_seen_flag ? 1.8 : 0.04;
+    double random_offset = all_seen_flag ? 0.5 : 0.02;
     double random_component = random_offset + random_factor * random_span;
-    double random_multiplier = 1.0 + random_component * 0.08;
+    double random_multiplier = all_seen_flag ? (1.0 + random_component * 0.35) : (1.0 + random_component * 0.08);
     
     double final_score = base_score * 
                         time_decay * 
@@ -220,7 +222,11 @@ double calculate_score(
                         novelty_boost *
                         random_multiplier;
 
-    final_score += random_component;
+    if (all_seen_flag) {
+        final_score += random_component * 2.5;
+    } else {
+        final_score += random_component;
+    }
     
     if (final_score < 0.0) final_score = 0.0;
     
@@ -267,20 +273,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
     }
     
     qsort(tweets, count, sizeof(Tweet), compare_tweets);
-
-    if (count > 3) {
-        for (size_t i = 2; i < count && i < 12; i += 3) {
-            size_t swap_with = i - 1;
-            if (swap_with < count) {
-                double roll = (double)rand() / (double)RAND_MAX;
-                if (roll < 0.55) {
-                    Tweet temp = tweets[i];
-                    tweets[i] = tweets[swap_with];
-                    tweets[swap_with] = temp;
-                }
-            }
-        }
-    }
 }
 
 char *process_timeline(const char *json_input) {

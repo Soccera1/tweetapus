@@ -7,6 +7,36 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.tweet-preview.unavailable-quote {
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 8px;
+}
+
+.tweet-share-wrapper {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 120px 80px;
+  background: linear-gradient(135deg, rgb(10, 207, 254), rgb(73, 90, 255));
+  z-index: -1;
+  pointer-events: none;
+}
+
+.tweet-share-container {
+  background-color: var(--bg-primary);
+  border-radius: 16px;
+  padding: 16px;
+  width: 460px;
+  box-sizing: border-box;
+}
+
 .hidden {
   display: none !important;
 }
@@ -1048,6 +1078,7 @@ nav {
   height: auto;
   transform-origin: top;
   transition: opacity 0.3s, filter 0.3s, transform 0.3s;
+  position: relative;
 
   &.clickable {
     cursor: pointer;
@@ -1068,6 +1099,7 @@ nav {
       width: 43px;
       height: 43px;
       border-radius: 50%;
+      cursor: pointer;
     }
 
     .tweet-header-info {
@@ -1087,10 +1119,12 @@ nav {
         &.name {
           font-weight: 500;
           margin-bottom: -4px;
+          cursor: pointer;
         }
 
         &.username {
           color: var(--text-secondary);
+          cursor: pointer;
         }
       }
     }
@@ -1284,6 +1318,18 @@ nav {
         }
       }
     }
+
+    button.reply-restricted {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .reply-restriction-info {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    padding-left: 20px;
   }
 
   /* When viewing a profile that blocked the viewer, visually mute and disable interactions */
@@ -1381,6 +1427,10 @@ nav {
       margin-bottom: 5px;
       border-radius: 100px;
       transition: background-color 0.2s, opacity 0.2s, transform 0.2s;
+
+      &.poll-option-clickable {
+        cursor: pointer;
+      }
 
       &:not(.voted):not(.expired):hover {
         background-color: rgba(var(--primary-rgb), 0.1);
@@ -1504,6 +1554,33 @@ nav {
       }
     }
   }
+}
+
+.tweet.tweet-removing {
+  opacity: 0;
+  filter: blur(2.5px);
+  transform: scale(0.98);
+}
+
+.tweet-source-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  transform: translateY(1px);
+}
+
+.tweet-source-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.tweet-header-avatar {
+  cursor: pointer;
+}
+
+.tweet-header-name,
+.tweet-header-username {
+  cursor: pointer;
 }
 
 .tweetPage {
@@ -4582,5 +4659,91 @@ nav {
   &:hover {
     background-color: rgba(29, 161, 242, 0.1);
     color: #1da1f2;
+  }
+}
+
+.tweet-article {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  h2 {
+    margin: 0px;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .article-cover {
+    border-radius: 18px;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      display: block;
+      height: auto;
+      border-radius: 18px;
+    }
+  }
+
+  .tweet-article-body {
+    font-size: 16px;
+    line-height: 1.6;
+
+    img {
+      max-width: 100%;
+      display: block;
+      margin: 12px 0;
+      border-radius: 14px;
+    }
+
+    pre {
+      background-color: var(--bg-secondary);
+      border-radius: 14px;
+      padding: 12px;
+      overflow-x: auto;
+      margin: 0 0 16px;
+    }
+
+    blockquote {
+      margin: 0 0 16px;
+      padding-left: 14px;
+      border-left: 4px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      margin: 18px 0 10px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+  }
+
+  .tweet-article-preview {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .tweet-article-read-more {
+    align-self: flex-start;
+    margin-top: 8px;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 9999px;
+    padding: 6px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--primary);
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(var(--primary-rgb), 0.08);
+    }
   }
 }

@@ -335,6 +335,7 @@ const createPollElement = (poll, tweet) => {
 				</div>
 			`;
     } else {
+      optionEl.classList.add("poll-option-clickable");
       optionEl.innerHTML = `
 				<div class="poll-option-content">
 					<span class="poll-option-text">${option.option_text
@@ -342,7 +343,6 @@ const createPollElement = (poll, tweet) => {
             .replaceAll(">", "&gt;")}</span>
 				</div>
 			`;
-      optionEl.style.cursor = "pointer";
       optionEl.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -629,6 +629,7 @@ export const createTweetElement = (tweet, config = {}) => {
   tweetHeaderAvatarEl.src =
     tweet.author.avatar || `/public/shared/default-avatar.png`;
   tweetHeaderAvatarEl.alt = tweet.author.name || tweet.author.username;
+  tweetHeaderAvatarEl.classList.add("tweet-header-avatar");
 
   if (
     tweet.author.avatar_radius !== null &&
@@ -641,7 +642,6 @@ export const createTweetElement = (tweet, config = {}) => {
     tweetHeaderAvatarEl.style.borderRadius = "50px";
   }
   tweetHeaderAvatarEl.loading = "lazy";
-  tweetHeaderAvatarEl.style.cursor = "pointer";
   tweetHeaderAvatarEl.addEventListener("click", (e) => {
     e.stopPropagation();
     import("./profile.js").then(({ default: openProfile }) => {
@@ -657,7 +657,7 @@ export const createTweetElement = (tweet, config = {}) => {
   const tweetHeaderNameEl = document.createElement("p");
   tweetHeaderNameEl.className = "name";
   tweetHeaderNameEl.textContent = tweet.author.name || tweet.author.username;
-  tweetHeaderNameEl.style.cursor = "pointer";
+  tweetHeaderNameEl.classList.add("tweet-header-name");
   tweetHeaderNameEl.addEventListener("click", (e) => {
     e.stopPropagation();
     import("./profile.js").then(({ default: openProfile }) => {
@@ -718,8 +718,8 @@ export const createTweetElement = (tweet, config = {}) => {
   }
 
   const source_icons = {
-    desktop_web: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-monitor-icon lucide-monitor" style="margin-left: 4px;margin-bottom: -2px;"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>`,
-    mobile_web: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-smartphone-icon lucide-smartphone" style="margin-left: 4px;margin-bottom: -2px;"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`,
+    desktop_web: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tweet-source-icon lucide lucide-monitor-icon lucide-monitor"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>`,
+    mobile_web: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tweet-source-icon lucide lucide-smartphone-icon lucide-smartphone"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`,
   };
 
   const tweetHeaderUsernameEl = document.createElement("p");
@@ -727,7 +727,7 @@ export const createTweetElement = (tweet, config = {}) => {
   tweetHeaderUsernameEl.textContent = `@${tweet.author.username} · ${timeAgo(
     tweet.created_at
   )}`;
-  tweetHeaderUsernameEl.style.cursor = "pointer";
+  tweetHeaderUsernameEl.classList.add("tweet-header-username");
   tweetHeaderUsernameEl.addEventListener("click", (e) => {
     e.stopPropagation();
     import("./profile.js").then(({ default: openProfile }) => {
@@ -737,6 +737,7 @@ export const createTweetElement = (tweet, config = {}) => {
 
   if (tweet.source && source_icons[tweet.source]) {
     const sourceIconEl = document.createElement("span");
+    sourceIconEl.className = "tweet-source-icon-wrapper";
     sourceIconEl.innerHTML = `${source_icons[tweet.source]}`;
     tweetHeaderUsernameEl.appendChild(sourceIconEl);
   } else if (tweet.source) {
@@ -792,23 +793,10 @@ export const createTweetElement = (tweet, config = {}) => {
           tweetElClone.innerHTML = tweetEl.outerHTML;
 
           const wrapper = document.createElement("div");
-          wrapper.style.display = "flex";
-          wrapper.style.justifyContent = "center";
-          wrapper.style.alignItems = "center";
-          wrapper.style.padding = "120px 80px";
-          wrapper.style.background =
-            "linear-gradient(135deg, rgb(10, 207, 254), rgb(73, 90, 255))";
+          wrapper.className = "tweet-share-wrapper";
 
           const tweetContainer = document.createElement("div");
-          tweetContainer.style.backgroundColor = getComputedStyle(
-            document.documentElement
-          )
-            .getPropertyValue("--bg-primary")
-            .trim();
-          tweetContainer.style.borderRadius = "16px";
-          tweetContainer.style.padding = "16px";
-          tweetContainer.style.width = "460px";
-          tweetContainer.style.boxSizing = "border-box";
+          tweetContainer.className = "tweet-share-container";
 
           const stats = tweetElClone.querySelector(".expanded-tweet-stats");
           if (stats) stats.remove();
@@ -816,9 +804,6 @@ export const createTweetElement = (tweet, config = {}) => {
           tweetContainer.appendChild(tweetElClone);
           wrapper.appendChild(tweetContainer);
 
-          wrapper.style.position = "fixed";
-          wrapper.style.top = "-9999px";
-          wrapper.style.left = "-9999px";
           document.body.appendChild(wrapper);
 
           // load html2canvas
@@ -930,12 +915,7 @@ export const createTweetElement = (tweet, config = {}) => {
             });
 
             if (result.success) {
-              tweetEl.style.transition = "all 0.3s ease";
-
-              requestAnimationFrame(() => {
-                tweetEl.style.opacity = "0";
-                tweetEl.style.filter = "blur(2.5px)";
-              });
+              tweetEl.classList.add("tweet-removing");
 
               setTimeout(() => {
                 tweetEl.remove();
@@ -1030,7 +1010,6 @@ export const createTweetElement = (tweet, config = {}) => {
       }
     });
 
-    tweetEl.style.position = "relative";
     tweetHeaderEl.appendChild(menuButtonEl);
   });
 
@@ -1046,17 +1025,10 @@ export const createTweetElement = (tweet, config = {}) => {
   if (isArticlePost) {
     const articleContainer = document.createElement("div");
     articleContainer.className = "tweet-content tweet-article";
-    articleContainer.style.display = "flex";
-    articleContainer.style.flexDirection = "column";
-    articleContainer.style.gap = "16px";
 
     if (tweet.article_title) {
       const titleEl = document.createElement("h2");
       titleEl.textContent = tweet.article_title;
-      titleEl.style.margin = "0";
-      titleEl.style.fontSize = "22px";
-      titleEl.style.fontWeight = "600";
-      titleEl.style.lineHeight = "1.2";
       articleContainer.appendChild(titleEl);
     }
 
@@ -1066,23 +1038,19 @@ export const createTweetElement = (tweet, config = {}) => {
 
     if (coverAttachment) {
       const coverEl = document.createElement("div");
+      coverEl.classList.add("article-cover");
       coverEl.innerHTML = `<img src="${coverAttachment.file_url}" alt="${coverAttachment.file_name}" loading="lazy" />`;
-      coverEl.style.borderRadius = "18px";
-      coverEl.style.overflow = "hidden";
+
       const coverImg = coverEl.querySelector("img");
       if (coverImg) {
-        coverImg.style.width = "100%";
-        coverImg.style.display = "block";
-        coverImg.style.height = "auto";
-        coverImg.style.borderRadius = "18px";
+        coverEl.appendChild(coverImg);
       }
       articleContainer.appendChild(coverEl);
     }
 
     if (showFullArticle) {
       const articleBody = document.createElement("div");
-      articleBody.style.fontSize = "16px";
-      articleBody.style.lineHeight = "1.6";
+      articleBody.className = "tweet-article-body";
       articleBody.innerHTML = DOMPurify.sanitize(
         marked.parse(tweet.article_body_markdown, {
           breaks: true,
@@ -1101,40 +1069,12 @@ export const createTweetElement = (tweet, config = {}) => {
         if (!img.hasAttribute("loading")) {
           img.setAttribute("loading", "lazy");
         }
-        img.style.maxWidth = "100%";
-        img.style.display = "block";
-        img.style.margin = "12px 0";
-        img.style.borderRadius = "14px";
       });
-
-      articleBody.querySelectorAll("pre").forEach((pre) => {
-        pre.style.backgroundColor = "var(--bg-secondary)";
-        pre.style.borderRadius = "14px";
-        pre.style.padding = "12px";
-        pre.style.overflowX = "auto";
-        pre.style.margin = "0 0 16px";
-      });
-
-      articleBody.querySelectorAll("blockquote").forEach((blockquote) => {
-        blockquote.style.margin = "0 0 16px";
-        blockquote.style.paddingLeft = "14px";
-        blockquote.style.borderLeft = "4px solid var(--border-color)";
-        blockquote.style.color = "var(--text-secondary)";
-      });
-
-      articleBody
-        .querySelectorAll("h1, h2, h3, h4, h5, h6")
-        .forEach((heading) => {
-          heading.style.margin = "18px 0 10px";
-          heading.style.fontWeight = "600";
-          heading.style.lineHeight = "1.25";
-        });
 
       articleContainer.appendChild(articleBody);
     } else {
       const previewBody = document.createElement("div");
-      previewBody.style.fontSize = "16px";
-      previewBody.style.lineHeight = "1.5";
+      previewBody.className = "tweet-article-preview";
       const previewSource =
         tweet.article_preview?.excerpt ||
         tweet.article_title ||
@@ -1150,23 +1090,7 @@ export const createTweetElement = (tweet, config = {}) => {
       const readMoreButton = document.createElement("button");
       readMoreButton.type = "button";
       readMoreButton.textContent = "Read article";
-      readMoreButton.style.alignSelf = "flex-start";
-      readMoreButton.style.marginTop = "8px";
-      readMoreButton.style.backgroundColor = "transparent";
-      readMoreButton.style.border = "1px solid var(--border-color)";
-      readMoreButton.style.borderRadius = "9999px";
-      readMoreButton.style.padding = "6px 14px";
-      readMoreButton.style.fontSize = "14px";
-      readMoreButton.style.fontWeight = "600";
-      readMoreButton.style.cursor = "pointer";
-      readMoreButton.style.color = "var(--primary)";
-      readMoreButton.style.transition = "background-color 0.2s ease";
-      readMoreButton.addEventListener("mouseenter", () => {
-        readMoreButton.style.backgroundColor = "rgba(var(--primary-rgb), 0.08)";
-      });
-      readMoreButton.addEventListener("mouseleave", () => {
-        readMoreButton.style.backgroundColor = "transparent";
-      });
+      readMoreButton.className = "tweet-article-read-more";
       readMoreButton.addEventListener("click", async (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -1291,14 +1215,6 @@ export const createTweetElement = (tweet, config = {}) => {
     if (!tweet.quoted_tweet.author) {
       const unavailableQuoteEl = document.createElement("div");
       unavailableQuoteEl.className = "tweet-preview unavailable-quote";
-      unavailableQuoteEl.style.cssText = `
-        padding: 16px;
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        color: var(--text-secondary);
-        text-align: center;
-        margin-top: 8px;
-      `;
       unavailableQuoteEl.textContent = "Quote tweet unavailable";
       tweetEl.appendChild(unavailableQuoteEl);
     } else {
@@ -1749,12 +1665,6 @@ export const createTweetElement = (tweet, config = {}) => {
           const restrictionEl = document.createElement("div");
           restrictionEl.className = "reply-restriction-info";
           restrictionEl.textContent = "You can reply to your own tweet";
-          restrictionEl.style.cssText = `
-						font-size: 13px;
-						color: var(--text-secondary);
-						margin-top: 8px;
-						padding-left: 20px;
-					`;
           tweetInteractionsEl.appendChild(restrictionEl);
           return;
         }
@@ -1763,8 +1673,7 @@ export const createTweetElement = (tweet, config = {}) => {
           ({ canReply: allowed, restrictionText }) => {
             if (!allowed) {
               tweetInteractionsReplyEl.disabled = true;
-              tweetInteractionsReplyEl.style.opacity = "0.5";
-              tweetInteractionsReplyEl.style.cursor = "not-allowed";
+              tweetInteractionsReplyEl.classList.add("reply-restricted");
               tweetInteractionsReplyEl.title = "You cannot reply to this tweet";
             }
 
@@ -1772,12 +1681,6 @@ export const createTweetElement = (tweet, config = {}) => {
               const restrictionEl = document.createElement("div");
               restrictionEl.className = "reply-restriction-info";
               restrictionEl.textContent = restrictionText;
-              restrictionEl.style.cssText = `
-							font-size: 13px;
-							color: var(--text-secondary);
-							margin-top: 8px;
-							padding-left: 20px;
-						`;
               tweetInteractionsEl.appendChild(restrictionEl);
             }
           }
@@ -1873,3 +1776,6 @@ export const addTweetToTimeline = (tweet, prepend = false) => {
 
   return tweetEl;
 };
+
+
+// stuck -> 
