@@ -1206,6 +1206,12 @@ class AdminPanel {
         document.getElementById("tweetOnBehalfModal")
       );
       modal.show();
+      // setup char count UI (admin default: unlimited)
+      this.updateTweetCharCount();
+      const textarea = document.getElementById("tweetContent");
+      if (textarea) {
+        textarea.addEventListener("input", () => this.updateTweetCharCount());
+      }
     } catch (error) {
       console.error(error);
       this.showError("Failed to load user details");
@@ -1215,6 +1221,9 @@ class AdminPanel {
   async postTweetOnBehalf() {
     const userId = document.getElementById("tweetUserId").value;
     const content = document.getElementById("tweetContent").value;
+  const replyTo = document.getElementById("tweetReplyTo").value || null;
+  // Admin panel: unlimited by default
+  const noCharLimit = true;
 
     if (!content.trim()) {
       this.showError("Tweet content cannot be empty");
@@ -1227,6 +1236,8 @@ class AdminPanel {
         body: JSON.stringify({
           content: content.trim(),
           userId,
+          replyTo,
+          noCharLimit,
         }),
       });
 
@@ -1238,6 +1249,14 @@ class AdminPanel {
     } catch (error) {
       this.showError(error.message);
     }
+  }
+
+  updateTweetCharCount() {
+    const textarea = document.getElementById("tweetContent");
+    const countEl = document.getElementById("charCount");
+    const limitEl = document.getElementById("charLimitDisplay");
+    if (!textarea || !countEl || !limitEl) return;
+    countEl.textContent = textarea.value.length;
   }
 
   showError(message) {
