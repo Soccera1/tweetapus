@@ -229,15 +229,40 @@ double calculate_score(
 
     double verified_boost = 1.0;
     if (user_gold) {
-        double engagement_multiplier = safe_log(like_count + retweet_count + reply_count + quote_count + 1) * 0.1;
-        double follower_multiplier = safe_log(follower_count + 1) * 0.05;
-        verified_boost = 1.7 + engagement_multiplier + follower_multiplier;
-        if (verified_boost > 2.2) verified_boost = 2.2;
-    } else if (user_verified) {
         double engagement_multiplier = safe_log(like_count + retweet_count + reply_count + quote_count + 1) * 0.05;
-        double follower_multiplier = safe_log(follower_count + 1) * 0.03;
-        verified_boost = 1.3 + engagement_multiplier + follower_multiplier;
-        if (verified_boost > 1.6) verified_boost = 1.6;
+        double follower_multiplier = safe_log(follower_count + 1) * 0.02;
+        verified_boost = 1.15 + engagement_multiplier + follower_multiplier;
+        if (verified_boost > 1.35) verified_boost = 1.35;
+        
+        if (hours_since_seen >= 0.0) {
+            if (hours_since_seen < 24.0) {
+                verified_boost *= 0.4;
+            } else if (hours_since_seen < 48.0) {
+                verified_boost *= 0.7;
+            } else {
+                verified_boost *= 0.85;
+            }
+        }
+    } else if (user_verified) {
+        double engagement_multiplier = safe_log(like_count + retweet_count + reply_count + quote_count + 1) * 0.03;
+        double follower_multiplier = safe_log(follower_count + 1) * 0.01;
+        verified_boost = 1.08 + engagement_multiplier + follower_multiplier;
+        if (verified_boost > 1.18) verified_boost = 1.18;
+        
+        if (hours_since_seen >= 0.0) {
+            if (hours_since_seen < 24.0) {
+                verified_boost *= 0.5;
+            } else if (hours_since_seen < 48.0) {
+                verified_boost *= 0.75;
+            } else {
+                verified_boost *= 0.9;
+            }
+        }
+    }
+    
+    if ((user_verified || user_gold) && author_repeats > 0) {
+        verified_boost *= (1.0 / (1.0 + (double)author_repeats * 1.2));
+        if (verified_boost < 0.5) verified_boost = 0.5;
     }
 
     double random_span = all_seen_flag ? 1.8 : 0.04;
