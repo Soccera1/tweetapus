@@ -1,8 +1,8 @@
+import { showEmojiPickerPopup } from "../../shared/emoji-picker.js";
 import { isConvertibleImage } from "../../shared/image-utils.js";
 import toastQueue from "../../shared/toasts.js";
 import query from "./api.js";
 import getUser from "./auth.js";
-import { showEmojiPickerPopup } from "../../shared/emoji-picker.js";
 
 export const useComposer = (
   element,
@@ -135,14 +135,17 @@ export const useComposer = (
   if (emojiBtn) {
     emojiBtn.addEventListener("click", () => {
       const btnRect = emojiBtn.getBoundingClientRect();
-      showEmojiPickerPopup((emoji) => {
-        textarea.value += emoji;
-        textarea.dispatchEvent(new Event("input", { bubbles: true }));
-        updateCharacterCount();
-      }, {
-        x: btnRect.left,
-        y: btnRect.bottom + 8,
-      });
+      showEmojiPickerPopup(
+        (emoji) => {
+          textarea.value += emoji;
+          textarea.dispatchEvent(new Event("input", { bubbles: true }));
+          updateCharacterCount();
+        },
+        {
+          x: btnRect.left,
+          y: btnRect.bottom + 8,
+        }
+      );
     });
   }
 
@@ -1027,7 +1030,7 @@ export const createComposer = async ({
     const user = await getUser();
     const avatarImg = el.querySelector(".compose-header img");
     avatarImg.src = user?.avatar || "/public/shared/default-avatar.png";
-    
+
     const radius = user?.avatar_radius ?? (user?.gold ? 4 : 50);
     avatarImg.style.borderRadius = `${radius}%`;
   } catch (error) {
@@ -1040,9 +1043,14 @@ export const createComposer = async ({
   // Determine max characters based on user's character_limit or tier
   try {
     const user = await getUser();
-    const maxChars = user?.character_limit !== null && user?.character_limit !== undefined
-      ? user.character_limit
-      : (user?.gold ? 16500 : user?.verified ? 5500 : 400);
+    const maxChars =
+      user?.character_limit !== null && user?.character_limit !== undefined
+        ? user.character_limit
+        : user?.gold
+        ? 16500
+        : user?.verified
+        ? 5500
+        : 400;
 
     // update the counter display to show the right max
     const counter = el.querySelector(".character-counter");

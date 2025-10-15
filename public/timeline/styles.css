@@ -5182,24 +5182,24 @@ nav {
 
 .label-parody {
   background-color: rgba(218, 165, 32, 0.15);
-  color: #B8860B;
+  color: #b8860b;
   border: 1px solid rgba(218, 165, 32, 0.3);
 }
 
 .label-fan {
   background-color: rgba(219, 39, 119, 0.15);
-  color: #DB2777;
+  color: #db2777;
   border: 1px solid rgba(219, 39, 119, 0.3);
 }
 
 .label-commentary {
   background-color: rgba(59, 130, 246, 0.15);
-  color: #3B82F6;
+  color: #3b82f6;
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .label-automated {
   background-color: rgba(107, 114, 128, 0.15);
-  color: #6B7280;
+  color: #6b7280;
   border: 1px solid rgba(107, 114, 128, 0.3);
 }

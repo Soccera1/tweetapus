@@ -1,8 +1,8 @@
+import { showEmojiPickerPopup } from "../../shared/emoji-picker.js";
 import toastQueue from "../../shared/toasts.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
 import switchPage, { addRoute } from "./pages.js";
-import { showEmojiPickerPopup } from "../../shared/emoji-picker.js";
 
 function sanitizeHTML(str) {
   const div = document.createElement("div");
@@ -1372,7 +1372,9 @@ function showReactionPicker(messageId) {
   const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
   if (!messageEl) return;
 
-  const btnRect = messageEl.querySelector(".dm-add-reaction")?.getBoundingClientRect();
+  const btnRect = messageEl
+    .querySelector(".dm-add-reaction")
+    ?.getBoundingClientRect();
   if (!btnRect) return;
 
   const existingPicker = document.getElementById("reactionPicker");
@@ -1380,12 +1382,15 @@ function showReactionPicker(messageId) {
     existingPicker.remove();
   }
 
-  showEmojiPickerPopup((emoji) => {
-    toggleReaction(messageId, emoji);
-  }, {
-    x: btnRect.left,
-    y: btnRect.bottom + 8,
-  });
+  showEmojiPickerPopup(
+    (emoji) => {
+      toggleReaction(messageId, emoji);
+    },
+    {
+      x: btnRect.left,
+      y: btnRect.bottom + 8,
+    }
+  );
 }
 
 function replyToMessage(messageId, authorName, messagePreview) {
