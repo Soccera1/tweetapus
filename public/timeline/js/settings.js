@@ -1199,7 +1199,7 @@ const createSettingsPage = () => {
 		
 		.setting-group h2 {
 			margin: 0 0 4px 0;
-			font-size: 18px;
+			font-size: 24px;
 			font-weight: 600;
 			color: var(--text-primary);
 		}

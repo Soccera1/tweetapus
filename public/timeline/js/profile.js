@@ -802,8 +802,15 @@ const handleEditAvatarUpload = async (file) => {
   }
 
   try {
-    // Convert to WebP and resize to 250x250
-    const webpFile = await convertToWebPAvatar(file, 250, 0.8);
+    // If original file is GIF and the current profile is Gold, preserve it (upload GIF)
+    let uploadFile = null;
+    if (file.type === "image/gif" && currentProfile?.profile?.gold) {
+      uploadFile = file; // preserve animation for gold accounts
+    } else {
+      // Convert to WebP and resize to 250x250 for non-GIF or non-gold
+      const webpFile = await convertToWebPAvatar(file, 250, 0.8);
+      uploadFile = webpFile;
+    }
 
     // Update progress text
     if (changeBtn) {
@@ -811,7 +818,7 @@ const handleEditAvatarUpload = async (file) => {
     }
 
     const formData = new FormData();
-    formData.append("avatar", webpFile);
+    formData.append("avatar", uploadFile);
 
     const result = await query(
       `/profile/${currentProfile.profile.username}/avatar`,

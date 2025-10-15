@@ -1106,14 +1106,15 @@ export const createTweetElement = (tweet, config = {}) => {
 
     const rawContent = tweet.content ? tweet.content.trim() : "";
 
-    const tweetLinkRegex = /https?:\/\/(?:www\.)?(?:localhost:3000|tweetapus\.com)\/tweet\/([a-zA-Z0-9_-]+)/g;
+    const tweetLinkRegex =
+      /https?:\/\/(?:www\.)?(?:localhost:3000|tweetapus\.com)\/tweet\/([a-zA-Z0-9_-]+)/g;
     let contentWithoutLinks = rawContent;
     const extractedTweetIds = [];
     let match = tweetLinkRegex.exec(rawContent);
-    
+
     while (match !== null) {
       extractedTweetIds.push(match[1]);
-      contentWithoutLinks = contentWithoutLinks.replace(match[0], '').trim();
+      contentWithoutLinks = contentWithoutLinks.replace(match[0], "").trim();
       match = tweetLinkRegex.exec(rawContent);
     }
 
@@ -1193,23 +1194,23 @@ export const createTweetElement = (tweet, config = {}) => {
     });
 
     tweetEl.appendChild(tweetContentEl);
-    
+
     if (extractedTweetIds.length > 0 && !tweet.quoted_tweet) {
       const tweetId = extractedTweetIds[0];
       query(`/tweets/${tweetId}`)
-        .then(response => {
+        .then((response) => {
           if (response?.tweet) {
             const quotedTweetEl = createTweetElement(response.tweet, {
               size: "preview",
               clickToOpen: true,
             });
             quotedTweetEl.classList.add("tweet-preview");
-            
-            const existingQuote = tweetEl.querySelector('.tweet-preview');
+
+            const existingQuote = tweetEl.querySelector(".tweet-preview");
             if (!existingQuote) {
-              const pollEl = tweetEl.querySelector('.poll-container');
-              const attachmentsEl = tweetEl.querySelector('.tweet-attachments');
-              
+              const pollEl = tweetEl.querySelector(".poll-container");
+              const attachmentsEl = tweetEl.querySelector(".tweet-attachments");
+
               if (pollEl) {
                 tweetEl.insertBefore(quotedTweetEl, pollEl);
               } else if (attachmentsEl) {
@@ -1220,8 +1221,8 @@ export const createTweetElement = (tweet, config = {}) => {
             }
           }
         })
-        .catch(err => {
-          console.error('Failed to load embedded tweet:', err);
+        .catch((err) => {
+          console.error("Failed to load embedded tweet:", err);
         });
     }
   }

@@ -711,9 +711,7 @@ export default new Elysia({ prefix: "/profile" })
                 "Animated WebP avatars are allowed for Gold accounts only.",
             };
           }
-        } catch {
-          // If detection fails, fall back to conservative behavior (disallow animated webp for non-gold)
-        }
+        } catch {}
       }
 
       const hasher = new Bun.CryptoHasher("sha256");
@@ -1328,8 +1326,8 @@ export const avatarRoutes = new Elysia({ prefix: "/avatars" }).get(
   ({ params }) => {
     const { filename } = params;
 
-    // Legacy avatar route - redirect to uploads
-    if (!/^[a-f0-9]{64}\.(webp)$/i.test(filename)) {
+    // Legacy avatar route - redirect to uploads (allow webp and gif)
+    if (!/^[a-f0-9]{64}\.(webp|gif)$/i.test(filename)) {
       return new Response("Invalid filename", { status: 400 });
     }
 
