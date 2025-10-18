@@ -499,6 +499,19 @@
                   required
                 ></textarea>
               </div>
+              <div class="mb-3">
+                <label for="editPostCreatedAt" class="form-label">
+                  Posted At
+                </label>
+                <input
+                  type="datetime-local"
+                  class="form-control"
+                  id="editPostCreatedAt"
+                />
+                <small class="text-muted">
+                  Edit the post creation date/time
+                </small>
+              </div>
               <div class="row">
                 <div class="col-md-3">
                   <label for="editPostLikes" class="form-label">Likes</label>
@@ -604,6 +617,17 @@
                   class="form-control"
                   placeholder="Enter tweet ID to reply to (optional)"
                 />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Posted At (optional)</label>
+                <input
+                  type="datetime-local"
+                  id="tweetCreatedAt"
+                  class="form-control"
+                />
+                <small class="text-muted">
+                  Optional: set creation date/time for the tweet
+                </small>
               </div>
             </form>
           </div>

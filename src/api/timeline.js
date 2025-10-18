@@ -11,7 +11,7 @@ const getTimelinePosts = db.query(`
   SELECT posts.* FROM posts 
   JOIN users ON posts.user_id = users.id
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
-  WHERE posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0
+  WHERE posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.community_only = FALSE
   ORDER BY posts.created_at DESC 
   LIMIT 10
 `);
@@ -20,7 +20,7 @@ const getTimelinePostsBefore = db.query(`
   SELECT posts.* FROM posts 
   JOIN users ON posts.user_id = users.id
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
-  WHERE posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.id < ?
+  WHERE posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.id < ? AND posts.community_only = FALSE
   ORDER BY posts.created_at DESC 
   LIMIT 10
 `);
@@ -30,7 +30,7 @@ const getFollowingTimelinePosts = db.query(`
   JOIN follows ON posts.user_id = follows.following_id
   JOIN users ON posts.user_id = users.id
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
-  WHERE follows.follower_id = ? AND posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0
+  WHERE follows.follower_id = ? AND posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.community_only = FALSE
   ORDER BY posts.created_at DESC 
   LIMIT 10
 `);
@@ -40,7 +40,7 @@ const getFollowingTimelinePostsBefore = db.query(`
   JOIN follows ON posts.user_id = follows.following_id
   JOIN users ON posts.user_id = users.id
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
-  WHERE follows.follower_id = ? AND posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.id < ?
+  WHERE follows.follower_id = ? AND posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.id < ? AND posts.community_only = FALSE
   ORDER BY posts.created_at DESC 
   LIMIT 10
 `);

@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS posts (
   content TEXT NOT NULL,
   reply_to TEXT,
   community_id TEXT DEFAULT NULL,
+  community_only BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
   like_count INTEGER DEFAULT 0,
   reply_count INTEGER DEFAULT 0,

@@ -89,6 +89,8 @@ const adminQueries = {
            (SELECT COUNT(*) FROM posts WHERE user_id = u.id) as actual_post_count,
            (SELECT COUNT(*) FROM follows WHERE following_id = u.id) as actual_follower_count,
            (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) as actual_following_count,
+           (SELECT COUNT(*) FROM ghost_follows WHERE target_id = u.id AND follower_type = 'follower') as ghost_follower_count,
+           (SELECT COUNT(*) FROM ghost_follows WHERE target_id = u.id AND follower_type = 'following') as ghost_following_count,
            (SELECT COUNT(DISTINCT l.id) FROM likes l WHERE u.id = l.user_id) as likes_given,
            (SELECT COUNT(DISTINCT r.id) FROM retweets r WHERE u.id = r.user_id) as retweets_given,
            (SELECT COUNT(DISTINCT pk.cred_id) FROM passkeys pk WHERE u.id = pk.internal_user_id) as passkey_count
@@ -148,14 +150,14 @@ const adminQueries = {
   // New queries for editing functionality
   getPostById: db.query("SELECT * FROM posts WHERE id = ?"),
   updatePost: db.query(
-    "UPDATE posts SET content = ?, like_count = ?, retweet_count = ?, reply_count = ?, view_count = ? WHERE id = ?"
+    "UPDATE posts SET content = ?, like_count = ?, retweet_count = ?, reply_count = ?, view_count = ?, created_at = ? WHERE id = ?"
   ),
   // now supports optional reply_to so admin can create replies on behalf of users
   createPostAsUser: db.query(
-    "INSERT INTO posts (id, user_id, content, reply_to, created_at) VALUES (?, ?, ?, ?, datetime('now'))"
+    "INSERT INTO posts (id, user_id, content, reply_to, created_at) VALUES (?, ?, ?, ?, ?)"
   ),
   updateUser: db.query(
-    "UPDATE users SET username = ?, name = ?, bio = ?, verified = ?, admin = ?, gold = ?, follower_count = ?, following_count = ?, character_limit = ? WHERE id = ?"
+    "UPDATE users SET username = ?, name = ?, bio = ?, verified = ?, admin = ?, gold = ?, follower_count = ?, following_count = ?, character_limit = ?, created_at = ? WHERE id = ?"
   ),
 
   // DM Management queries
@@ -599,12 +601,11 @@ export default new Elysia({ prefix: "/admin" })
         return { error: "Post not found" };
       }
       const postOwner = adminQueries.findUserById.get(post.user_id);
-      const maxLength =
-        postOwner && postOwner.gold
-          ? 16500
-          : postOwner && postOwner.verified
-          ? 5500
-          : 400;
+      const maxLength = postOwner?.gold
+        ? 16500
+        : postOwner?.verified
+        ? 5500
+        : 400;
       if (body.content && body.content.length > maxLength) {
         return { error: `Content must be ${maxLength} characters or less` };
       }
@@ -624,12 +625,28 @@ export default new Elysia({ prefix: "/admin" })
       if (body.views !== undefined && body.views !== post.view_count)
         changes.views = { old: post.view_count, new: body.views };
 
+      // support editing created_at
+      let newCreatedAt = post.created_at;
+      if (body.created_at !== undefined) {
+        try {
+          const parsed = new Date(body.created_at);
+          if (Number.isNaN(parsed.getTime())) throw new Error("Invalid date");
+          newCreatedAt = parsed.toISOString();
+          if (newCreatedAt !== post.created_at) {
+            changes.created_at = { old: post.created_at, new: newCreatedAt };
+          }
+        } catch (_err) {
+          return { error: "Invalid created_at value" };
+        }
+      }
+
       adminQueries.updatePost.run(
         body.content,
         body.likes,
         body.retweets,
         body.replies,
         body.views,
+        newCreatedAt,
         params.id
       );
 
@@ -647,6 +664,7 @@ export default new Elysia({ prefix: "/admin" })
         retweets: t.Optional(t.Number()),
         replies: t.Optional(t.Number()),
         views: t.Optional(t.Number()),
+        created_at: t.Optional(t.String()),
       }),
     }
   )
@@ -678,11 +696,24 @@ export default new Elysia({ prefix: "/admin" })
       // support optional replyTo so admin can post replies as the user
       const replyTo = body.replyTo || null;
 
+      // support optional created_at when creating posts
+      let createdAtForInsert = new Date().toISOString();
+      if (body.created_at) {
+        try {
+          const parsed = new Date(body.created_at);
+          if (Number.isNaN(parsed.getTime())) throw new Error("Invalid date");
+          createdAtForInsert = parsed.toISOString();
+        } catch (_err) {
+          return { error: "Invalid created_at value" };
+        }
+      }
+
       adminQueries.createPostAsUser.run(
         postId,
         body.userId,
         body.content.trim(),
-        replyTo
+        replyTo,
+        createdAtForInsert
       );
 
       logModerationAction(user.id, "create_post_as_user", "post", postId, {
@@ -712,6 +743,7 @@ export default new Elysia({ prefix: "/admin" })
         content: t.String(),
         replyTo: t.Optional(t.String()),
         noCharLimit: t.Optional(t.Boolean()),
+        created_at: t.Optional(t.String()),
       }),
     }
   )
@@ -872,13 +904,13 @@ export default new Elysia({ prefix: "/admin" })
             .query(
               "SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?"
             )
-            .get(params.id, targetUser.id);
+            .get(targetUser.id, params.id);
 
           if (!existing) {
             const followId = Bun.randomUUIDv7();
             db.query(
               "INSERT INTO follows (id, follower_id, following_id) VALUES (?, ?, ?)"
-            ).run(followId, params.id, targetUser.id);
+            ).run(followId, targetUser.id, params.id);
             followedUsers.push(username);
           }
         }
@@ -905,8 +937,26 @@ export default new Elysia({ prefix: "/admin" })
       if (newGold) newVerified = 0;
       if (newVerified) newGold = 0;
 
+      // support optional created_at editing
+      let newUserCreatedAt = user.created_at;
+      if (body.created_at !== undefined) {
+        try {
+          const parsed = new Date(body.created_at);
+          if (Number.isNaN(parsed.getTime())) throw new Error("Invalid date");
+          newUserCreatedAt = parsed.toISOString();
+          if (newUserCreatedAt !== user.created_at) {
+            changes.created_at = {
+              old: user.created_at,
+              new: newUserCreatedAt,
+            };
+          }
+        } catch (_err) {
+          return { error: "Invalid created_at value" };
+        }
+      }
+
       db.query(
-        "UPDATE users SET username = ?, name = ?, bio = ?, verified = ?, admin = ?, gold = ?, character_limit = ? WHERE id = ?"
+        "UPDATE users SET username = ?, name = ?, bio = ?, verified = ?, admin = ?, gold = ?, character_limit = ?, created_at = ? WHERE id = ?"
       ).run(
         body.username || user.username,
         body.name !== undefined ? body.name : user.name,
@@ -917,6 +967,7 @@ export default new Elysia({ prefix: "/admin" })
         body.character_limit !== undefined
           ? body.character_limit
           : user.character_limit,
+        newUserCreatedAt,
         params.id
       );
 
@@ -941,6 +992,7 @@ export default new Elysia({ prefix: "/admin" })
         ghost_followers: t.Optional(t.Number()),
         ghost_following: t.Optional(t.Number()),
         character_limit: t.Optional(t.Union([t.Number(), t.Null()])),
+        created_at: t.Optional(t.String()),
         force_follow_usernames: t.Optional(t.Array(t.String())),
       }),
     }

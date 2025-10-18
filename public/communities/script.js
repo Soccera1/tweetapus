@@ -199,6 +199,70 @@ function showAboutTab() {
   `;
 }
 
+async function showTweetsTab() {
+  const content = document.getElementById("tweetsContent");
+  content.innerHTML = '<div class="loading">Loading tweets...</div>';
+
+  if (currentMember) {
+    const composeBtn = document.createElement("button");
+    composeBtn.className = "btn-primary";
+    composeBtn.textContent = "Tweet in this community";
+    composeBtn.style.marginBottom = "16px";
+    composeBtn.addEventListener("click", async () => {
+      const { createModal } = await import("/public/shared/ui-utils.js");
+      const { createComposer } = await import(
+        "/public/timeline/js/composer.js"
+      );
+
+      const composer = await createComposer({
+        placeholder: `Share something with ${currentCommunity.name}...`,
+        callback: async (newTweet) => {
+          showToast("Tweet posted to community!", "success");
+          modal.close();
+          showTweetsTab();
+        },
+        communityId: currentCommunity.id,
+      });
+
+      const modal = createModal({
+        title: `Post to ${currentCommunity.name}`,
+        content: composer,
+      });
+    });
+    content.innerHTML = "";
+    content.appendChild(composeBtn);
+  }
+
+  const { tweets } = await api(
+    `/communities/${currentCommunity.id}/tweets?limit=50`
+  );
+
+  if (!tweets || tweets.length === 0) {
+    const emptyMsg = document.createElement("p");
+    emptyMsg.className = "empty-state";
+    emptyMsg.textContent = "No tweets in this community yet.";
+    content.appendChild(emptyMsg);
+    return;
+  }
+
+  const tweetsContainer = document.createElement("div");
+  tweetsContainer.className = "community-tweets";
+
+  const { createTweetElement } = await import("/public/timeline/js/tweets.js");
+
+  for (const tweet of tweets) {
+    const tweetEl = createTweetElement(tweet, {
+      clickToOpen: true,
+      showTopReply: false,
+      isTopReply: false,
+      size: "normal",
+    });
+    tweetsContainer.appendChild(tweetEl);
+  }
+
+  content.appendChild(tweetsContainer);
+}
+
 async function showMembersTab() {
   const content = document.getElementById("membersContent");
   content.innerHTML = '<div class="loading">Loading members...</div>';
@@ -725,6 +789,9 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
         .getElementById("aboutContent")
         .classList.toggle("hidden", tab !== "about");
       document
+        .getElementById("tweetsContent")
+        .classList.toggle("hidden", tab !== "tweets");
+      document
         .getElementById("membersContent")
         .classList.toggle("hidden", tab !== "members");
       document
@@ -735,9 +802,10 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
         .classList.toggle("hidden", tab !== "settings");
 
       if (tab === "about") showAboutTab();
-      if (tab === "members") showMembersTab();
-      if (tab === "requests") showRequestsTab();
-      if (tab === "settings") showSettingsTab();
+      else if (tab === "tweets") showTweetsTab();
+      else if (tab === "members") showMembersTab();
+      else if (tab === "requests") showRequestsTab();
+      else if (tab === "settings") showSettingsTab();
     }
   });
 });

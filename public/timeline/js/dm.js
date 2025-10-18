@@ -563,6 +563,14 @@ function formatTime(date) {
   } else if (daysDiff < 7) {
     return date.toLocaleDateString([], { weekday: "short" });
   } else {
+    const year = date.getFullYear();
+    if (year < 1926) {
+      return date.toLocaleDateString([], {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
     return date.toLocaleDateString([], { month: "short", day: "numeric" });
   }
 }

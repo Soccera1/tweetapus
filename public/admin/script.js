@@ -747,6 +747,11 @@ class AdminPanel {
                   user.bio || ""
                 }</textarea>
               </div>
+              <div class="mb-3">
+                <label class="form-label">Account Created</label>
+                <input type="datetime-local" class="form-control" id="editProfileCreatedAt" value="" readonly />
+                <small class="text-muted">Edit account creation date/time</small>
+              </div>
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label class="form-label">Real Followers</label>
@@ -757,8 +762,10 @@ class AdminPanel {
                 </div>
                 <div class="col-md-6 mb-3">
                   <label class="form-label">Ghost Followers</label>
-                  <input type="number" class="form-control" id="editProfileGhostFollowers" value="0" min="0">
-                  <small class="text-muted">Add invisible ghost followers</small>
+                  <input type="number" class="form-control" id="editProfileGhostFollowers" value="${
+                    user.ghost_follower_count || 0
+                  }" min="0">
+                  <small class="text-muted">Current invisible ghost followers</small>
                 </div>
               </div>
               <div class="row">
@@ -771,14 +778,16 @@ class AdminPanel {
                 </div>
                 <div class="col-md-6 mb-3">
                   <label class="form-label">Ghost Following</label>
-                  <input type="number" class="form-control" id="editProfileGhostFollowing" value="0" min="0">
-                  <small class="text-muted">Add invisible ghost following</small>
+                  <input type="number" class="form-control" id="editProfileGhostFollowing" value="${
+                    user.ghost_following_count || 0
+                  }" min="0">
+                  <small class="text-muted">Current invisible ghost following</small>
                 </div>
               </div>
               <div class="mb-3">
-                <label class="form-label">Force User to Follow (comma-separated usernames)</label>
+                <label class="form-label">Users to Follow This User (comma-separated usernames)</label>
                 <input type="text" class="form-control" id="editProfileForceFollow" placeholder="user1,user2,user3">
-                <small class="text-muted">Make this user automatically follow specified users (creates real follows, works even if target doesn't exist yet)</small>
+                <small class="text-muted">Make specified users automatically follow this user (creates real follows, works even if target doesn't exist yet)</small>
               </div>
               <div class="form-check form-switch mb-3">
                 <input class="form-check-input" type="checkbox" id="editProfileVerified" ${
@@ -914,6 +923,20 @@ class AdminPanel {
       // Ensure fields are readonly/disabled until Edit Profile is clicked
       this.toggleEditMode(false);
 
+      // populate created_at field if available
+      const createdInput = document.getElementById("editProfileCreatedAt");
+      if (createdInput) {
+        try {
+          const d = new Date(user.created_at);
+          const isoLocal = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+            .toISOString()
+            .slice(0, 16);
+          createdInput.value = isoLocal;
+        } catch (_err) {
+          createdInput.value = "";
+        }
+      }
+
       // Make verified and gold checkboxes mutually exclusive
       const verifiedCheckbox = document.getElementById("editProfileVerified");
       const goldCheckbox = document.getElementById("editProfileGold");
@@ -997,6 +1020,12 @@ class AdminPanel {
         }
       }
 
+      // allow created_at datetime-local to be edited when enabling edit mode
+      if (field.id === "editProfileCreatedAt") {
+        field.readOnly = !enable;
+        field.disabled = !enable;
+      }
+
       // For textual inputs and textareas also set readOnly to allow styling/selection differences
       if (
         field.tagName === "TEXTAREA" ||
@@ -1076,6 +1105,13 @@ class AdminPanel {
     }
 
     try {
+      // include created_at if provided
+      const createdInput = document.getElementById("editProfileCreatedAt");
+      if (createdInput?.value) {
+        const local = new Date(createdInput.value);
+        payload.created_at = local.toISOString();
+      }
+
       await this.apiCall(`/api/admin/users/${userId}`, {
         method: "PATCH",
         body: JSON.stringify(payload),
@@ -1211,8 +1247,35 @@ class AdminPanel {
     }
   }
 
-  formatDate(dateString) {
-    return new Date(dateString).toLocaleString();
+  formatDate(dateInput) {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (Number.isNaN(d.getTime())) return "";
+    // If year is before 1926, force a full numeric year to avoid two-digit ambiguity
+    if (d.getFullYear() < 1926) {
+      return d.toLocaleString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+      });
+    }
+    return d.toLocaleString();
+  }
+
+  // Date-only formatter (keeps just the date portion). Also forces full year for <1926
+  formatDateOnly(dateInput) {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (Number.isNaN(d.getTime())) return "";
+    if (d.getFullYear() < 1926) {
+      return d.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    }
+    return d.toLocaleDateString();
   }
 
   findAndViewUser(username) {
@@ -1239,6 +1302,20 @@ class AdminPanel {
         post.retweet_count || 0;
       document.getElementById("editPostReplies").value = post.reply_count || 0;
       document.getElementById("editPostViews").value = post.view_count || 0;
+      // populate created_at if present
+      const createdInput = document.getElementById("editPostCreatedAt");
+      if (createdInput) {
+        try {
+          const d = new Date(post.created_at);
+          // convert to local ISO for datetime-local value
+          const isoLocal = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+            .toISOString()
+            .slice(0, 16);
+          createdInput.value = isoLocal;
+        } catch (_err) {
+          createdInput.value = "";
+        }
+      }
 
       const modal = new bootstrap.Modal(
         document.getElementById("editPostModal")
@@ -1265,15 +1342,23 @@ class AdminPanel {
     }
 
     try {
+      const payload = {
+        content: content.trim(),
+        likes,
+        retweets,
+        replies,
+        views,
+      };
+      const createdInput = document.getElementById("editPostCreatedAt");
+      if (createdInput?.value) {
+        // convert local datetime-local back to ISO
+        const local = new Date(createdInput.value);
+        payload.created_at = local.toISOString();
+      }
+
       await this.apiCall(`/api/admin/posts/${postId}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          content: content.trim(),
-          likes,
-          retweets,
-          replies,
-          views,
-        }),
+        body: JSON.stringify(payload),
       });
 
       bootstrap.Modal.getInstance(
@@ -1317,8 +1402,7 @@ class AdminPanel {
     const userId = document.getElementById("tweetUserId").value;
     const content = document.getElementById("tweetContent").value;
     const replyToRaw = document.getElementById("tweetReplyTo")?.value;
-    const replyTo =
-      replyToRaw && replyToRaw.trim() ? replyToRaw.trim() : undefined;
+    const replyTo = replyToRaw?.trim() ? replyToRaw.trim() : undefined;
     // Admin panel: unlimited by default
     const noCharLimit = true;
 
@@ -1334,6 +1418,10 @@ class AdminPanel {
         userId,
         noCharLimit,
       };
+      const tweetCreatedInput = document.getElementById("tweetCreatedAt");
+      if (tweetCreatedInput?.value) {
+        payload.created_at = new Date(tweetCreatedInput.value).toISOString();
+      }
       if (replyTo !== undefined) payload.replyTo = replyTo;
 
       await this.apiCall("/api/admin/tweets", {
@@ -1449,11 +1537,7 @@ class AdminPanel {
 										<span class="text-muted">${conv.message_count} messages</span>
 									</td>
 									<td>
-										${
-                      conv.last_message_at
-                        ? new Date(conv.last_message_at).toLocaleString()
-                        : "No messages"
-                    }
+										${conv.last_message_at ? this.formatDate(conv.last_message_at) : "No messages"}
 									</td>
 									<td>
 										<button class="btn btn-sm btn-outline-primary" onclick="viewConversation('${
@@ -1554,10 +1638,10 @@ class AdminPanel {
 				</div>
 			</div>
 			<div class="row">
-				<div class="col-md-6">
-					<h6>Created</h6>
-					<p>${new Date(conversation.created_at).toLocaleString()}</p>
-				</div>
+        <div class="col-md-6">
+          <h6>Created</h6>
+          <p>${this.formatDate(conversation.created_at)}</p>
+        </div>
 				<div class="col-md-6">
 					<h6>Participant Names</h6>
 					<p>${conversation.participant_names}</p>
@@ -1589,9 +1673,9 @@ class AdminPanel {
 							</div>
 						</div>
 						<div class="text-end">
-							<small class="text-muted">${new Date(
-                message.created_at
-              ).toLocaleString()}</small>
+                            <small class="text-muted">${this.formatDate(
+                              message.created_at
+                            )}</small>
 							<br>
 							<button class="btn btn-sm btn-outline-danger" onclick="deleteMessage('${
                 message.id
@@ -1872,8 +1956,7 @@ class AdminPanel {
           <tbody>
             ${logs
               .map((log) => {
-                const date = new Date(log.created_at);
-                const formattedDate = date.toLocaleString();
+                const formattedDate = this.formatDate(log.created_at);
                 const icon = actionIcons[log.action] || "•";
                 const color = actionColors[log.action] || "secondary";
                 const label = actionLabels[log.action] || log.action;
@@ -2069,9 +2152,7 @@ class AdminPanel {
                   </td>
                   <td>${community.member_count || 0}</td>
                   <td>
-                    <small>${new Date(
-                      community.created_at
-                    ).toLocaleDateString()}</small>
+                    <small>${this.formatDateOnly(community.created_at)}</small>
                   </td>
                   <td>
                     <button class="btn btn-sm btn-info" onclick="adminPanel.viewCommunity('${
@@ -2393,9 +2474,9 @@ class AdminPanel {
                               : "secondary"
                           }">${m.role}</span>
                         </td>
-                        <td><small>${new Date(
+                        <td><small>${this.formatDateOnly(
                           m.joined_at
-                        ).toLocaleDateString()}</small></td>
+                        )}</small></td>
                         <td>
                           ${
                             m.role !== "owner"

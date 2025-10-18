@@ -193,7 +193,7 @@ function createCommunityCard(community, showRole = false) {
   card.appendChild(content);
 
   card.addEventListener("click", () => {
-    switchPage("community-detail", { path: `/communities/${community.id}` });
+    // Delegate navigation/history state to loadCommunityDetail
     loadCommunityDetail(community.id);
   });
 

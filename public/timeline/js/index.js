@@ -235,7 +235,6 @@ addRoute(
     pathname.startsWith("/communities/") && pathname.split("/").length === 3,
   (pathname) => {
     const communityId = pathname.split("/")[2];
-    showPage("community-detail");
     import("./communities.js").then(({ loadCommunityDetail }) => {
       loadCommunityDetail(communityId);
     });

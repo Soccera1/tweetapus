@@ -93,7 +93,7 @@ nav {
     gap: 12px;
     color: inherit;
     border-radius: 9999px;
-    transition: background-color 0.2s ease, transform 0.2s;
+    transition: background-color 0.2s ease;
     font-size: 20px;
     font-weight: 400;
     justify-content: flex-start;
@@ -104,7 +104,7 @@ nav {
     }
 
     &:active {
-      transform: scale(0.98);
+      background-color: rgba(var(--primary-rgb), 0.15);
     }
 
     svg {
@@ -429,15 +429,16 @@ nav {
 }
 
 .compose-tweet {
-  margin-bottom: 24px;
+  margin-bottom: 12px;
   width: 100%;
   border-bottom: 1px solid var(--border-primary);
-  padding-bottom: 24px;
+  padding-bottom: 12px;
   transition: all 0.2s ease;
 
   .compose-header {
     display: flex;
     gap: 12px;
+    margin-bottom: 8px;
 
     img#compose-avatar {
       width: 43px;
@@ -464,6 +465,7 @@ nav {
         max-height: 250px;
         height: 0px;
         padding: 0;
+        margin: 0;
         background-color: transparent;
         color: var(--text-primary);
         caret-color: var(--primary);
@@ -481,11 +483,14 @@ nav {
           padding: 12px;
         }
 
-        /* Use shared popup/mention styles from public/shared/base.css */
+        &:focus {
+          outline: none;
+          border: none;
+        }
       }
 
       #quoted-tweet-container {
-        margin-top: 12px;
+        margin-top: 8px;
       }
 
       .compose-footer {
@@ -493,6 +498,7 @@ nav {
         justify-content: space-between;
         align-items: center;
         margin-top: 8px;
+        padding-top: 8px;
 
         .compose-actions {
           display: flex;
@@ -5236,7 +5242,6 @@ nav {
   border: none;
   background: var(--primary);
   color: white;
-  transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -5459,6 +5464,7 @@ nav {
 .community-actions {
   display: flex;
   gap: 8px;
+  align-items: center;
   flex-wrap: wrap;
 
   button {
@@ -5471,6 +5477,7 @@ nav {
     border: 1px solid var(--border-primary);
     background: var(--bg-primary);
     color: var(--text-primary);
+    white-space: nowrap;
 
     &:hover {
       background: var(--bg-secondary);
@@ -5508,12 +5515,18 @@ nav {
 
 .community-detail-content {
   flex: 1;
-  overflow-y: auto;
+  /* Let the root page handle scrolling instead of creating an inner scroll
+     area, this prevents cramped scrollbars near tweet items */
+  overflow: visible;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
 }
 
 .community-detail-tabs {
   display: flex;
   border-bottom: 1px solid var(--border-primary);
+  flex-shrink: 0;
 }
 
 .community-detail-tab {
@@ -5545,6 +5558,81 @@ nav {
 
 .community-detail-tab-content {
   padding: 0;
+}
+
+/* Ensure community detail area doesn't overflow the main column and uses box-sizing
+   so padding doesn't create unexpected scrollbars when children are full-width */
+.community-detail-content,
+.community-detail-tab-content,
+.community-detail-banner {
+  box-sizing: border-box;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Tweak compose-tweet specifically when rendered inside community tabs so it
+   follows the site's spacing and doesn't create vertical/horizontal scrollbars */
+.community-detail-tab-content .compose-tweet {
+  /* Give the composer more breathing room when inside a community detail */
+  margin: 0 0 18px 0;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-primary);
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: var(--bg-primary);
+}
+
+/* Remove the focus ring for the tweet textarea inside community detail (the
+   global focus styling is useful elsewhere but the green ring here was unexpected) */
+.community-detail-tab-content textarea:focus,
+.community-detail-tab-content .compose-input textarea:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+/* Force community actions into a horizontal layout and keep them on the right
+   of the header; prevent buttons from stretching vertically */
+.community-detail-header .community-actions {
+  margin-left: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+/* Make sure buttons in community-actions don't grow to full width */
+.community-detail-header .community-actions button {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Style for the community-only checkbox area added by the composer */
+.community-only-container {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.community-only-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.community-only-label {
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-primary);
 }
 
 .about-section {
@@ -5999,4 +6087,84 @@ nav {
   &:active {
     transform: translateY(0);
   }
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: var(--bg-primary);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: var(--primary);
+  }
+
+  &:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="white" d="M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 8.086l4.293-4.293a1 1 0 011.414 0z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+input[type="radio"] {
+  border-radius: 50%;
+
+  &:checked {
+    background-image: radial-gradient(circle, white 40%, transparent 40%);
+  }
+}
+
+label {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+
+  &:has(input[type="checkbox"]:hover),
+  &:has(input[type="radio"]:hover) {
+    color: var(--text-primary);
+  }
+
+  &:has(input:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+label[for="community-only-checkbox"],
+label[for*="checkbox"],
+label[for*="radio"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.community-tweets {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }

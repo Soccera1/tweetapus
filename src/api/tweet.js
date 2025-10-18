@@ -92,8 +92,8 @@ const getTweetRepliesBefore = db.query(`
 `);
 
 const createTweet = db.query(`
-	INSERT INTO posts (id, user_id, content, reply_to, source, poll_id, quote_tweet_id, reply_restriction, article_id, community_id) 
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	INSERT INTO posts (id, user_id, content, reply_to, source, poll_id, quote_tweet_id, reply_restriction, article_id, community_id, community_only) 
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	RETURNING *
 `);
 
@@ -358,6 +358,7 @@ export default new Elysia({ prefix: "/tweets" })
         gif_url,
         article_id,
         community_id,
+        community_only,
       } = body;
       const tweetContent = typeof content === "string" ? content : "";
       const trimmedContent = tweetContent.trim();
@@ -512,7 +513,8 @@ export default new Elysia({ prefix: "/tweets" })
         quote_tweet_id || null,
         replyRestriction,
         targetArticleId,
-        community_id || null
+        community_id || null,
+        community_only || false
       );
 
       if (trimmedContent.length > 0) {

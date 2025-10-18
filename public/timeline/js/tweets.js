@@ -297,9 +297,13 @@ const timeAgo = (date) => {
 
   const d = dateObj.getDate().toString().padStart(2, "0");
   const m = (dateObj.getMonth() + 1).toString().padStart(2, "0");
-  const y = dateObj.getFullYear().toString().slice(-2);
+  const fullYear = dateObj.getFullYear();
 
-  if (dateObj.getFullYear() === now.getFullYear()) return `${d}/${m}`;
+  // If the year is before 1926, always show the full numeric year to avoid ambiguity
+  if (fullYear < 1926) return `${d}/${m}/${fullYear}`;
+
+  const y = fullYear.toString().slice(-2);
+  if (fullYear === now.getFullYear()) return `${d}/${m}`;
   return `${d}/${m}/${y}`;
 };
 

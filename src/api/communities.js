@@ -5,6 +5,8 @@ import { addNotification } from "./notifications.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
+
 const getCommunity = db.prepare("SELECT * FROM communities WHERE id = ?");
 const getCommunityByName = db.prepare(
   "SELECT * FROM communities WHERE name = ?"
@@ -773,4 +775,65 @@ export default new Elysia()
     updateCommunityBanner.run(banner, params.id);
 
     return { success: true };
+  })
+  .get("/communities/:id/tweets", async ({ user, params, query, set }) => {
+    const community = getCommunity.get(params.id);
+    if (!community) {
+      set.status = 404;
+      return { error: "Community not found" };
+    }
+
+    const limit = Math.min(parseInt(query.limit) || 20, 100);
+    const offset = parseInt(query.offset) || 0;
+
+    const tweets = db
+      .query(
+        `
+      SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius
+      FROM posts
+      JOIN users ON posts.user_id = users.id
+      WHERE posts.community_id = ? AND posts.reply_to IS NULL
+      ORDER BY posts.created_at DESC
+      LIMIT ? OFFSET ?
+    `
+      )
+      .all(params.id, limit, offset);
+
+    const enrichedTweets = tweets.map((tweet) => {
+      const attachments = db
+        .query("SELECT * FROM attachments WHERE post_id = ?")
+        .all(tweet.id);
+
+      return {
+        ...tweet,
+        author: {
+          username: tweet.username,
+          name: tweet.name,
+          avatar: tweet.avatar,
+          verified: tweet.verified || false,
+          gold: tweet.gold || false,
+          avatar_radius: tweet.avatar_radius || null,
+        },
+        attachments: attachments || [],
+        liked_by_user: user
+          ? !!db
+              .query("SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?")
+              .get(user.userId, tweet.id)
+          : false,
+        retweeted_by_user: user
+          ? !!db
+              .query("SELECT 1 FROM retweets WHERE user_id = ? AND post_id = ?")
+              .get(user.userId, tweet.id)
+          : false,
+        bookmarked_by_user: user
+          ? !!db
+              .query(
+                "SELECT 1 FROM bookmarks WHERE user_id = ? AND post_id = ?"
+              )
+              .get(user.userId, tweet.id)
+          : false,
+      };
+    });
+
+    return { tweets: enrichedTweets };
   });

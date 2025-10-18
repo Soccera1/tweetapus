@@ -46,7 +46,6 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  transition: all 0.2s;
 
   &:hover {
     color: var(--text-primary);
@@ -73,7 +72,6 @@ body {
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: all 0.2s;
 }
 
 .btn-primary {
@@ -123,12 +121,10 @@ body {
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s;
 
   &:hover {
     border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.1);
   }
 }
 
@@ -386,6 +382,7 @@ body {
   display: flex;
   gap: 15px;
   align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .community-modal-icon {
@@ -411,8 +408,8 @@ body {
 .community-actions {
   display: flex;
   gap: 10px;
-  margin-left: auto;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .community-tabs {
@@ -559,6 +556,12 @@ body {
   text-align: center;
   padding: 20px;
   color: var(--text-secondary);
+}
+
+.community-tweets {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .icon-preview,

@@ -7,7 +7,14 @@ import getUser from "./auth.js";
 export const useComposer = (
   element,
   callback,
-  { replyTo = null, quoteTweet = null, article = null, maxChars = 400 } = {}
+  {
+    replyTo = null,
+    quoteTweet = null,
+    article = null,
+    maxChars = 400,
+    communityId = null,
+    communitySelector = null,
+  } = {}
 ) => {
   const textarea = element.querySelector("#tweet-textarea");
   const charCount = element.querySelector("#char-count");
@@ -735,6 +742,148 @@ export const useComposer = (
     });
   }
 
+  let communityOnly = false;
+
+  if (communityId) {
+    const communityOnlyContainer = document.createElement("div");
+    communityOnlyContainer.className = "community-only-container";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = "community-only-checkbox";
+    checkbox.className = "community-only-checkbox";
+    checkbox.addEventListener("change", (e) => {
+      communityOnly = e.target.checked;
+    });
+
+    const label = document.createElement("label");
+    label.htmlFor = "community-only-checkbox";
+    label.textContent = "Only show in this community (hide from main timeline)";
+    label.className = "community-only-label";
+
+    communityOnlyContainer.appendChild(checkbox);
+    communityOnlyContainer.appendChild(label);
+
+    const composeInput = element.querySelector(".compose-input");
+    composeInput.appendChild(communityOnlyContainer);
+  }
+
+  if (communitySelector) {
+    const communitySelectorBtn = element.querySelector(
+      "#community-selector-btn"
+    );
+    const communitySelectorDropdown = element.querySelector(
+      "#community-selector-dropdown"
+    );
+
+    if (communitySelectorBtn && communitySelectorDropdown) {
+      communitySelectorBtn.addEventListener("click", async () => {
+        const isVisible = communitySelectorDropdown.style.display !== "none";
+        if (isVisible) {
+          communitySelectorDropdown.style.display = "none";
+          return;
+        }
+
+        communitySelectorDropdown.innerHTML =
+          '<div style="padding: 12px; color: var(--text-secondary);">Loading...</div>';
+        communitySelectorDropdown.style.display = "block";
+
+        try {
+          const user = await getUser();
+          console.log("Fetching communities for user:", user.userId);
+          const result = await query(
+            `/users/${user.userId}/communities?limit=50`
+          );
+
+          console.log("Communities API response:", result);
+
+          if (result.error) {
+            communitySelectorDropdown.innerHTML = `<div style="padding: 12px; color: var(--error-color); font-size: 14px;">Error: ${result.error}</div>`;
+            console.error("Communities API error:", result.error);
+            return;
+          }
+
+          const communities = result.communities || [];
+          console.log("Communities found:", communities.length, communities);
+
+          if (communities.length === 0) {
+            communitySelectorDropdown.innerHTML =
+              '<div style="padding: 12px; color: var(--text-secondary); font-size: 14px;">No communities joined yet</div>';
+            return;
+          }
+
+          communitySelectorDropdown.innerHTML = `
+            <div style="padding: 8px; border-bottom: 1px solid var(--border-primary);">
+              <div class="community-option" data-community-id="" style="padding: 8px; cursor: pointer; border-radius: 6px; font-size: 14px; color: var(--text-primary); font-weight: 500;">
+                <strong>Everyone</strong>
+              </div>
+            </div>
+            ${communities
+              .map(
+                (c) => `
+              <div class="community-option" data-community-id="${
+                c.id
+              }" style="padding: 8px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
+                ${
+                  c.icon
+                    ? `<img src="/public/shared/assets/uploads/${c.icon}" style="width: 24px; height: 24px; border-radius: 6px; object-fit: cover;" />`
+                    : `<div style="width: 24px; height: 24px; border-radius: 6px; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">${c.name[0].toUpperCase()}</div>`
+                }
+                <span style="font-size: 14px; color: var(--text-primary);">${
+                  c.name
+                }</span>
+              </div>
+            `
+              )
+              .join("")}
+          `;
+
+          communitySelectorDropdown
+            .querySelectorAll(".community-option")
+            .forEach((option) => {
+              option.addEventListener("mouseenter", () => {
+                option.style.background = "var(--bg-secondary)";
+              });
+              option.addEventListener("mouseleave", () => {
+                option.style.background = "transparent";
+              });
+              option.addEventListener("click", () => {
+                const communityId = option.dataset.communityId;
+                communitySelector.selectedCommunityId = communityId || null;
+
+                const communityName = communityId
+                  ? communities.find((c) => c.id === communityId)?.name
+                  : "Everyone";
+                communitySelectorBtn.title = communityId
+                  ? `Posting to ${communityName}`
+                  : "Select community";
+
+                if (communityId) {
+                  communitySelectorBtn.style.color = "var(--primary)";
+                } else {
+                  communitySelectorBtn.style.color = "";
+                }
+
+                communitySelectorDropdown.style.display = "none";
+              });
+            });
+        } catch (error) {
+          console.error("Failed to load communities:", error);
+          communitySelectorDropdown.innerHTML = `<div style="padding: 12px; color: var(--error-color); font-size: 14px;">Failed to load: ${error.message}</div>`;
+        }
+      });
+
+      document.addEventListener("click", (e) => {
+        if (
+          !communitySelectorBtn.contains(e.target) &&
+          !communitySelectorDropdown.contains(e.target)
+        ) {
+          communitySelectorDropdown.style.display = "none";
+        }
+      });
+    }
+  }
+
   tweetButton.addEventListener("click", async () => {
     const content = textarea.value.trim();
     const hasExtras =
@@ -862,6 +1011,8 @@ export const useComposer = (
         files: uploadedFiles,
         reply_restriction: replyRestriction,
         article_id: article?.id || null,
+        community_id: communitySelector?.selectedCommunityId || communityId,
+        community_only: communityOnly,
       };
 
       if (selectedGif) {
@@ -925,6 +1076,7 @@ export const createComposer = async ({
   placeholder = "What is happening?! Did a browser just go angry?!",
   replyTo = null,
   quoteTweet = null,
+  communityId = null,
 }) => {
   const el = document.createElement("div");
   el.classList.add("compose-tweet");
@@ -1075,9 +1227,26 @@ export const createComposer = async ({
     const textareaEl = el.querySelector("#tweet-textarea");
     if (textareaEl) textareaEl.setAttribute("maxlength", String(maxChars));
 
-    useComposer(el, callback, { replyTo, quoteTweet, maxChars });
+    const communitySelector = communityId
+      ? null
+      : { selectedCommunityId: null };
+    useComposer(el, callback, {
+      replyTo,
+      quoteTweet,
+      maxChars,
+      communityId,
+      communitySelector,
+    });
   } catch {
-    useComposer(el, callback, { replyTo, quoteTweet });
+    const communitySelector = communityId
+      ? null
+      : { selectedCommunityId: null };
+    useComposer(el, callback, {
+      replyTo,
+      quoteTweet,
+      communityId,
+      communitySelector,
+    });
   }
 
   return el;

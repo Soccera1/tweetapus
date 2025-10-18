@@ -220,7 +220,7 @@ function createCommunityCard(community, showRole = false) {
   card.appendChild(content);
 
   card.addEventListener("click", () => {
-    switchPage("community-detail", { path: `/communities/${community.id}` });
+    // Let loadCommunityDetail handle showing the page and history state
     loadCommunityDetail(community.id);
   });
 
@@ -228,6 +228,17 @@ function createCommunityCard(community, showRole = false) {
 }
 
 export async function loadCommunityDetail(communityId) {
+  // Ensure the page is visible (so scrolling/layout/active state are correct)
+  try {
+    const communityPageEl = document.querySelector(".community-detail-page");
+    const isVisible = communityPageEl?.classList.contains("page-active");
+    if (!isVisible) {
+      switchPage("community-detail", { path: `/communities/${communityId}` });
+    }
+  } catch (_) {
+    // swallow if switchPage isn't available in this environment yet
+  }
+
   const data = await api(`/communities/${communityId}`);
 
   if (data.error) {
@@ -328,37 +339,43 @@ export async function loadCommunityDetail(communityId) {
   }
 
   document.querySelectorAll(".community-detail-tab").forEach((btn) => {
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
+    btn.classList.remove("active");
   });
 
-  document.querySelectorAll(".community-detail-tab").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const tab = btn.dataset.tab;
+  const tabButtons = document.querySelectorAll(".community-detail-tab");
+  const tabClickHandler = (btn) => () => {
+    const tab = btn.dataset.tab;
 
-      document
-        .querySelectorAll(".community-detail-tab")
-        .forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
+    tabButtons.forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
 
-      document
-        .getElementById("aboutContent")
-        .classList.toggle("hidden", tab !== "about");
-      document
-        .getElementById("membersContent")
-        .classList.toggle("hidden", tab !== "members");
-      document
-        .getElementById("requestsContent")
-        .classList.toggle("hidden", tab !== "requests");
-      document
-        .getElementById("settingsContent")
-        .classList.toggle("hidden", tab !== "settings");
+    document
+      .getElementById("aboutContent")
+      .classList.toggle("hidden", tab !== "about");
+    document
+      .getElementById("tweetsContent")
+      .classList.toggle("hidden", tab !== "tweets");
+    document
+      .getElementById("membersContent")
+      .classList.toggle("hidden", tab !== "members");
+    document
+      .getElementById("requestsContent")
+      .classList.toggle("hidden", tab !== "requests");
+    document
+      .getElementById("settingsContent")
+      .classList.toggle("hidden", tab !== "settings");
 
-      if (tab === "about") showAboutTab();
-      if (tab === "members") showMembersTab();
-      if (tab === "requests") showRequestsTab();
-      if (tab === "settings") showSettingsTab();
-    });
+    if (tab === "about") showAboutTab();
+    else if (tab === "tweets") showTweetsTab();
+    else if (tab === "members") showMembersTab();
+    else if (tab === "requests") showRequestsTab();
+    else if (tab === "settings") showSettingsTab();
+  };
+
+  tabButtons.forEach((btn) => {
+    btn.removeEventListener("click", btn._handler);
+    btn._handler = tabClickHandler(btn);
+    btn.addEventListener("click", btn._handler);
   });
 
   document
@@ -366,6 +383,8 @@ export async function loadCommunityDetail(communityId) {
     ?.classList.add("active");
   showAboutTab();
 }
+// Use root scrolling — ensure user is at top of community view after navigation
+setTimeout(() => window.scrollTo({ top: 0, behavior: "auto" }), 0);
 
 function showAboutTab() {
   const content = document.getElementById("aboutContent");
@@ -407,6 +426,75 @@ function showAboutTab() {
   content.appendChild(descSection);
   content.appendChild(rulesSection);
   content.appendChild(accessSection);
+}
+
+async function showTweetsTab() {
+  const content = document.getElementById("tweetsContent");
+  if (!content) return;
+
+  content.innerHTML = "";
+
+  const tweetsWrapper = document.createElement("div");
+  tweetsWrapper.style.cssText =
+    "display: flex; flex-direction: column; gap: 16px;";
+
+  if (currentMember) {
+    const { createComposer } = await import("./composer.js");
+
+    const composer = await createComposer({
+      placeholder: `Share something with ${currentCommunity.name}...`,
+      callback: async (_newTweet) => {
+        showToast("Tweet posted to community!", "success");
+        showTweetsTab();
+      },
+      communityId: currentCommunity.id,
+    });
+
+    // rely on stylesheet for spacing and borders to avoid inline-style inconsistencies
+    composer.classList.remove();
+    composer.classList.add("compose-tweet");
+    tweetsWrapper.appendChild(composer);
+  }
+
+  const loadingDiv = document.createElement("div");
+  loadingDiv.className = "loading";
+  loadingDiv.textContent = "Loading tweets...";
+  tweetsWrapper.appendChild(loadingDiv);
+
+  content.appendChild(tweetsWrapper);
+
+  const { tweets } = await api(
+    `/communities/${currentCommunity.id}/tweets?limit=50`
+  );
+
+  tweetsWrapper.removeChild(loadingDiv);
+
+  if (!tweets || tweets.length === 0) {
+    const emptyMsg = document.createElement("p");
+    emptyMsg.className = "empty-state";
+    emptyMsg.textContent = "No tweets in this community yet.";
+    tweetsWrapper.appendChild(emptyMsg);
+    return;
+  }
+
+  const tweetsContainer = document.createElement("div");
+  tweetsContainer.className = "community-tweets";
+  tweetsContainer.style.cssText =
+    "display: flex; flex-direction: column; gap: 16px;";
+
+  const { createTweetElement } = await import("./tweets.js");
+
+  for (const tweet of tweets) {
+    const tweetEl = createTweetElement(tweet, {
+      clickToOpen: true,
+      showTopReply: false,
+      isTopReply: false,
+      size: "normal",
+    });
+    tweetsContainer.appendChild(tweetEl);
+  }
+
+  tweetsWrapper.appendChild(tweetsContainer);
 }
 
 async function showMembersTab() {
