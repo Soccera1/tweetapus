@@ -674,7 +674,7 @@ class AdminPanel {
       // Show an immediate lightweight loading state so the modal appears instantly
       document.getElementById(
         "userModalBody"
-      ).innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">Loading user...</div></div>`;
+      ).innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary" role="status" style="border-radius:5000px"></div><div class="mt-2 text-muted">Loading user...</div></div>`;
       document.getElementById(
         "userModalFooter"
       ).innerHTML = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`;
