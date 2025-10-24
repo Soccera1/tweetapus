@@ -23,8 +23,8 @@ let replyingTo = null;
 let messageOffset = 0;
 let isLoadingMoreMessages = false;
 let hasMoreMessages = true;
-let typingIndicators = new Map();
-let typingTimeouts = new Map();
+const typingIndicators = new Map();
+const typingTimeouts = new Map();
 
 function connectSSE() {
   const now = Date.now();
@@ -163,7 +163,9 @@ function renderTypingIndicators() {
       <div class="dm-typing-dots">
         <span></span><span></span><span></span>
       </div>
-      <span class="dm-typing-text">${typingUsers.map((u) => u.name || u.username).join(", ")} ${typingUsers.length === 1 ? "is" : "are"} typing...</span>
+      <span class="dm-typing-text">${typingUsers
+        .map((u) => u.name || u.username)
+        .join(", ")} ${typingUsers.length === 1 ? "is" : "are"} typing...</span>
     </div>
   `;
 }

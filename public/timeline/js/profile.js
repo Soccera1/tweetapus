@@ -227,15 +227,16 @@ const renderProfile = (data) => {
 
   const avatarImg = document.getElementById("profileAvatar");
   if (suspended) {
-    // Show a view-only gray circle instead of the user's avatar
+    // Show a view-only pure gray circle (use a transparent src so no embedded text shows)
     avatarImg.style.display = "block";
-    avatarImg.src = `/public/shared/default-avatar.png`;
-    avatarImg.alt = profile.name || profile.username;
-    avatarImg.style.filter = "grayscale(100%)";
+    avatarImg.src = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="; // 1x1 transparent GIF
+    avatarImg.alt = "";
+    avatarImg.style.backgroundImage = "none";
     avatarImg.style.backgroundColor = "var(--suspended-avatar-bg, #bdbdbd)";
     avatarImg.style.objectFit = "cover";
     avatarImg.style.pointerEvents = "none";
-    avatarImg.style.opacity = "0.95";
+    avatarImg.style.opacity = "1";
+    avatarImg.dataset.suspended = "true";
     // keep rounded shape
     if (profile.avatar_radius !== null && profile.avatar_radius !== undefined) {
       avatarImg.style.borderRadius = `${profile.avatar_radius}px`;
@@ -244,7 +245,37 @@ const renderProfile = (data) => {
     } else {
       avatarImg.style.borderRadius = "50px";
     }
+
+    // Hide the followers/following links on suspended profiles
+    const followersLink = document.getElementById("profileFollowersLink");
+    const followingLink = document.getElementById("profileFollowingLink");
+    if (followersLink) followersLink.style.display = "none";
+    if (followingLink) followingLink.style.display = "none";
   } else {
+    // Restore non-suspended avatar behavior
+    delete avatarImg.dataset.suspended;
+    avatarImg.style.display = "block";
+    avatarImg.src = profile.avatar || `/public/shared/default-avatar.png`;
+    avatarImg.alt = profile.name || profile.username;
+    avatarImg.style.filter = "";
+    avatarImg.style.backgroundColor = "";
+    avatarImg.style.objectFit = "cover";
+    avatarImg.style.pointerEvents = "";
+    avatarImg.style.opacity = "";
+    if (profile.avatar_radius !== null && profile.avatar_radius !== undefined) {
+      avatarImg.style.borderRadius = `${profile.avatar_radius}px`;
+    } else if (profile.gold) {
+      avatarImg.style.borderRadius = "4px";
+    } else {
+      avatarImg.style.borderRadius = "50px";
+    }
+
+    // Restore followers/following links visibility
+    const followersLink = document.getElementById("profileFollowersLink");
+    const followingLink = document.getElementById("profileFollowingLink");
+    if (followersLink) followersLink.style.display = "";
+    if (followingLink) followingLink.style.display = "";
+  }
     avatarImg.style.display = "block";
     avatarImg.src = profile.avatar || `/public/shared/default-avatar.png`;
     avatarImg.alt = profile.name || profile.username;

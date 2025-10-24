@@ -1992,6 +1992,15 @@ nav {
   background-color: var(--suspended-avatar-bg, #bdbdbd);
 }
 
+/* When the JS marks the avatar as suspended via data attribute, show a pure gray circle */
+#profileAvatar[data-suspended="true"] {
+  background-image: none !important;
+  background-color: var(--suspended-avatar-bg, #bdbdbd) !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  filter: none !important;
+}
+
 .edit-profile-modal {
   position: fixed;
   top: 0;
@@ -2581,6 +2590,7 @@ nav {
   padding-top: 4px;
   padding-bottom: 4px;
   gap: 6px;
+  margin-bottom: 14px;
 
   .tweet-header img {
     width: 32px;
