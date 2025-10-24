@@ -808,330 +808,6 @@ export const createTweetElement = (tweet, config = {}) => {
     tweetEl.appendChild(pinnedIndicatorEl);
   }
 
-  const menuButtonEl = document.createElement("button");
-  menuButtonEl.className = "tweet-menu-btn";
-  menuButtonEl.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path fill="currentColor" d="M10.001 7.8a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 10 7.8zm-7 0a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 3 7.8zm14 0a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 17 7.8z"/></svg>
-      `;
-  menuButtonEl.title = "More options";
-
-  menuButtonEl.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const defaultItems = [
-      {
-        id: "copy-link",
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
-        title: "Copy link",
-        onClick: () => {
-          const tweetUrl = `${window.location.origin}/tweet/${tweet.id}`;
-
-          navigator.clipboard.writeText(tweetUrl);
-        },
-      },
-      {
-        id: "share-image",
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>`,
-        title: "Share as image",
-        onClick: async () => {
-          const tweetElClone = document.createElement("div");
-          tweetElClone.innerHTML = tweetEl.outerHTML;
-
-          const wrapper = document.createElement("div");
-          wrapper.className = "tweet-share-wrapper";
-
-          const tweetContainer = document.createElement("div");
-          tweetContainer.className = "tweet-share-container";
-
-          const stats = tweetElClone.querySelector(".expanded-tweet-stats");
-          if (stats) stats.remove();
-
-          tweetContainer.appendChild(tweetElClone);
-          wrapper.appendChild(tweetContainer);
-
-          document.body.appendChild(wrapper);
-
-          // load html2canvas
-          const script = document.createElement("script");
-          script.src =
-            "https://html2canvas.hertzen.com/dist/html2canvas.min.js";
-          script.onload = () => {
-            window
-              .html2canvas(wrapper, {
-                backgroundColor: "transparent",
-                scale: 3,
-                width: wrapper.offsetWidth,
-              })
-              .then((canvas) => {
-                canvas.toBlob((blob) => {
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `tweetapus_${tweet.id}.png`;
-                  a.click();
-
-                  wrapper.remove();
-                });
-              });
-          };
-          document.head.appendChild(script);
-        },
-      },
-      {
-        id: "view-reactions",
-        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a7 7 0 100 14 7 7 0 000-14z" stroke="currentColor" stroke-width="1.5"/><path d="M8 8h8M8 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-        title: "View reactions",
-        onClick: async () => {
-          await showReactions(tweet.id);
-        },
-      },
-    ];
-
-    const userItems = [
-      {
-        id: tweet.pinned ? "unpin-option" : "pin-option",
-        icon: tweet.pinned
-          ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 17v5"></path>
-                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
-                </svg>`
-          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 17v5"></path>
-                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
-                </svg>`,
-        title: tweet.pinned ? "Unpin from profile" : "Pin to profile",
-        onClick: async () => {
-          try {
-            const method = tweet.pinned ? "DELETE" : "POST";
-            const result = await query(`/profile/pin/${tweet.id}`, {
-              method,
-            });
-
-            if (result.success) {
-              tweet.pinned = !tweet.pinned;
-              toastQueue.add(
-                `<h1>Tweet ${
-                  tweet.pinned ? "pinned" : "unpinned"
-                } successfully</h1>`
-              );
-
-              if (tweet.pinned) {
-                const pinnedIndicatorEl = document.createElement("div");
-                pinnedIndicatorEl.className = "pinned-indicator";
-                pinnedIndicatorEl.innerHTML = `
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 17v5"></path>
-                        <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
-                      </svg>
-                      <span>Pinned</span>
-                    `;
-                const existingIndicator =
-                  tweetEl.querySelector(".pinned-indicator");
-                if (!existingIndicator) {
-                  tweetEl.insertBefore(pinnedIndicatorEl, tweetEl.firstChild);
-                }
-              } else {
-                const pinnedIndicator =
-                  tweetEl.querySelector(".pinned-indicator");
-                if (pinnedIndicator) {
-                  pinnedIndicator.remove();
-                }
-              }
-            } else {
-              toastQueue.add(
-                `<h1>${result.error || "Failed to update pin status"}</h1>`
-              );
-            }
-          } catch (error) {
-            console.error("Error updating pin status:", error);
-            toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-          }
-        },
-      },
-      {
-        id: "delete-option",
-        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3,6 5,6 21,6"></polyline>
-              <path d="m19,6v14a2,2 0,0 1,-2,2H7a2,2 0,0 1,-2,-2V6m3,0V4a2,2 0,0 1,2,-2h4a2,2 0,0 1,2,2v2"></path>
-              <line x1="10" y1="11" x2="10" y2="17"></line>
-              <line x1="14" y1="11" x2="14" y2="17"></line>
-            </svg>`,
-        title: "Delete tweet",
-        onClick: async () => {
-          if (!confirm("Are you sure you want to delete this tweet?")) {
-            return;
-          }
-
-          try {
-            const result = await query(`/tweets/${tweet.id}`, {
-              method: "DELETE",
-            });
-
-            if (result.success) {
-              tweetEl.classList.add("tweet-removing");
-
-              setTimeout(() => {
-                tweetEl.remove();
-              }, 300);
-
-              toastQueue.add(`<h1>Tweet deleted successfully</h1>`);
-            } else {
-              toastQueue.add(
-                `<h1>${result.error || "Failed to delete tweet"}</h1>`
-              );
-            }
-          } catch (error) {
-            console.error("Error deleting tweet:", error);
-            toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-          }
-        },
-      },
-    ];
-
-    getUser().then(async (currentUser) => {
-      try {
-        // Build base items
-        const items =
-          currentUser?.id === tweet.author.id
-            ? [...defaultItems, ...userItems]
-            : [...defaultItems];
-
-        // If not the author, add block/unblock option
-        if (currentUser && tweet.author && currentUser.id !== tweet.author.id) {
-          const checkResp = await query(`/blocking/check/${tweet.author.id}`);
-          const isBlocked = checkResp?.blocked || false;
-
-          const blockItem = {
-            id: isBlocked ? "unblock-user" : "block-user",
-            icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
-            title: isBlocked
-              ? `Unblock @${tweet.author.username}`
-              : `Block @${tweet.author.username}`,
-            onClick: async () => {
-              try {
-                if (
-                  !confirm(
-                    `${isBlocked ? "Unblock" : "Block"} @${
-                      tweet.author.username
-                    }?`
-                  )
-                )
-                  return;
-                const endpoint = isBlocked
-                  ? "/blocking/unblock"
-                  : "/blocking/block";
-                const result = await query(endpoint, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ userId: tweet.author.id }),
-                });
-
-                if (result.success) {
-                  toastQueue.add(
-                    `<h1>${isBlocked ? "User unblocked" : "User blocked"}</h1>`
-                  );
-                } else {
-                  toastQueue.add(
-                    `<h1>${
-                      result.error || "Failed to update block status"
-                    }</h1>`
-                  );
-                }
-              } catch (err) {
-                console.error("Block/unblock error:", err);
-                toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-              }
-            },
-          };
-
-          items.push(blockItem);
-        }
-
-        createPopup({
-          triggerElement: menuButtonEl,
-          items,
-        });
-      } catch (e) {
-        console.error("Error building menu items:", e);
-        createPopup({
-          triggerElement: menuButtonEl,
-          items:
-            currentUser?.id === tweet.author.id
-              ? [...defaultItems, ...userItems]
-              : defaultItems,
-        });
-      }
-    });
-
-    tweetHeaderEl.appendChild(menuButtonEl);
-  });
-
-  // Helper: show reactions modal
-  const showReactions = async (tweetId) => {
-    try {
-      const data = await query(`/tweets/${tweetId}/reactions`);
-      if (data?.error) {
-        // If server returns NOT_FOUND or endpoint missing, show friendly message
-        toastQueue.add(`<h1>Unable to load reactions</h1><p>${data.error}</p>`);
-        return;
-      }
-
-      const container = document.createElement("div");
-      container.className = "reactions-list";
-
-      if (!data || !data.reactions || data.reactions.length === 0) {
-        container.innerHTML = `<p>No reactions yet.</p>`;
-      } else {
-        data.reactions.forEach((r) => {
-          const item = document.createElement("div");
-          item.className = "reaction-item";
-          const avatarSrc =
-            r.user?.avatar ||
-            r.avatar ||
-            r.avatar_url ||
-            "/public/shared/default-avatar.png";
-
-          const displayName =
-            r.name ||
-            r.user?.name ||
-            r.user?.display_name ||
-            r.user?.username ||
-            r.username ||
-            r.handle ||
-            "Unknown";
-
-          const usernameText = r.username || r.user?.username || r.handle || "";
-
-          item.innerHTML = `
-            <div class="reaction-user-avatar"><img src="${avatarSrc}" alt="${displayName}" loading="lazy"/></div>
-            <div class="reaction-content">
-              <div class="reaction-emoji">${r.emoji}</div>
-              <div class="reaction-user-info">
-                <div class="reaction-user-name">${displayName}</div>
-                <div class="reaction-user-username">${
-                  usernameText ? `@${usernameText}` : ""
-                }</div>
-              </div>
-            </div>
-          `;
-          container.appendChild(item);
-        });
-      }
-
-      createModal({
-        title: "Reactions",
-        content: container,
-        className: "reactions-modal",
-      });
-    } catch (err) {
-      console.error("Failed to load reactions:", err);
-      toastQueue.add(`<h1>Network Error</h1><p>Failed to load reactions.</p>`);
-    }
-  };
-
-  if (size !== "preview") tweetHeaderEl.appendChild(menuButtonEl);
-
   tweetEl.appendChild(tweetHeaderEl);
 
   const isArticlePost = Boolean(
@@ -1668,47 +1344,22 @@ export const createTweetElement = (tweet, config = {}) => {
     });
   });
 
-  const tweetInteractionsShareEl = document.createElement("button");
-  tweetInteractionsShareEl.className = "engagement";
-  tweetInteractionsShareEl.style.setProperty("--color", "119, 119, 119");
-  tweetInteractionsShareEl.innerHTML = `<svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.2171 2.2793L10.2171 12.9745M10.2171 2.2793L13.333 4.99984M10.2171 2.2793L7.08301 4.99984M2.49967 10.9925L2.49967 14.1592C2.49967 16.011 4.00084 17.5121 5.85261 17.5121L14.9801 17.5121C16.8318 17.5121 18.333 16.011 18.333 14.1592L18.333 10.9925" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-`;
+  const tweetInteractionsOptionsEl = document.createElement("button");
+  tweetInteractionsOptionsEl.className = "engagement";
+  tweetInteractionsOptionsEl.style.setProperty("--color", "17, 133, 254");
 
-  tweetInteractionsShareEl.addEventListener("click", async (e) => {
+  tweetInteractionsOptionsEl.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path fill="currentColor" d="M10.001 7.8a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 10 7.8zm-7 0a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 3 7.8zm14 0a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 17 7.8z"></path></svg>`;
+
+  tweetInteractionsOptionsEl.addEventListener("click", async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    const tweetUrl = `${window.location.origin}/tweet/${tweet.id}?ref=share`;
-    const shareData = {
-      title: `${tweet.author.name || tweet.author.username} on Tweetapus`,
-      text: tweet.content,
-      url: tweetUrl,
-    };
-
-    try {
-      if (
-        navigator.share &&
-        navigator.canShare &&
-        navigator.canShare(shareData)
-      ) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(tweetUrl);
-        toastQueue.add(`<h1>Link copied to clipboard!</h1>`);
-      }
-    } catch {
-      toastQueue.add(`<h1>Unable to share tweet</h1>`);
-    }
-  });
-
-  const tweetInteractionsBookmarkEl = document.createElement("button");
-  tweetInteractionsBookmarkEl.className = "engagement";
-  tweetInteractionsBookmarkEl.dataset.bookmarked =
-    tweet.bookmarked_by_user || false;
-  tweetInteractionsBookmarkEl.style.setProperty("--color", "255, 169, 0");
-  const isInitiallyBookmarked =
-    tweetInteractionsBookmarkEl.dataset.bookmarked === "true";
-  tweetInteractionsBookmarkEl.innerHTML = `
+    // MARK: options btns
+    const defaultItems = [
+      {
+        id: "bookmark",
+        icon: `
         <svg
           width="19"
           height="19"
@@ -1718,78 +1369,364 @@ export const createTweetElement = (tweet, config = {}) => {
         >
           <path
             d="M5.625 3.125H14.375C14.9963 3.125 15.5 3.62868 15.5 4.25V16.5073C15.5 16.959 15.0134 17.2422 14.6301 17.011L10 14.2222L5.36986 17.011C4.98664 17.2422 4.5 16.959 4.5 16.5073V4.25C4.5 3.62868 5.00368 3.125 5.625 3.125Z"
-            stroke="${isInitiallyBookmarked ? "#FFA900" : "currentColor"}"
+            stroke="${tweet.bookmarked_by_user ? "#FFA900" : "currentColor"}"
             stroke-width="1.5"
             stroke-linecap="round"
             stroke-linejoin="round"
-            fill="${isInitiallyBookmarked ? "#FFA900" : "none"}"
+            fill="${tweet.bookmarked_by_user ? "#FFA900" : "none"}"
           />
-        </svg>
-        <span class="bookmark-count">${tweet.bookmark_count || ""}</span>`;
+        </svg>`,
+        title: `${tweet.bookmarked_by_user ? "Un-b" : "B"}ookmark ${
+          tweet.bookmark_count ? `(${tweet.bookmark_count || "0"})` : ""
+        }`,
+        onClick: async () => {
+          // check discord, Tr.
+          e.preventDefault();
+          e.stopPropagation();
 
-  tweetInteractionsBookmarkEl.addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+          const isBookmarked = tweet.bookmarked_by_user;
 
-    if (isBlockedByProfile) {
-      toastQueue.add(`<h1>You have been blocked by this user</h1>`);
-      return;
-    }
+          const result = await query(
+            isBookmarked ? "/bookmarks/remove" : "/bookmarks/add",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ postId: tweet.id }),
+            }
+          );
 
-    try {
-      const current = await getUser();
-      if (current && tweet.author && tweet.author.username) {
-        const profileResp = await query(`/profile/${tweet.author.username}`);
-        if (profileResp?.profile?.blockedByProfile) {
-          toastQueue.add(`<h1>You have been blocked by this user</h1>`);
-          return;
-        }
-      }
-      const isBookmarked =
-        tweetInteractionsBookmarkEl.dataset.bookmarked === "true";
-      const endpoint = isBookmarked ? "/bookmarks/remove" : "/bookmarks/add";
-
-      const result = await query(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+          if (result.success) {
+            tweet.bookmarked_by_user = result.bookmarked;
+          } else {
+            toastQueue.add(
+              `<h1>${result.error || "Failed to bookmark tweet"}</h1>`
+            );
+          }
         },
-        body: JSON.stringify({ postId: tweet.id }),
-      });
+      },
 
-      if (result.success) {
-        const newIsBookmarked = result.bookmarked;
-        tweetInteractionsBookmarkEl.dataset.bookmarked = newIsBookmarked;
+      {
+        id: "copy-link",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
+        title: "Copy link",
+        onClick: () => {
+          const tweetUrl = `${window.location.origin}/tweet/${tweet.id}`;
 
-        const svg = tweetInteractionsBookmarkEl.querySelector("svg");
-        const path = svg.querySelector("path");
+          navigator.clipboard.writeText(tweetUrl);
+        },
+      },
 
-        if (newIsBookmarked) {
-          path.setAttribute("fill", "#FFA900");
-          path.setAttribute("stroke", "#FFA900");
-        } else {
-          path.setAttribute("fill", "none");
-          path.setAttribute("stroke", "currentColor");
-        }
-      } else {
-        toastQueue.add(
-          `<h1>${result.error || "Failed to bookmark tweet"}</h1>`
-        );
+      {
+        id: "share",
+        icon: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.2171 2.2793L10.2171 12.9745M10.2171 2.2793L13.333 4.99984M10.2171 2.2793L7.08301 4.99984M2.49967 10.9925L2.49967 14.1592C2.49967 16.011 4.00084 17.5121 5.85261 17.5121L14.9801 17.5121C16.8318 17.5121 18.333 16.011 18.333 14.1592L18.333 10.9925" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        title: "Share",
+        onClick: async () => {
+          const tweetUrl = `${window.location.origin}/tweet/${tweet.id}?ref=share`;
+          const shareData = {
+            title: `${tweet.author.name || tweet.author.username} on Tweetapus`,
+            text: tweet.content,
+            url: tweetUrl,
+          };
+
+          try {
+            if (
+              navigator.share &&
+              navigator.canShare &&
+              navigator.canShare(shareData)
+            ) {
+              await navigator.share(shareData);
+            } else {
+              await navigator.clipboard.writeText(tweetUrl);
+              toastQueue.add(`<h1>Link copied to clipboard!</h1>`);
+            }
+          } catch {
+            toastQueue.add(`<h1>Unable to share tweet</h1>`);
+          }
+        },
+      },
+
+      {
+        id: "share-image",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>`,
+        title: "Share as image",
+        onClick: async () => {
+          const tweetElClone = document.createElement("div");
+          tweetElClone.innerHTML = tweetEl.outerHTML;
+
+          const wrapper = document.createElement("div");
+          wrapper.className = "tweet-share-wrapper";
+
+          const tweetContainer = document.createElement("div");
+          tweetContainer.className = "tweet-share-container";
+
+          const stats = tweetElClone.querySelector(".expanded-tweet-stats");
+          if (stats) stats.remove();
+
+          tweetContainer.appendChild(tweetElClone);
+          wrapper.appendChild(tweetContainer);
+
+          document.body.appendChild(wrapper);
+
+          // load html2canvas
+          const script = document.createElement("script");
+          script.src =
+            "https://html2canvas.hertzen.com/dist/html2canvas.min.js";
+          script.onload = () => {
+            window
+              .html2canvas(wrapper, {
+                backgroundColor: "transparent",
+                scale: 3,
+                width: wrapper.offsetWidth,
+              })
+              .then((canvas) => {
+                canvas.toBlob((blob) => {
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `tweetapus_${tweet.id}.png`;
+                  a.click();
+
+                  wrapper.remove();
+                });
+              });
+          };
+          document.head.appendChild(script);
+        },
+      },
+      {
+        id: "view-reactions",
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a7 7 0 100 14 7 7 0 000-14z" stroke="currentColor" stroke-width="1.5"/><path d="M8 8h8M8 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+        title: "View reactions",
+        onClick: async () => {
+          const tweetId = tweet.id;
+
+          const data = await query(`/tweets/${tweetId}/reactions`);
+
+          const container = document.createElement("div");
+          container.className = "reactions-list";
+
+          if (!data || !data.reactions || data.reactions.length === 0) {
+            container.innerHTML = `<p>No reactions yet.</p>`;
+          } else {
+            data.reactions.forEach((r) => {
+              const item = document.createElement("div");
+              item.className = "reaction-item";
+              const avatarSrc =
+                r.user?.avatar ||
+                r.avatar ||
+                r.avatar_url ||
+                "/public/shared/default-avatar.png";
+
+              const displayName =
+                r.name ||
+                r.user?.name ||
+                r.user?.display_name ||
+                r.user?.username ||
+                r.username ||
+                r.handle ||
+                "Unknown";
+
+              const usernameText =
+                r.username || r.user?.username || r.handle || "";
+
+              item.innerHTML = `
+            <div class="reaction-user-avatar"><img src="${avatarSrc}" alt="${displayName
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")}" loading="lazy"/></div>
+            <div class="reaction-content">
+              <div class="reaction-emoji">${r.emoji}</div>
+              <div class="reaction-user-info">
+                <div class="reaction-user-name">${displayName
+                  .replaceAll("<", "&lt;")
+                  .replaceAll(">", "&gt;")}</div>
+                <div class="reaction-user-username">${
+                  usernameText
+                    ? `@${usernameText
+                        .replaceAll("<", "&lt;")
+                        .replaceAll(">", "&gt;")}`
+                    : ""
+                }</div>
+              </div>
+            </div>
+          `;
+              container.appendChild(item);
+            });
+          }
+
+          createModal({
+            title: "Reactions",
+            content: container,
+            className: "reactions-modal",
+          });
+        },
+      },
+    ];
+
+    const userItems = [
+      {
+        id: tweet.pinned ? "unpin-option" : "pin-option",
+        icon: tweet.pinned
+          ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 17v5"></path>
+                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
+                </svg>`
+          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 17v5"></path>
+                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
+                </svg>`,
+        title: tweet.pinned ? "Unpin from profile" : "Pin to profile",
+        onClick: async () => {
+          try {
+            const method = tweet.pinned ? "DELETE" : "POST";
+            const result = await query(`/profile/pin/${tweet.id}`, {
+              method,
+            });
+
+            if (result.success) {
+              tweet.pinned = !tweet.pinned;
+              toastQueue.add(
+                `<h1>Tweet ${
+                  tweet.pinned ? "pinned" : "unpinned"
+                } successfully</h1>`
+              );
+
+              if (tweet.pinned) {
+                const pinnedIndicatorEl = document.createElement("div");
+                pinnedIndicatorEl.className = "pinned-indicator";
+                pinnedIndicatorEl.innerHTML = `
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 17v5"></path>
+                        <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
+                      </svg>
+                      <span>Pinned</span>
+                    `;
+                const existingIndicator =
+                  tweetEl.querySelector(".pinned-indicator");
+                if (!existingIndicator) {
+                  tweetEl.insertBefore(pinnedIndicatorEl, tweetEl.firstChild);
+                }
+              } else {
+                const pinnedIndicator =
+                  tweetEl.querySelector(".pinned-indicator");
+                if (pinnedIndicator) {
+                  pinnedIndicator.remove();
+                }
+              }
+            } else {
+              toastQueue.add(
+                `<h1>${result.error || "Failed to update pin status"}</h1>`
+              );
+            }
+          } catch (error) {
+            console.error("Error updating pin status:", error);
+            toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+          }
+        },
+      },
+      {
+        id: "delete-option",
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3,6 5,6 21,6"></polyline>
+              <path d="m19,6v14a2,2 0,0 1,-2,2H7a2,2 0,0 1,-2,-2V6m3,0V4a2,2 0,0 1,2,-2h4a2,2 0,0 1,2,2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>`,
+        title: "Delete tweet",
+        onClick: async () => {
+          if (!confirm("Are you sure you want to delete this tweet?")) {
+            return;
+          }
+
+          const result = await query(`/tweets/${tweet.id}`, {
+            method: "DELETE",
+          });
+
+          if (result.success) {
+            tweetEl.classList.add("tweet-removing");
+
+            setTimeout(() => {
+              tweetEl.remove();
+            }, 300);
+
+            toastQueue.add(`<h1>Tweet deleted successfully</h1>`);
+          } else {
+            toastQueue.add(
+              `<h1>${result.error || "Failed to delete tweet"}</h1>`
+            );
+          }
+        },
+      },
+    ];
+
+    // Tr, what happened to a the views indicator?ng it rn what
+    getUser().then(async (currentUser) => {
+      const items =
+        currentUser?.id === tweet.author.id
+          ? [...defaultItems, ...userItems]
+          : [...defaultItems];
+
+      if (currentUser && tweet.author && currentUser.id !== tweet.author.id) {
+        const checkResp = await query(`/blocking/check/${tweet.author.id}`);
+        const isBlocked = checkResp?.blocked || false;
+
+        const blockItem = {
+          id: isBlocked ? "unblock-user" : "block-user",
+          icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+          title: isBlocked
+            ? `Unblock @${tweet.author.username}`
+            : `Block @${tweet.author.username}`,
+          onClick: async () => {
+            try {
+              if (
+                !confirm(
+                  `${isBlocked ? "Unblock" : "Block"} @${
+                    tweet.author.username
+                  }?`
+                )
+              )
+                return;
+              const endpoint = isBlocked
+                ? "/blocking/unblock"
+                : "/blocking/block";
+              const result = await query(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: tweet.author.id }),
+              });
+
+              if (result.success) {
+                toastQueue.add(
+                  `<h1>${isBlocked ? "User unblocked" : "User blocked"}</h1>`
+                );
+              } else {
+                toastQueue.add(
+                  `<h1>${result.error || "Failed to update block status"}</h1>`
+                );
+              }
+            } catch (err) {
+              console.error("Block/unblock error:", err);
+              toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+            }
+          },
+        };
+
+        items.push(blockItem);
       }
-    } catch (error) {
-      console.error("Error bookmarking tweet:", error);
-      toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-    }
+
+      createPopup({
+        triggerElement: tweetInteractionsOptionsEl,
+        items,
+      });
+    });
   });
 
-  // If profile blocked the viewer, disable interaction buttons for accessibility
   if (isBlockedByProfile) {
     [
       tweetInteractionsLikeEl,
       tweetInteractionsRetweetEl,
       tweetInteractionsReplyEl,
-      tweetInteractionsBookmarkEl,
-      tweetInteractionsShareEl,
     ].forEach((btn) => {
       try {
         btn.disabled = true;
@@ -1799,7 +1736,6 @@ export const createTweetElement = (tweet, config = {}) => {
     });
   }
 
-  // If we're not already in a profile-blocked context, check per-author block status for timeline/home feeds
   (async () => {
     try {
       if (!isBlockedByProfile) {
@@ -1811,8 +1747,6 @@ export const createTweetElement = (tweet, config = {}) => {
             tweetInteractionsLikeEl,
             tweetInteractionsRetweetEl,
             tweetInteractionsReplyEl,
-            tweetInteractionsBookmarkEl,
-            tweetInteractionsShareEl,
           ].forEach((btn) => {
             try {
               btn.disabled = true;
@@ -1820,19 +1754,6 @@ export const createTweetElement = (tweet, config = {}) => {
               btn.classList.add("blocked-interaction");
             } catch (_) {}
           });
-
-          // Also mark the tweet element visually so CSS can style it
-          // done ok
-          // what do we trying doing RN on tweetapus???
-          // Tr, a the answer
-          // idk, OpuaYT, but i pulled the changes
-          // ok
-
-          // maybe the algorithm
-          // algo but in Bun?
-
-          // maybe idk Tr Happies
-          // maybe we fix SQLiteError: no such column: view_count yes
           tweetEl.classList.add("blocked-by-profile");
         }
       }
@@ -1893,28 +1814,18 @@ export const createTweetElement = (tweet, config = {}) => {
   tweetInteractionsViewsEl.style.setProperty("--color", "119, 119, 119");
   tweetInteractionsViewsEl.title = `${tweet.view_count || 0} views`;
 
-  // Reaction count span (created but appended to DOM only on initial render when > 0)
   const reactionCountSpan = document.createElement("span");
   reactionCountSpan.className = "reaction-count";
   reactionCountSpan.textContent = "";
 
-  // Reaction button (opens emoji picker)
   const tweetInteractionsReactionEl = document.createElement("button");
   tweetInteractionsReactionEl.className = "engagement reaction-btn";
   tweetInteractionsReactionEl.dataset.bookmarked = "false";
   tweetInteractionsReactionEl.title = "React";
   tweetInteractionsReactionEl.style.setProperty("--color", "255, 180, 0");
   tweetInteractionsReactionEl.innerHTML = `
-    <svg width="19" height="19" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.2"></circle>
-      <path d="M8.5 10.5c.7-.8 1.8-.8 2.5 0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"></path>
-      <path d="M13 14c-.8.6-1.8.9-3 .9s-2.2-.3-3-.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"></path>
-      <circle cx="9" cy="9" r="0.8" fill="currentColor"></circle>
-      <circle cx="15" cy="9" r="0.8" fill="currentColor"></circle>
-    </svg>`;
+    <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-smile-plus-icon lucide-smile-plus"><path d="M22 11v1a10 10 0 1 1-9-10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/><path d="M16 5h6"/><path d="M19 2v6"/></svg>`;
 
-  // Place the reaction count span inside the button so structure matches:
-  // <div class="reaction-wrapper"><button class="engagement reaction-btn">...<span class="reaction-count">3</span></button></div>
   tweetInteractionsReactionEl.appendChild(reactionCountSpan);
 
   tweetInteractionsReactionEl.addEventListener("click", async (e) => {
@@ -1941,9 +1852,7 @@ export const createTweetElement = (tweet, config = {}) => {
               body: JSON.stringify({ emoji }),
             });
 
-            // Server may return { success, reacted } or { success, total_reactions }
             if (result?.success) {
-              // If server returns total_reactions, use that authoritative count and ensure badge shows
               if (typeof result.total_reactions === "number") {
                 tweet.reaction_count = result.total_reactions;
 
@@ -1956,7 +1865,6 @@ export const createTweetElement = (tweet, config = {}) => {
                   reactionCountSpan.remove();
                 }
               } else if (typeof result.reacted === "boolean") {
-                // If the original tweet did not have a count on load, do NOT show a count when toggling
                 const hadInitialCount =
                   tweet.reaction_count && tweet.reaction_count > 0;
 
@@ -1976,12 +1884,8 @@ export const createTweetElement = (tweet, config = {}) => {
                   } else if (reactionCountSpan.parentNode) {
                     reactionCountSpan.remove();
                   }
-                } else {
-                  // No initial count and server did not provide totals: keep UI non-destructive and do not show badge
-                  // but still trigger animation to give feedback
                 }
               } else {
-                // fallback: optimistic increment only if there was an initial count
                 const hadInitialCount =
                   tweet.reaction_count && tweet.reaction_count > 0;
                 if (hadInitialCount) {
@@ -2008,29 +1912,23 @@ export const createTweetElement = (tweet, config = {}) => {
   });
 
   tweetInteractionsRightEl.appendChild(tweetInteractionsViewsEl);
-  // Wrap reaction button and count together so the counter appears directly to the right of the button
+
   const reactionWrapper = document.createElement("div");
   reactionWrapper.className = "reaction-wrapper";
-  // Give reaction button a distinct color variable so hover circle matches other interactions
-  // ensure the button color is consistent (can be overridden per button via inline style)
-  // (already set above) but keep this as a fallback
   tweetInteractionsReactionEl.style.setProperty(
     "--color",
     tweetInteractionsReactionEl.style.getPropertyValue("--color") ||
       "255, 169, 0"
   );
 
-  // Button (which already contains the count span) goes into the wrapper
   reactionWrapper.appendChild(tweetInteractionsReactionEl);
 
-  // Populate count immediately if tweet has reactions
   if (tweet.reaction_count && tweet.reaction_count > 0) {
     reactionCountSpan.textContent = String(tweet.reaction_count);
   }
 
   tweetInteractionsRightEl.appendChild(reactionWrapper);
-  tweetInteractionsRightEl.appendChild(tweetInteractionsBookmarkEl);
-  tweetInteractionsRightEl.appendChild(tweetInteractionsShareEl);
+  tweetInteractionsRightEl.appendChild(tweetInteractionsOptionsEl);
 
   tweetInteractionsEl.appendChild(tweetInteractionsRightEl);
 

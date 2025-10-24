@@ -36,7 +36,7 @@ const checkReplyPermission = async (replier, originalAuthor, restriction) => {
     }
 
     case "verified":
-      return !!replier.verified;
+      return !!replier.verified || !!replier.gold;
 
     // case "everyone":
     default:

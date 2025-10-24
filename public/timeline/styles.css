@@ -1,13 +1,11 @@
 body {
   display: flex;
   min-height: 100vh;
-  overflow-x: hidden;
   margin: 0px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Suspended profile styles: centralized rules when #profileContainer has .suspended */
 #profileContainer.suspended .profile-banner {
   background-image: none !important;
   background-color: #2b2b2b !important;
@@ -463,7 +461,7 @@ nav {
             border: none;
             padding: 0px;
             cursor: pointer;
-            transition: filter .2s;
+            transition: filter 0.2s;
 
             &:hover {
               filter: brightness(1.5);
@@ -1218,6 +1216,10 @@ nav {
       pointer-events: none;
       opacity: 0.7;
 
+      &:is(.tweet:not([data-main-tweet]) .views-count) {
+        display: none;
+      }
+
       svg {
         width: 18px;
         height: 18px;
@@ -1310,7 +1312,6 @@ nav {
     padding-left: 20px;
   }
 
-  /* When viewing a profile that blocked the viewer, visually mute and disable interactions */
   .tweet.blocked-by-profile .tweet-interactions {
     opacity: 0.6;
     pointer-events: none;
@@ -2684,6 +2685,13 @@ nav {
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
+    transition: transform .2s;
+
+    @starting-style {
+      & {
+        transform: scale(0.95);
+      }
+    }
 
     .compose-tweet {
       border: none;
@@ -5160,27 +5168,6 @@ nav {
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
-}
-
-.tweet-menu-btn {
-  position: absolute;
-  right: -8px;
-  top: 10px;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background-color: rgba(29, 161, 242, 0.1);
-    color: #1da1f2;
-  }
 }
 
 .tweet-article {
