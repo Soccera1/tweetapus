@@ -1348,8 +1348,7 @@ export const createTweetElement = (tweet, config = {}) => {
   tweetInteractionsOptionsEl.className = "engagement";
   tweetInteractionsOptionsEl.style.setProperty("--color", "17, 133, 254");
 
-  tweetInteractionsOptionsEl.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20"><path fill="currentColor" d="M10.001 7.8a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 10 7.8zm-7 0a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 3 7.8zm14 0a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 17 7.8z"></path></svg>`;
+  tweetInteractionsOptionsEl.innerHTML = `<svg width="19" height="19" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="icon"><path d="M15.498 8.50159C16.3254 8.50159 16.9959 9.17228 16.9961 9.99963C16.9961 10.8271 16.3256 11.4987 15.498 11.4987C14.6705 11.4987 14 10.8271 14 9.99963C14.0002 9.17228 14.6706 8.50159 15.498 8.50159Z"></path><path d="M4.49805 8.50159C5.32544 8.50159 5.99689 9.17228 5.99707 9.99963C5.99707 10.8271 5.32555 11.4987 4.49805 11.4987C3.67069 11.4985 3 10.827 3 9.99963C3.00018 9.17239 3.6708 8.50176 4.49805 8.50159Z"></path><path d="M10.0003 8.50159C10.8276 8.50176 11.4982 9.17239 11.4984 9.99963C11.4984 10.827 10.8277 11.4985 10.0003 11.4987C9.17283 11.4987 8.50131 10.8271 8.50131 9.99963C8.50149 9.17228 9.17294 8.50159 10.0003 8.50159Z"></path></svg>`;
 
   tweetInteractionsOptionsEl.addEventListener("click", async (e) => {
     e.preventDefault();
@@ -1497,7 +1496,7 @@ export const createTweetElement = (tweet, config = {}) => {
       },
       {
         id: "view-reactions",
-        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a7 7 0 100 14 7 7 0 000-14z" stroke="currentColor" stroke-width="1.5"/><path d="M8 8h8M8 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-smile-plus-icon lucide-smile-plus"><path d="M22 11v1a10 10 0 1 1-9-10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/><path d="M16 5h6"/><path d="M19 2v6"/></svg>`,
         title: "View reactions",
         onClick: async () => {
           const tweetId = tweet.id;
@@ -1623,6 +1622,139 @@ export const createTweetElement = (tweet, config = {}) => {
             console.error("Error updating pin status:", error);
             toastQueue.add(`<h1>Network error. Please try again.</h1>`);
           }
+        },
+      },
+      {
+        id: "change-reply-restriction",
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>`,
+        title: "Change who can reply",
+        onClick: async () => {
+          const currentRestriction = tweet.reply_restriction || "everyone";
+
+          const restrictionMenu = document.createElement("div");
+          restrictionMenu.className = "reply-restriction-modal";
+          restrictionMenu.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 10000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+          `;
+
+          const title = document.createElement("h2");
+          title.textContent = "Who can reply?";
+          title.style.cssText = "margin: 0 0 16px; font-size: 18px;";
+          restrictionMenu.appendChild(title);
+
+          const modalOverlay = document.createElement("div");
+          modalOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+          `;
+
+          const closeModal = () => {
+            if (modalOverlay.parentNode === document.body) {
+              document.body.removeChild(modalOverlay);
+            }
+            if (restrictionMenu.parentNode === document.body) {
+              document.body.removeChild(restrictionMenu);
+            }
+          };
+
+          modalOverlay.addEventListener("click", closeModal);
+
+          const options = [
+            { value: "everyone", label: "Everyone" },
+            { value: "following", label: "People you follow" },
+            { value: "followers", label: "Your followers" },
+            { value: "verified", label: "Verified accounts" },
+          ];
+
+          options.forEach((option) => {
+            const optionBtn = document.createElement("button");
+            optionBtn.type = "button";
+            optionBtn.style.cssText = `
+              display: block;
+              width: 100%;
+              padding: 12px;
+              margin-bottom: 8px;
+              text-align: left;
+              border: 1px solid ${option.value === currentRestriction ? "var(--primary)" : "var(--border-primary)"};
+              background: ${option.value === currentRestriction ? "rgba(var(--primary-rgb), 0.1)" : "transparent"};
+              border-radius: 8px;
+              cursor: pointer;
+              color: var(--text-primary);
+              font-size: 14px;
+              transition: all 0.2s ease;
+            `;
+
+            if (option.value === currentRestriction) {
+              optionBtn.innerHTML = `<strong>✓ ${option.label}</strong>`;
+            } else {
+              optionBtn.textContent = option.label;
+            }
+
+            optionBtn.addEventListener("click", async () => {
+              try {
+                const result = await query(`/tweets/${tweet.id}/reply-restriction`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ reply_restriction: option.value }),
+                });
+
+                if (result.success) {
+                  tweet.reply_restriction = option.value;
+                  closeModal();
+                  toastQueue.add(`<h1>Reply restriction updated</h1>`);
+                } else {
+                  toastQueue.add(`<h1>${result.error || "Failed to update reply restriction"}</h1>`);
+                }
+              } catch (err) {
+                console.error("Error updating reply restriction:", err);
+                toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+              }
+            });
+
+            restrictionMenu.appendChild(optionBtn);
+          });
+
+          const cancelBtn = document.createElement("button");
+          cancelBtn.type = "button";
+          cancelBtn.textContent = "Cancel";
+          cancelBtn.style.cssText = `
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            border: 1px solid var(--border-primary);
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 14px;
+          `;
+          cancelBtn.addEventListener("click", closeModal);
+          restrictionMenu.appendChild(cancelBtn);
+
+          document.body.appendChild(modalOverlay);
+          document.body.appendChild(restrictionMenu);
         },
       },
       {
@@ -1761,40 +1893,53 @@ export const createTweetElement = (tweet, config = {}) => {
   })();
 
   const replyRestriction = tweet.reply_restriction || "everyone";
+  let restrictionEl = null;
 
-  if (replyRestriction !== "everyone") {
-    import("./auth.js").then(async ({ authToken }) => {
-      if (authToken) {
-        const getUser = (await import("./auth.js")).default;
-        const currentUser = await getUser();
+  const createRestrictionElement = () => {
+    if (replyRestriction !== "everyone") {
+      import("./auth.js").then(async ({ authToken }) => {
+        if (authToken) {
+          const getUser = (await import("./auth.js")).default;
+          const currentUser = await getUser();
 
-        if (currentUser && currentUser.id === tweet.author.id) {
-          const restrictionEl = document.createElement("div");
-          restrictionEl.className = "reply-restriction-info";
-          restrictionEl.textContent = "You can reply to your own tweet";
-          tweetInteractionsEl.appendChild(restrictionEl);
-          return;
-        }
-
-        checkReplyPermissions(tweet, replyRestriction).then(
-          ({ canReply: allowed, restrictionText }) => {
-            if (!allowed) {
-              tweetInteractionsReplyEl.disabled = true;
-              tweetInteractionsReplyEl.classList.add("reply-restricted");
-              tweetInteractionsReplyEl.title = "You cannot reply to this tweet";
-            }
-
-            if (restrictionText) {
-              const restrictionEl = document.createElement("div");
+          if (currentUser && currentUser.id === tweet.author.id) {
+            if (!restrictionEl) {
+              restrictionEl = document.createElement("div");
               restrictionEl.className = "reply-restriction-info";
-              restrictionEl.textContent = restrictionText;
-              tweetInteractionsEl.appendChild(restrictionEl);
+              const existingRestriction = tweetEl.querySelector(".reply-restriction-info");
+              if (!existingRestriction && tweetInteractionsEl.parentNode) {
+                tweetEl.insertBefore(restrictionEl, tweetInteractionsEl);
+              }
             }
+            restrictionEl.textContent = "You can reply to your own tweet";
+            return;
           }
-        );
-      }
-    });
-  }
+
+          checkReplyPermissions(tweet, replyRestriction).then(
+            ({ canReply: allowed, restrictionText }) => {
+              if (!allowed) {
+                tweetInteractionsReplyEl.disabled = true;
+                tweetInteractionsReplyEl.classList.add("reply-restricted");
+                tweetInteractionsReplyEl.title = "You cannot reply to this tweet";
+              }
+
+              if (restrictionText) {
+                if (!restrictionEl) {
+                  restrictionEl = document.createElement("div");
+                  restrictionEl.className = "reply-restriction-info";
+                  const existingRestriction = tweetEl.querySelector(".reply-restriction-info");
+                  if (!existingRestriction && tweetInteractionsEl.parentNode) {
+                    tweetEl.insertBefore(restrictionEl, tweetInteractionsEl);
+                  }
+                }
+                restrictionEl.textContent = restrictionText;
+              }
+            }
+          );
+        }
+      });
+    }
+  };
 
   tweetInteractionsEl.appendChild(tweetInteractionsLikeEl);
   tweetInteractionsEl.appendChild(tweetInteractionsRetweetEl);
@@ -1934,6 +2079,7 @@ export const createTweetElement = (tweet, config = {}) => {
 
   if (size !== "preview") {
     tweetEl.appendChild(tweetInteractionsEl);
+    createRestrictionElement();
   }
   if (tweet.top_reply && showTopReply) {
     const topReplyEl = createTweetElement(tweet.top_reply, {

@@ -1382,4 +1382,46 @@ export default new Elysia({ prefix: "/tweets" })
       console.error("Delete tweet error:", error);
       return { error: "Failed to delete tweet" };
     }
+  })
+  .patch("/:id/reply-restriction", async ({ jwt, headers, params, body }) => {
+    const authorization = headers.authorization;
+    if (!authorization) return { error: "Authentication required" };
+
+    try {
+      const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+      if (!payload) return { error: "Invalid token" };
+
+      const user = getUserByUsername.get(payload.username);
+      if (!user) return { error: "User not found" };
+
+      const { id } = params;
+      const { reply_restriction } = body;
+
+      const tweet = getTweetById.get(id);
+      if (!tweet) return { error: "Tweet not found" };
+
+      if (tweet.user_id !== user.id) {
+        return { error: "You can only modify your own tweets" };
+      }
+
+      const validRestrictions = [
+        "everyone",
+        "followers",
+        "following",
+        "verified",
+      ];
+      if (!validRestrictions.includes(reply_restriction)) {
+        return { error: "Invalid reply restriction" };
+      }
+
+      db.query("UPDATE posts SET reply_restriction = ? WHERE id = ?").run(
+        reply_restriction,
+        id
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error("Update reply restriction error:", error);
+      return { error: "Failed to update reply restriction" };
+    }
   });
