@@ -24,7 +24,7 @@ body {
   justify-content: center;
   align-items: center;
   padding: 120px 80px;
-  background: linear-gradient(135deg, rgb(10, 207, 254), rgb(73, 90, 255));
+  background-color: var(--bg-primary);
   z-index: -1;
   pointer-events: none;
 }
@@ -64,8 +64,8 @@ nav {
   position: sticky;
   top: 0;
   height: 100vh;
-  width: 275px;
-  padding: 8px 12px;
+  width: 240px;
+  padding: 6px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -77,7 +77,7 @@ nav {
     border: none;
     font-family: inherit;
     cursor: pointer;
-    padding: 12px 16px;
+    padding: 10px 14px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -87,7 +87,7 @@ nav {
     font-size: 20px;
     font-weight: 400;
     justify-content: flex-start;
-    width: fit-content;
+    width: 100%;
 
     &:hover {
       background-color: rgba(var(--primary-rgb), 0.08);
@@ -152,8 +152,8 @@ nav {
 
   .account {
     margin-top: auto;
-    padding: 12px;
-    width: fit-content;
+    padding: 10px 12px;
+    width: 100%;
     transition: background-color 0.2s ease;
     gap: 4px;
 
@@ -162,8 +162,8 @@ nav {
     }
 
     img {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       font-size: 0px;
     }
@@ -179,7 +179,7 @@ nav {
 
 .icon {
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   color: var(--primary);
   fill: var(--primary);
 }
@@ -347,8 +347,8 @@ nav {
     margin-bottom: 8px;
 
     img#compose-avatar {
-      width: 43px;
-      height: 43px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       flex-shrink: 0;
       object-fit: cover;
@@ -364,13 +364,13 @@ nav {
         border: none;
         outline: none;
         font-family: inherit;
-        font-size: 18px;
+        font-size: 16px;
         line-height: 1.5;
         resize: none;
         min-height: 25px;
         max-height: 250px;
         height: 0px;
-        padding: 0;
+        padding: 6px 0;
         margin: 0;
         background-color: transparent;
         color: var(--text-primary);
@@ -379,7 +379,7 @@ nav {
 
         &::placeholder {
           color: var(--text-secondary);
-          font-size: 18px;
+          font-size: 16px;
         }
 
         &.drag-over {
@@ -739,11 +739,11 @@ nav {
       cursor: pointer;
       overflow: hidden;
       border-radius: 8px;
-      transition: transform 0.2s;
+      /* removed scale hover to avoid distracting motion; keep subtle focus via outline */
+      transition: box-shadow 0.12s;
 
       &:hover {
-        transform: scale(1.05);
-        z-index: 1;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
       }
 
       img {
@@ -912,11 +912,11 @@ nav {
         overflow: hidden;
         background-color: var(--surface-primary);
         cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition: box-shadow 0.18s ease, transform 0.08s ease;
 
         &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
         }
 
         .article-card-cover {
@@ -1002,8 +1002,8 @@ nav {
     position: relative;
 
     img {
-      width: 43px;
-      height: 43px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       cursor: pointer;
     }
@@ -1154,7 +1154,7 @@ nav {
   }
   .tweet-interactions {
     display: flex;
-    gap: 20px;
+    gap: 14px;
     user-select: none;
     align-items: center;
 
@@ -1285,7 +1285,8 @@ nav {
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid var(--border-primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    /* reduce shadow for a cleaner, flatter look */
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 
     .tweet-attachment {
       width: 100%;
@@ -1300,9 +1301,7 @@ nav {
         cursor: pointer;
         transition: opacity 0.2s ease;
 
-        &:hover {
-          opacity: 0.9;
-        }
+        /* keep hover subtle; removed noticeable opacity change */
       }
 
       video {
@@ -1626,10 +1625,16 @@ nav {
 
   .profile-banner {
     height: 200px;
-    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    /* use neutral surface color instead of a bright gradient for a cleaner look */
+    background-color: var(--bg-secondary);
     margin-left: -24px;
     margin-right: -24px;
     width: calc(100% + 48px);
+  }
+
+  /* Suspended specific banner styling (dark-gray rectangle) */
+  .profile-banner {
+    /* keep original behavior for normal accounts; suspended banner background is set inline by JS */
   }
 
   .profile-card {
@@ -1954,6 +1959,37 @@ nav {
       margin: 0px auto;
     }
   }
+}
+
+/* Suspended account notice */
+.profile-suspended {
+  display: none;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-top: 12px;
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  width: calc(100%);
+  box-sizing: border-box;
+}
+
+.profile-suspended .suspended-sub {
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+/* Suspended avatar fallback styling: ensure it appears as a gray circle */
+#profileAvatar {
+  background-color: transparent;
+}
+
+/* When JS sets a suspended avatar background color, this ensures the image fits */
+#profileAvatar[suspended] {
+  background-color: var(--suspended-avatar-bg, #bdbdbd);
 }
 
 .edit-profile-modal {
@@ -3339,24 +3375,30 @@ nav {
 .dm-conversations-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
 }
 
 .dm-conversation-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
+  padding: 12px 12px; /* increased clickable area */
   border-bottom: 1px solid var(--border-primary);
   cursor: pointer;
   text-decoration: none;
   color: inherit;
   position: relative;
   overflow: hidden;
-  transition: background-color 0.1s ease;
+  transition: background-color 0.12s ease;
 
-  &:hover {
-    background-color: rgba(var(--primary-rgb), 0.03);
+  &:hover,
+  &:focus-visible {
+    background-color: rgba(var(--primary-rgb), 0.06);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--primary-rgb), 0.12);
+    outline-offset: -2px;
   }
 
   .dm-avatar {
@@ -3391,12 +3433,12 @@ nav {
       text-overflow: ellipsis;
       white-space: nowrap;
       line-height: 1.3;
-      opacity: 0.8;
+      opacity: 0.85;
 
       .dm-sender {
         font-weight: 500;
         color: var(--text-primary);
-        opacity: 0.9;
+        opacity: 0.95;
       }
     }
   }
@@ -3416,14 +3458,15 @@ nav {
       background-color: var(--primary);
       color: white;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       padding: 2px 6px;
-      border-radius: 10px;
-      min-width: 16px;
-      height: 16px;
+      border-radius: 12px;
+      min-width: 20px;
+      height: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: none; /* clean, flat badge */
     }
   }
 }
@@ -3523,10 +3566,10 @@ nav {
 .dm-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 12px;
+  padding: 20px 16px; /* a bit more padding for breathing room */
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   background-color: var(--bg-primary);
 }
 
@@ -3558,9 +3601,9 @@ nav {
       .dm-message-text {
         background-color: var(--primary);
         color: white;
-        padding: 8px 12px;
+        padding: 10px 14px;
         border-radius: 18px;
-        border-bottom-right-radius: 4px;
+        border-bottom-right-radius: 8px; /* gentler corner */
       }
     }
 
@@ -3578,9 +3621,9 @@ nav {
       .dm-message-text {
         background-color: var(--bg-secondary);
         color: var(--text-primary);
-        padding: 8px 12px;
+        padding: 10px 14px;
         border-radius: 18px;
-        border-bottom-left-radius: 4px;
+        border-bottom-left-radius: 8px; /* consistent rounding */
       }
     }
   }
@@ -3621,15 +3664,16 @@ nav {
       gap: 4px;
 
       img {
-        max-width: 400px;
+        max-width: min(400px, 100%);
+        width: 100%;
         border-radius: 8px;
         cursor: pointer;
         border: 1px solid var(--border-primary);
         object-fit: contain;
-        transition: opacity 0.2s ease;
+        transition: opacity 0.12s ease;
 
         &:hover {
-          opacity: 0.9;
+          opacity: 0.92;
         }
       }
     }
@@ -3730,8 +3774,8 @@ nav {
     border-radius: 10px;
     padding: 6px;
     display: flex;
-    gap: 2px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    gap: 6px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
     z-index: 1000;
     margin-bottom: 4px;
 
@@ -3743,11 +3787,10 @@ nav {
       font-size: 18px;
       cursor: pointer;
       border-radius: 6px;
-      transition: all 0.15s ease;
+      transition: background-color 0.12s ease;
 
       &:hover {
-        background: rgba(var(--primary-rgb), 0.1);
-        transform: scale(1.15);
+        background: rgba(var(--primary-rgb), 0.08);
       }
     }
   }
@@ -3788,6 +3831,65 @@ nav {
       color: var(--text-secondary);
       margin-left: 4px;
     }
+  }
+}
+
+.dm-typing-indicators {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+
+  .dm-typing-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dm-typing-dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 12px;
+
+    span {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background-color: var(--text-secondary);
+      animation: dm-typing-dot 1.4s infinite;
+
+      &:nth-child(1) {
+        animation-delay: 0s;
+      }
+
+      &:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      &:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+    }
+  }
+
+  .dm-typing-text {
+    color: var(--text-secondary);
+  }
+}
+
+@keyframes dm-typing-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-6px);
   }
 }
 
@@ -3953,7 +4055,7 @@ nav {
       align-items: center;
       justify-content: center;
       color: var(--primary);
-      border-radius: 4px;
+      border-radius: 6px;
       transition: all 0.15s ease;
 
       &:disabled {
@@ -3961,8 +4063,16 @@ nav {
         cursor: not-allowed;
       }
 
+      /* make the send button clearly actionable when enabled */
+      &:not(:disabled) {
+        background-color: var(--primary);
+        color: white;
+        padding: 8px;
+        border-radius: 8px;
+      }
+
       &:not(:disabled):hover {
-        background-color: rgba(var(--primary-rgb), 0.1);
+        background-color: color-mix(in srgb, var(--primary) 85%, black 5%);
       }
     }
   }

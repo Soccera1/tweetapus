@@ -23,6 +23,8 @@ let replyingTo = null;
 let messageOffset = 0;
 let isLoadingMoreMessages = false;
 let hasMoreMessages = true;
+let typingIndicators = new Map();
+let typingTimeouts = new Map();
 
 function connectSSE() {
   const now = Date.now();
@@ -59,6 +61,10 @@ function connectSSE() {
         if (data.dms !== undefined) {
           displayDMCount(data.dms);
         }
+      } else if (data.type === "typing") {
+        handleTypingIndicator(data);
+      } else if (data.type === "typing-stop") {
+        handleTypingStop(data);
       }
     } catch (error) {
       console.error("Error parsing SSE message:", error);
@@ -95,6 +101,71 @@ function handleReactionUpdate(data) {
       renderMessages();
     }
   }
+}
+
+function handleTypingIndicator(data) {
+  const { conversationId, userId, username, name, avatar } = data;
+
+  if (currentConversation && currentConversation.id === conversationId) {
+    if (!typingIndicators.has(userId)) {
+      typingIndicators.set(userId, { username, name, avatar });
+      renderTypingIndicators();
+    }
+
+    if (typingTimeouts.has(userId)) {
+      clearTimeout(typingTimeouts.get(userId));
+    }
+
+    const timeout = setTimeout(() => {
+      typingIndicators.delete(userId);
+      typingTimeouts.delete(userId);
+      renderTypingIndicators();
+    }, 3000);
+
+    typingTimeouts.set(userId, timeout);
+  }
+}
+
+function handleTypingStop(data) {
+  const { conversationId, userId } = data;
+
+  if (currentConversation && currentConversation.id === conversationId) {
+    if (typingTimeouts.has(userId)) {
+      clearTimeout(typingTimeouts.get(userId));
+      typingTimeouts.delete(userId);
+    }
+    typingIndicators.delete(userId);
+    renderTypingIndicators();
+  }
+}
+
+function renderTypingIndicators() {
+  const messagesElement = document.getElementById("dmMessages");
+  if (!messagesElement) return;
+
+  let typingEl = document.getElementById("dmTypingIndicators");
+
+  if (typingIndicators.size === 0) {
+    if (typingEl) typingEl.remove();
+    return;
+  }
+
+  if (!typingEl) {
+    typingEl = document.createElement("div");
+    typingEl.id = "dmTypingIndicators";
+    typingEl.className = "dm-typing-indicators";
+    messagesElement.appendChild(typingEl);
+  }
+
+  const typingUsers = Array.from(typingIndicators.values());
+  typingEl.innerHTML = `
+    <div class="dm-typing-container">
+      <div class="dm-typing-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <span class="dm-typing-text">${typingUsers.map((u) => u.name || u.username).join(", ")} ${typingUsers.length === 1 ? "is" : "are"} typing...</span>
+    </div>
+  `;
 }
 
 function displayDMCount(count) {
@@ -255,6 +326,10 @@ function createConversationElement(conversation) {
 
 async function openConversation(conversationId) {
   try {
+    typingIndicators.clear();
+    typingTimeouts.forEach((timeout) => clearTimeout(timeout));
+    typingTimeouts.clear();
+
     const data = await query(`/dm/conversations/${conversationId}`);
 
     if (data.error) {
@@ -507,6 +582,8 @@ async function sendMessage() {
 
   if (!content && pendingFiles.length === 0) return;
 
+  await stopTypingIndicator();
+
   try {
     const requestBody = {
       content: content || "",
@@ -552,6 +629,52 @@ async function sendMessage() {
     console.error("Failed to send message:", error);
     toastQueue.add("Failed to send message");
   }
+}
+
+let typingTimeout = null;
+
+async function broadcastTypingIndicator() {
+  if (!currentConversation) return;
+
+  try {
+    await query(`/dm/conversations/${currentConversation.id}/typing`, {
+      method: "POST",
+    });
+  } catch (error) {
+    console.error("Failed to send typing indicator:", error);
+  }
+}
+
+async function stopTypingIndicator() {
+  if (!currentConversation) return;
+
+  if (typingTimeout) {
+    clearTimeout(typingTimeout);
+    typingTimeout = null;
+  }
+
+  try {
+    await query(`/dm/conversations/${currentConversation.id}/typing-stop`, {
+      method: "POST",
+    });
+  } catch (error) {
+    console.error("Failed to send typing stop:", error);
+  }
+}
+
+function handleTypingInput() {
+  if (!currentConversation) return;
+
+  if (typingTimeout) {
+    clearTimeout(typingTimeout);
+  }
+
+  broadcastTypingIndicator();
+
+  typingTimeout = setTimeout(() => {
+    stopTypingIndicator();
+    typingTimeout = null;
+  }, 2000);
 }
 
 async function markConversationAsRead(conversationId) {
@@ -699,6 +822,10 @@ function goBackToDMList() {
   messageOffset = 0;
   isLoadingMoreMessages = false;
   hasMoreMessages = true;
+
+  typingIndicators.clear();
+  typingTimeouts.forEach((timeout) => clearTimeout(timeout));
+  typingTimeouts.clear();
 
   switchPage("direct-messages", { path: "/dm" });
 
@@ -1273,6 +1400,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   dmMessageInput?.addEventListener("input", updateSendButton);
+  dmMessageInput?.addEventListener("input", handleTypingInput);
   dmMessageInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();

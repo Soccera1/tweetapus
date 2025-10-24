@@ -59,9 +59,14 @@ window.onunhandledrejection = (event) => {
   let isLoading = false;
   let hasMoreTweets = true;
   let oldestTweetId = null;
+  const BATCH_SIZE = 10;
+  let lastScrollCheck = 0;
+  const SCROLL_DEBOUNCE = 100;
 
   initArticles();
   deactivateArticlesTab();
+
+  const getTweetsContainer = () => document.querySelector(".tweets");
 
   const loadTimeline = async (type = "home", append = false) => {
     if (isLoading) return;
@@ -71,14 +76,18 @@ window.onunhandledrejection = (event) => {
       type === "following" ? "/timeline/following" : "/timeline/";
     const url =
       oldestTweetId && append
-        ? `${endpoint}?before=${oldestTweetId}`
-        : endpoint;
+        ? `${endpoint}?before=${oldestTweetId}&limit=${BATCH_SIZE}`
+        : `${endpoint}?limit=${BATCH_SIZE}`;
+
+    console.log(`[LoadTimeline] Fetching from ${url}, append: ${append}`);
 
     try {
       const { timeline } = await query(url);
 
+      console.log(`[LoadTimeline] Got ${timeline.length} tweets`);
+
       if (!append) {
-        document.querySelector(".tweets").innerHTML = "";
+        getTweetsContainer().innerHTML = "";
         oldestTweetId = null;
         hasMoreTweets = true;
       }
@@ -91,16 +100,19 @@ window.onunhandledrejection = (event) => {
 						<h3>Welcome to your Following timeline!</h3>
 						<p>Follow some accounts to see their tweets here.</p>
 					`;
-          document.querySelector(".tweets").appendChild(emptyMessage);
+          getTweetsContainer().appendChild(emptyMessage);
         }
         hasMoreTweets = false;
+        console.log("[LoadTimeline] No more tweets available");
       } else {
         timeline.forEach((tweet) => {
           addTweetToTimeline(tweet, false);
           oldestTweetId = tweet.id;
         });
-        if (timeline.length < 10) {
+
+        if (timeline.length < BATCH_SIZE) {
           hasMoreTweets = false;
+          console.log("[LoadTimeline] Less than batch size, marking as no more tweets");
         }
       }
     } catch (error) {
@@ -147,10 +159,17 @@ window.onunhandledrejection = (event) => {
 
     if (!hasMoreTweets || isLoading) return;
 
+    const now = Date.now();
+    if (now - lastScrollCheck < SCROLL_DEBOUNCE) return;
+    lastScrollCheck = now;
+
     const scrollPosition = window.innerHeight + window.scrollY;
     const threshold = document.documentElement.scrollHeight - 800;
+    
+    console.log(`[Scroll] pos: ${scrollPosition}, threshold: ${threshold}, hasMore: ${hasMoreTweets}, isLoading: ${isLoading}`);
 
     if (scrollPosition >= threshold) {
+      console.log("[Scroll] Loading more tweets");
       await loadTimeline(currentTimeline, true);
     }
   });

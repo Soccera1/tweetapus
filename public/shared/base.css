@@ -37,8 +37,8 @@ img {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.15s ease;
-  margin-bottom: 16px;
+  transition: background-color 0.12s ease;
+  margin-bottom: 12px;
 
   &:not(:disabled):active {
     opacity: 0.85;
@@ -135,7 +135,8 @@ img {
   border-radius: 12px;
   padding: 0;
   min-width: 160px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  /* slightly subtler shadow for a cleaner look */
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
   --popup-translate-x: 0px;
   --popup-translate-y: 0px;
   transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1);

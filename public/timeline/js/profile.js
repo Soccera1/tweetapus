@@ -28,6 +28,32 @@ export default async function openProfile(username) {
       const data = await query(`/profile/${username}`);
 
       if (data.error) {
+        // If the user is suspended, render a minimal suspended profile view
+        if (data.error === "User is suspended") {
+          const suspendedData = {
+            profile: {
+              username,
+              name: username,
+              avatar: null,
+              banner: null,
+              suspended: true,
+              created_at: null,
+              post_count: 0,
+              following_count: 0,
+              follower_count: 0,
+            },
+            posts: [],
+            replies: [],
+            isFollowing: false,
+            isOwnProfile: false,
+          };
+
+          currentProfile = suspendedData;
+          renderProfile(suspendedData);
+          return;
+        }
+
+        // For other errors, show a toast as before
         toastQueue.add(`<h1>${escapeHTML(data.error)}</h1>`);
         return null;
       }
@@ -178,25 +204,57 @@ const renderProfile = (data) => {
   } posts`;
 
   const bannerElement = document.querySelector(".profile-banner");
-  if (profile.banner) {
+  const suspended = !!profile.suspended;
+
+  // Banner: hide for suspended accounts, otherwise show if available
+  if (suspended) {
+    // show a muted dark-gray banner rectangle for suspended accounts
+    bannerElement.style.display = "block";
+    bannerElement.style.backgroundImage = "none";
+    bannerElement.style.backgroundColor = "var(--suspended-banner, #2f2f2f)";
+    bannerElement.style.height = "200px";
+  } else if (profile.banner) {
+    bannerElement.style.display = "block";
     bannerElement.style.backgroundImage = `url(${profile.banner})`;
     bannerElement.style.backgroundSize = "cover";
     bannerElement.style.backgroundPosition = "center";
     bannerElement.style.backgroundRepeat = "no-repeat";
   } else {
+    bannerElement.style.display = "block";
     bannerElement.style.backgroundImage = "none";
     bannerElement.style.backgroundColor = "var(--bg-secondary)";
   }
 
   const avatarImg = document.getElementById("profileAvatar");
-  avatarImg.src = profile.avatar || `/public/shared/default-avatar.png`;
-  avatarImg.alt = profile.name || profile.username;
-  if (profile.avatar_radius !== null && profile.avatar_radius !== undefined) {
-    avatarImg.style.borderRadius = `${profile.avatar_radius}px`;
-  } else if (profile.gold) {
-    avatarImg.style.borderRadius = "4px";
+  if (suspended) {
+    // Show a view-only gray circle instead of the user's avatar
+    avatarImg.style.display = "block";
+    avatarImg.src = `/public/shared/default-avatar.png`;
+    avatarImg.alt = profile.name || profile.username;
+    avatarImg.style.filter = "grayscale(100%)";
+    avatarImg.style.backgroundColor = "var(--suspended-avatar-bg, #bdbdbd)";
+    avatarImg.style.objectFit = "cover";
+    avatarImg.style.pointerEvents = "none";
+    avatarImg.style.opacity = "0.95";
+    // keep rounded shape
+    if (profile.avatar_radius !== null && profile.avatar_radius !== undefined) {
+      avatarImg.style.borderRadius = `${profile.avatar_radius}px`;
+    } else if (profile.gold) {
+      avatarImg.style.borderRadius = "4px";
+    } else {
+      avatarImg.style.borderRadius = "50px";
+    }
   } else {
-    avatarImg.style.borderRadius = "50px";
+    avatarImg.style.display = "block";
+    avatarImg.src = profile.avatar || `/public/shared/default-avatar.png`;
+    avatarImg.alt = profile.name || profile.username;
+    if (profile.avatar_radius !== null && profile.avatar_radius !== undefined) {
+      avatarImg.style.borderRadius = `${profile.avatar_radius}px`;
+    } else if (profile.gold) {
+      avatarImg.style.borderRadius = "4px";
+    } else {
+      avatarImg.style.borderRadius = "50px";
+    }
   }
 
   const profileNameEl = document.getElementById("profileDisplayName");
@@ -283,6 +341,13 @@ const renderProfile = (data) => {
     }
   }
 
+  // Hide tab navigation (posts/replies switch) for suspended accounts
+  const tabNav = document.querySelector(".profile-tab-nav");
+  if (tabNav) {
+    if (suspended) tabNav.style.display = "none";
+    else tabNav.style.display = "flex";
+  }
+
   if (currentProfile.followsMe && !isOwnProfile) {
     const followsBadge = document.createElement("span");
     followsBadge.className = "follows-me-badge";
@@ -297,10 +362,23 @@ const renderProfile = (data) => {
   document.getElementById("profilePronouns").style.display = profile.pronouns
     ? "block"
     : "none";
-  document.getElementById("profileBio").textContent = profile.bio || "";
-  document.getElementById("profileBio").style.display = profile.bio
-    ? "block"
-    : "none";
+  // When suspended, hide bio and meta and show suspension notice
+  const bioEl = document.getElementById("profileBio");
+  const metaEl = document.getElementById("profileMeta");
+  const suspendedNotice = document.getElementById("profileSuspendedNotice");
+
+  if (suspended) {
+    bioEl.textContent = "";
+    bioEl.style.display = "none";
+    metaEl.innerHTML = "";
+    if (suspendedNotice) {
+      suspendedNotice.style.display = "block";
+    }
+  } else {
+    bioEl.textContent = profile.bio || "";
+    bioEl.style.display = profile.bio ? "block" : "none";
+    if (suspendedNotice) suspendedNotice.style.display = "none";
+  }
   document.getElementById("profileFollowingCount").textContent =
     profile.following_count || 0;
   document.getElementById("profileFollowerCount").textContent =
@@ -314,32 +392,44 @@ const renderProfile = (data) => {
   };
 
   const meta = [];
-  if (profile.location)
-    meta.push(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin-icon lucide-map-pin"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg> ${escapeHTML(
-        profile.location
-      )}`
-    );
-  if (profile.website) {
-    const url = profile.website.startsWith("http")
-      ? profile.website
-      : `https://${profile.website}`;
-    meta.push(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link-icon lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> <a href="${escapeHTML(
-        url
-      )}" target="_blank" rel="noopener noreferrer">${escapeHTML(
-        profile.website
-      )}</a>`
-    );
+  // Only include location/website/joined when not suspended
+  if (!suspended) {
+    if (profile.location)
+      meta.push(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin-icon lucide-map-pin"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg> ${escapeHTML(
+          profile.location
+        )}`
+      );
+    if (profile.website) {
+      const url = profile.website.startsWith("http")
+        ? profile.website
+        : `https://${profile.website}`;
+      meta.push(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link-icon lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> <a href="${escapeHTML(
+          url
+        )}" target="_blank" rel="noopener noreferrer">${escapeHTML(
+          profile.website
+        )}</a>`
+      );
+    }
+    // Add joined date only if it's present and valid
+    try {
+      if (profile.created_at) {
+        const joinedDate = new Date(profile.created_at);
+        if (!Number.isNaN(joinedDate.getTime())) {
+          meta.push(
+            `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-icon lucide-calendar"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg> Joined ${joinedDate.toLocaleDateString(
+              "en-US",
+              {
+                month: "long",
+                year: "numeric",
+              }
+            )}`
+          );
+        }
+      }
+    } catch (_) {}
   }
-  meta.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-icon lucide-calendar"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg> Joined ${new Date(
-      profile.created_at
-    ).toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    })}`
-  );
 
   document.getElementById("profileMeta").innerHTML = meta
     .map((item) => `<div class="profile-meta-item">${item}</div>`)
@@ -379,6 +469,14 @@ const renderProfile = (data) => {
     } catch (_) {}
   } else {
     document.getElementById("profileDmBtn").style.display = "flex";
+    document.getElementById("profileDropdown").style.display = "none";
+  }
+
+  // If suspended, ensure interactive buttons are hidden/disabled
+  if (suspended) {
+    document.getElementById("editProfileBtn").style.display = "none";
+    document.getElementById("followBtn").style.display = "none";
+    document.getElementById("profileDmBtn").style.display = "none";
     document.getElementById("profileDropdown").style.display = "none";
   }
 

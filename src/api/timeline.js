@@ -13,7 +13,7 @@ const getTimelinePosts = db.query(`
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
   WHERE posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.community_only = FALSE
   ORDER BY posts.created_at DESC 
-  LIMIT 10
+  LIMIT ?
 `);
 
 const getTimelinePostsBefore = db.query(`
@@ -22,7 +22,7 @@ const getTimelinePostsBefore = db.query(`
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
   WHERE posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.id < ? AND posts.community_only = FALSE
   ORDER BY posts.created_at DESC 
-  LIMIT 10
+  LIMIT ?
 `);
 
 const getFollowingTimelinePosts = db.query(`
@@ -32,7 +32,7 @@ const getFollowingTimelinePosts = db.query(`
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
   WHERE follows.follower_id = ? AND posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.community_only = FALSE
   ORDER BY posts.created_at DESC 
-  LIMIT 10
+  LIMIT ?
 `);
 
 const getFollowingTimelinePostsBefore = db.query(`
@@ -42,7 +42,7 @@ const getFollowingTimelinePostsBefore = db.query(`
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
   WHERE follows.follower_id = ? AND posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.id < ? AND posts.community_only = FALSE
   ORDER BY posts.created_at DESC 
-  LIMIT 10
+  LIMIT ?
 `);
 
 const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
@@ -227,9 +227,10 @@ export default new Elysia({ prefix: "/timeline" })
     }
 
     const beforeId = query.before;
+    const limit = Math.min(Math.max(parseInt(query.limit) || 10, 1), 50);
     let posts = beforeId
-      ? getTimelinePostsBefore.all(user.id, beforeId)
-      : getTimelinePosts.all(user.id);
+      ? getTimelinePostsBefore.all(user.id, beforeId, limit)
+      : getTimelinePosts.all(user.id, limit);
 
     if (user.use_c_algorithm && isAlgorithmAvailable()) {
       const postIds = posts.map((p) => p.id);
@@ -452,9 +453,10 @@ export default new Elysia({ prefix: "/timeline" })
     }
 
     const beforeId = query.before;
+    const limit = Math.min(Math.max(parseInt(query.limit) || 10, 1), 50);
     let posts = beforeId
-      ? getFollowingTimelinePostsBefore.all(user.id, user.id, beforeId)
-      : getFollowingTimelinePosts.all(user.id, user.id);
+      ? getFollowingTimelinePostsBefore.all(user.id, user.id, beforeId, limit)
+      : getFollowingTimelinePosts.all(user.id, user.id, limit);
 
     if (posts.length === 0) {
       return { timeline: [] };

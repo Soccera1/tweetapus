@@ -500,11 +500,12 @@ export default new Elysia({ prefix: "/dm" })
           (content.includes("@h") ||
             content.toLowerCase().includes("happy robot"));
 
-        if (
-          aiUser &&
-          (hasAIInConversation || mentionsAI) &&
-          user.id !== aiUser.id
-        ) {
+        const isGroupChat = conversation.type === "group";
+        const shouldAIRespond = aiUser &&
+          user.id !== aiUser.id &&
+          ((isGroupChat && mentionsAI) || (!isGroupChat && hasAIInConversation));
+
+        if (shouldAIRespond) {
           (async () => {
             try {
               const aiResponse = await generateAIDMResponse(id, content, db);
@@ -869,4 +870,79 @@ export default new Elysia({ prefix: "/dm" })
         emoji: t.String(),
       }),
     }
-  );
+  )
+
+  .post("/conversations/:id/typing", ({ params, headers }) => {
+    try {
+      const token = headers.authorization?.replace("Bearer ", "");
+      if (!token) return { error: "Unauthorized" };
+
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const user = getUserByUsername.get(payload.username);
+      if (!user) return { error: "User not found" };
+
+      const { id } = params;
+
+      const conversation = getConversationById.get(id);
+      if (!conversation) return { error: "Conversation not found" };
+
+      const participant = checkParticipant.get(id, user.id);
+      if (!participant) return { error: "Access denied" };
+
+      const recipients = getConversationParticipants
+        .all(id)
+        .filter((p) => p.user_id !== user.id);
+
+      for (const p of recipients) {
+        broadcastToUser(p.user_id, {
+          type: "typing",
+          conversationId: id,
+          userId: user.id,
+          username: user.username,
+          name: user.name,
+          avatar: user.avatar,
+        });
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error broadcasting typing indicator:", error);
+      return { error: "Internal server error" };
+    }
+  })
+
+  .post("/conversations/:id/typing-stop", ({ params, headers }) => {
+    try {
+      const token = headers.authorization?.replace("Bearer ", "");
+      if (!token) return { error: "Unauthorized" };
+
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const user = getUserByUsername.get(payload.username);
+      if (!user) return { error: "User not found" };
+
+      const { id } = params;
+
+      const conversation = getConversationById.get(id);
+      if (!conversation) return { error: "Conversation not found" };
+
+      const participant = checkParticipant.get(id, user.id);
+      if (!participant) return { error: "Access denied" };
+
+      const recipients = getConversationParticipants
+        .all(id)
+        .filter((p) => p.user_id !== user.id);
+
+      for (const p of recipients) {
+        broadcastToUser(p.user_id, {
+          type: "typing-stop",
+          conversationId: id,
+          userId: user.id,
+        });
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error broadcasting typing stop:", error);
+      return { error: "Internal server error" };
+    }
+  });
