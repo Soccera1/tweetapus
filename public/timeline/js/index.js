@@ -79,12 +79,8 @@ window.onunhandledrejection = (event) => {
         ? `${endpoint}?before=${oldestTweetId}&limit=${BATCH_SIZE}`
         : `${endpoint}?limit=${BATCH_SIZE}`;
 
-    console.log(`[LoadTimeline] Fetching from ${url}, append: ${append}`);
-
     try {
       const { timeline } = await query(url);
-
-      console.log(`[LoadTimeline] Got ${timeline.length} tweets`);
 
       if (!append) {
         getTweetsContainer().innerHTML = "";
@@ -103,7 +99,6 @@ window.onunhandledrejection = (event) => {
           getTweetsContainer().appendChild(emptyMessage);
         }
         hasMoreTweets = false;
-        console.log("[LoadTimeline] No more tweets available");
       } else {
         timeline.forEach((tweet) => {
           addTweetToTimeline(tweet, false);
@@ -112,9 +107,6 @@ window.onunhandledrejection = (event) => {
 
         if (timeline.length < BATCH_SIZE) {
           hasMoreTweets = false;
-          console.log(
-            "[LoadTimeline] Less than batch size, marking as no more tweets"
-          );
         }
       }
     } catch (error) {
@@ -168,12 +160,7 @@ window.onunhandledrejection = (event) => {
     const scrollPosition = window.innerHeight + window.scrollY;
     const threshold = document.documentElement.scrollHeight - 800;
 
-    console.log(
-      `[Scroll] pos: ${scrollPosition}, threshold: ${threshold}, hasMore: ${hasMoreTweets}, isLoading: ${isLoading}`
-    );
-
     if (scrollPosition >= threshold) {
-      console.log("[Scroll] Loading more tweets");
       await loadTimeline(currentTimeline, true);
     }
   });

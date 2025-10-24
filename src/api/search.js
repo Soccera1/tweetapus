@@ -144,9 +144,6 @@ export default new Elysia({ prefix: "/search" })
     })
   )
   .get("/users", async ({ query: { q }, jwt, headers }) => {
-    // Allow unauthenticated searches: if an Authorization header is
-    // present, try to resolve the user for enrichment purposes. If it
-    // fails (expired token), continue and return results anyway.
     const authorization = headers.authorization;
     let user = null;
 

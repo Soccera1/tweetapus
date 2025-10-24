@@ -352,16 +352,29 @@ const renderProfile = (data) => {
   const tabNav = document.querySelector(".profile-tab-nav");
   if (tabNav) tabNav.style.display = suspended ? "none" : "flex";
 
-  // Show follows-me badge where appropriate
-  if (currentProfile?.followsMe && !isOwnProfile) {
-    const followsBadge = document.createElement("span");
-    followsBadge.className = "follows-me-badge";
-    followsBadge.textContent = "Follows you";
-    followsBadge.style.cssText =
-      "margin-left: 8px; padding: 2px 8px; background: rgba(var(--primary-rgb), 0.1); color: rgb(var(--primary-rgb)); border-radius: 4px; font-size: 12px; font-weight: 500;";
-    const targetHeader = document.getElementById("profileHeaderName");
-    if (targetHeader && !targetHeader.querySelector(".follows-me-badge"))
-      targetHeader.appendChild(followsBadge);
+  // Show follows-me badge where appropriate (header and main display name)
+  // Only show for non-suspended profiles and when viewing someone else's profile
+  if (currentProfile?.followsMe && !isOwnProfile && !suspended) {
+    const createFollowsBadge = () => {
+      const el = document.createElement("span");
+      el.className = "follows-me-badge";
+      el.textContent = "Follows you";
+      el.style.cssText =
+        "margin-left: 8px; padding: 2px 8px; background: rgba(var(--primary-rgb), 0.1); color: rgb(var(--primary-rgb)); border-radius: 4px; font-size: 12px; font-weight: 500;";
+      return el;
+    };
+
+    // Append to the compact header (near the back button) if missing
+    const headerTarget = document.getElementById("profileHeaderName");
+    if (headerTarget && !headerTarget.querySelector(".follows-me-badge")) {
+      headerTarget.appendChild(createFollowsBadge());
+    }
+
+    // Also append to the main display name (the visible h2 on the profile card)
+    const displayNameEl = document.getElementById("profileDisplayName");
+    if (displayNameEl && !displayNameEl.querySelector(".follows-me-badge")) {
+      displayNameEl.appendChild(createFollowsBadge());
+    }
   }
 
   // Pronouns
