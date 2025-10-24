@@ -139,3 +139,42 @@ export const celebrateAchievement = (achievementText) => {
     overlay.remove();
   });
 };
+
+export const createReaction = (emoji, x, y) => {
+  try {
+    const el = document.createElement("div");
+    el.className = "floating-reaction";
+    el.textContent = emoji;
+    el.style.cssText = `
+      position: fixed;
+      left: ${x}px;
+      top: ${y}px;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: none;
+      z-index: 99999;
+      font-size: 20px;
+      opacity: 1;
+      transition: transform 700ms cubic-bezier(.2,.9,.2,1), opacity 700ms ease-out;
+    `;
+
+    document.body.appendChild(el);
+
+    // animate to a random upward offset and fade out
+    requestAnimationFrame(() => {
+      const dx = -10 + Math.random() * 20;
+      const dy = -70 - Math.random() * 40;
+      const scale = 0.9 + Math.random() * 0.6;
+      el.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+      el.style.opacity = "0";
+    });
+
+    setTimeout(() => {
+      try {
+        el.remove();
+      } catch (_) {}
+    }, 800);
+  } catch (err) {
+    // silent fail to avoid breaking UI
+    console.error("createReaction error:", err);
+  }
+};

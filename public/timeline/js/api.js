@@ -15,17 +15,36 @@ function hash(str) {
   return hex.padStart(32, "0");
 }
 
-export default (url, options = {}) =>
-  new Promise((resolve) => {
-    const token = localStorage.getItem("authToken");
-    resolve(
-      fetch(`/api${url}`, {
-        ...options,
-        headers: {
-          ...(options.headers || {}),
-          Authorization: `Bearer ${token}`,
-          "X-Request-Token": hash(token || "public"),
-        },
-      }).then((r) => r.json())
-    );
-  });
+export default async (url, options = {}) => {
+  const token = localStorage.getItem("authToken");
+  try {
+    const res = await fetch(`/api${url}`, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`,
+        "X-Request-Token": hash(token || "public"),
+      },
+    });
+
+    // Try to parse JSON; if parsing fails, fall back to text
+    let parsed = null;
+    try {
+      parsed = await res.json();
+    } catch (err) {
+      const text = await res.text();
+      parsed = text;
+    }
+
+    if (res.ok) return parsed;
+
+    // Non-2xx: normalize to an object with error
+    if (parsed && typeof parsed === "object") {
+      return parsed;
+    }
+
+    return { error: String(parsed) || "Request failed" };
+  } catch (err) {
+    return { error: "Network error" };
+  }
+};

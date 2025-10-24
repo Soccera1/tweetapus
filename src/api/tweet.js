@@ -326,6 +326,31 @@ const getTweetQuoters = db.query(`
   LIMIT ?
 `);
 
+const checkReactionExists = db.query(`
+  SELECT id FROM post_reactions WHERE user_id = ? AND post_id = ? AND emoji = ?
+`);
+
+const addReaction = db.query(`
+  INSERT INTO post_reactions (id, post_id, user_id, emoji) VALUES (?, ?, ?, ?)
+`);
+
+const removeReaction = db.query(`
+  DELETE FROM post_reactions WHERE user_id = ? AND post_id = ? AND emoji = ?
+`);
+
+const countReactionsForPost = db.query(`
+  SELECT COUNT(*) as total FROM post_reactions WHERE post_id = ?
+`);
+
+const listReactionsForPost = db.query(`
+  SELECT pr.emoji, u.id as user_id, u.username, u.name, u.avatar
+  FROM post_reactions pr
+  JOIN users u ON pr.user_id = u.id
+  WHERE pr.post_id = ?
+  ORDER BY pr.created_at DESC
+  LIMIT ?
+`);
+
 export default new Elysia({ prefix: "/tweets" })
   .use(jwt({ name: "jwt", secret: JWT_SECRET }))
   .use(
@@ -608,7 +633,8 @@ export default new Elysia({ prefix: "/tweets" })
                   null,
                   "everyone",
                   null,
-                  null
+                  null,
+                  false
                 );
                 updatePostCounts.run(tweetId);
                 addNotification(
@@ -692,6 +718,87 @@ export default new Elysia({ prefix: "/tweets" })
     } catch (error) {
       console.error("Tweet creation error:", error);
       return { error: "Failed to create tweet" };
+    }
+  })
+  .post("/:id/reaction", async ({ jwt, headers, params, body }) => {
+    const authorization = headers.authorization;
+    if (!authorization) return { error: "Authentication required" };
+
+    try {
+      const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+      if (!payload) return { error: "Invalid token" };
+
+      const user = getUserByUsername.get(payload.username);
+      if (!user) return { error: "User not found" };
+
+      const { id: tweetId } = params;
+      const { emoji } = body || {};
+      if (!emoji || typeof emoji !== "string")
+        return { error: "Emoji is required" };
+
+      const tweet = getTweetById.get(tweetId);
+      if (!tweet) return { error: "Tweet not found" };
+
+      const blockCheck = db
+        .query(
+          "SELECT 1 FROM blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?) "
+        )
+        .get(user.id, tweet.user_id, tweet.user_id, user.id);
+      if (blockCheck) {
+        return { error: "You cannot interact with this user" };
+      }
+
+      const existing = checkReactionExists.get(user.id, tweetId, emoji);
+
+      if (existing) {
+        removeReaction.run(user.id, tweetId, emoji);
+        const total = countReactionsForPost.get(tweetId)?.total || 0;
+        return { success: true, reacted: false, total_reactions: total };
+      } else {
+        const reactionId = Bun.randomUUIDv7();
+        addReaction.run(reactionId, tweetId, user.id, emoji);
+        const total = countReactionsForPost.get(tweetId)?.total || 0;
+
+        if (tweet.user_id !== user.id) {
+          addNotification(
+            tweet.user_id,
+            "reaction",
+            `${user.name || user.username} reacted to your tweet`,
+            tweetId
+          );
+        }
+
+        return { success: true, reacted: true, total_reactions: total };
+      }
+    } catch (err) {
+      console.error("Reaction toggle error:", err);
+      return { error: "Failed to toggle reaction" };
+    }
+  })
+  .get("/:id/reactions", async ({ jwt, headers, params, query }) => {
+    const authorization = headers.authorization;
+    if (!authorization) return { error: "Authentication required" };
+
+    try {
+      const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+      if (!payload) return { error: "Invalid token" };
+
+      const user = getUserByUsername.get(payload.username);
+      if (!user) return { error: "User not found" };
+
+      const { id } = params;
+      const { limit = 50 } = query;
+
+      const tweet = getTweetById.get(id);
+      if (!tweet) return { error: "Tweet not found" };
+
+      const reactions = listReactionsForPost.all(id, parseInt(limit));
+      const total = countReactionsForPost.get(id)?.total || 0;
+
+      return { success: true, reactions, total_reactions: total };
+    } catch (err) {
+      console.error("Get reactions error:", err);
+      return { error: "Failed to get reactions" };
     }
   })
   .get("/:id", async ({ params, jwt, headers, query }) => {

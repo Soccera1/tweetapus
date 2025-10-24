@@ -617,6 +617,17 @@ export const createTweetElement = (tweet, config = {}) => {
     extendedStats = null,
   } = config;
 
+  // Normalize reaction count from server payload variations so badge can render on load
+  if (!tweet.reaction_count) {
+    if (typeof tweet.total_reactions === "number") {
+      tweet.reaction_count = tweet.total_reactions;
+    } else if (typeof tweet.reactions_count === "number") {
+      tweet.reaction_count = tweet.reactions_count;
+    } else if (Array.isArray(tweet.reactions)) {
+      tweet.reaction_count = tweet.reactions.length;
+    }
+  }
+
   const tweetEl = document.createElement("div");
   tweetEl.className = isTopReply ? "tweet top-reply" : "tweet";
 
@@ -867,6 +878,14 @@ export const createTweetElement = (tweet, config = {}) => {
           document.head.appendChild(script);
         },
       },
+      {
+        id: "view-reactions",
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a7 7 0 100 14 7 7 0 000-14z" stroke="currentColor" stroke-width="1.5"/><path d="M8 8h8M8 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+        title: "View reactions",
+        onClick: async () => {
+          await showReactions(tweet.id);
+        },
+      },
     ];
 
     const userItems = [
@@ -1047,6 +1066,69 @@ export const createTweetElement = (tweet, config = {}) => {
 
     tweetHeaderEl.appendChild(menuButtonEl);
   });
+
+  // Helper: show reactions modal
+  const showReactions = async (tweetId) => {
+    try {
+      const data = await query(`/tweets/${tweetId}/reactions`);
+      if (data?.error) {
+        // If server returns NOT_FOUND or endpoint missing, show friendly message
+        toastQueue.add(`<h1>Unable to load reactions</h1><p>${data.error}</p>`);
+        return;
+      }
+
+      const container = document.createElement("div");
+      container.className = "reactions-list";
+
+      if (!data || !data.reactions || data.reactions.length === 0) {
+        container.innerHTML = `<p>No reactions yet.</p>`;
+      } else {
+        data.reactions.forEach((r) => {
+          const item = document.createElement("div");
+          item.className = "reaction-item";
+          const avatarSrc =
+            r.user?.avatar ||
+            r.avatar ||
+            r.avatar_url ||
+            "/public/shared/default-avatar.png";
+
+          const displayName =
+            r.name ||
+            r.user?.name ||
+            r.user?.display_name ||
+            r.user?.username ||
+            r.username ||
+            r.handle ||
+            "Unknown";
+
+          const usernameText = r.username || r.user?.username || r.handle || "";
+
+          item.innerHTML = `
+            <div class="reaction-user-avatar"><img src="${avatarSrc}" alt="${displayName}" loading="lazy"/></div>
+            <div class="reaction-content">
+              <div class="reaction-emoji">${r.emoji}</div>
+              <div class="reaction-user-info">
+                <div class="reaction-user-name">${displayName}</div>
+                <div class="reaction-user-username">${
+                  usernameText ? `@${usernameText}` : ""
+                }</div>
+              </div>
+            </div>
+          `;
+          container.appendChild(item);
+        });
+      }
+
+      createModal({
+        title: "Reactions",
+        content: container,
+        className: "reactions-modal",
+      });
+    } catch (err) {
+      console.error("Failed to load reactions:", err);
+      toastQueue.add(`<h1>Network Error</h1><p>Failed to load reactions.</p>`);
+    }
+  };
 
   if (size !== "preview") tweetHeaderEl.appendChild(menuButtonEl);
 
@@ -1796,7 +1878,142 @@ export const createTweetElement = (tweet, config = {}) => {
   tweetInteractionsViewsEl.style.setProperty("--color", "119, 119, 119");
   tweetInteractionsViewsEl.title = `${tweet.view_count || 0} views`;
 
+  // Reaction count span (created but appended to DOM only on initial render when > 0)
+  const reactionCountSpan = document.createElement("span");
+  reactionCountSpan.className = "reaction-count";
+  reactionCountSpan.textContent = "";
+
+  // Reaction button (opens emoji picker)
+  const tweetInteractionsReactionEl = document.createElement("button");
+  tweetInteractionsReactionEl.className = "engagement reaction-btn";
+  tweetInteractionsReactionEl.dataset.bookmarked = "false";
+  tweetInteractionsReactionEl.title = "React";
+  tweetInteractionsReactionEl.style.setProperty("--color", "255, 180, 0");
+  tweetInteractionsReactionEl.innerHTML = `
+    <svg width="19" height="19" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.2"></circle>
+      <path d="M8.5 10.5c.7-.8 1.8-.8 2.5 0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"></path>
+      <path d="M13 14c-.8.6-1.8.9-3 .9s-2.2-.3-3-.9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"></path>
+      <circle cx="9" cy="9" r="0.8" fill="currentColor"></circle>
+      <circle cx="15" cy="9" r="0.8" fill="currentColor"></circle>
+    </svg>`;
+
+  // Place the reaction count span inside the button so structure matches:
+  // <div class="reaction-wrapper"><button class="engagement reaction-btn">...<span class="reaction-count">3</span></button></div>
+  tweetInteractionsReactionEl.appendChild(reactionCountSpan);
+
+  tweetInteractionsReactionEl.addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      const { showEmojiPickerPopup } = await import(
+        "../../shared/emoji-picker.js"
+      );
+      const { triggerReactionBurst } = await import(
+        "../../shared/reactions.js"
+      );
+
+      const rect = tweetInteractionsReactionEl.getBoundingClientRect();
+      showEmojiPickerPopup(
+        async (emoji) => {
+          try {
+            triggerReactionBurst(tweetInteractionsReactionEl, emoji, 6);
+
+            const result = await query(`/tweets/${tweet.id}/reaction`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ emoji }),
+            });
+
+            // Server may return { success, reacted } or { success, total_reactions }
+            if (result?.success) {
+              // If server returns total_reactions, use that authoritative count and ensure badge shows
+              if (typeof result.total_reactions === "number") {
+                tweet.reaction_count = result.total_reactions;
+
+                if (tweet.reaction_count > 0) {
+                  if (!reactionCountSpan.parentNode) {
+                    tweetInteractionsRightEl.appendChild(reactionCountSpan);
+                  }
+                  reactionCountSpan.textContent = String(tweet.reaction_count);
+                } else if (reactionCountSpan.parentNode) {
+                  reactionCountSpan.remove();
+                }
+              } else if (typeof result.reacted === "boolean") {
+                // If the original tweet did not have a count on load, do NOT show a count when toggling
+                const hadInitialCount =
+                  tweet.reaction_count && tweet.reaction_count > 0;
+
+                if (hadInitialCount) {
+                  tweet.reaction_count = tweet.reaction_count || 0;
+                  tweet.reaction_count = result.reacted
+                    ? tweet.reaction_count + 1
+                    : Math.max(0, tweet.reaction_count - 1);
+
+                  if (tweet.reaction_count > 0) {
+                    if (!reactionCountSpan.parentNode) {
+                      tweetInteractionsRightEl.appendChild(reactionCountSpan);
+                    }
+                    reactionCountSpan.textContent = String(
+                      tweet.reaction_count
+                    );
+                  } else if (reactionCountSpan.parentNode) {
+                    reactionCountSpan.remove();
+                  }
+                } else {
+                  // No initial count and server did not provide totals: keep UI non-destructive and do not show badge
+                  // but still trigger animation to give feedback
+                }
+              } else {
+                // fallback: optimistic increment only if there was an initial count
+                const hadInitialCount =
+                  tweet.reaction_count && tweet.reaction_count > 0;
+                if (hadInitialCount) {
+                  tweet.reaction_count = (tweet.reaction_count || 0) + 1;
+                  if (!reactionCountSpan.parentNode) {
+                    tweetInteractionsRightEl.appendChild(reactionCountSpan);
+                  }
+                  reactionCountSpan.textContent = String(tweet.reaction_count);
+                }
+              }
+            } else {
+              toastQueue.add(`<h1>${result?.error || "Failed to react"}</h1>`);
+            }
+          } catch (err) {
+            console.error("Reaction error:", err);
+            toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+          }
+        },
+        { x: rect.left, y: rect.bottom + 8 }
+      );
+    } catch (err) {
+      console.error("Failed to open emoji picker:", err);
+    }
+  });
+
   tweetInteractionsRightEl.appendChild(tweetInteractionsViewsEl);
+  // Wrap reaction button and count together so the counter appears directly to the right of the button
+  const reactionWrapper = document.createElement("div");
+  reactionWrapper.className = "reaction-wrapper";
+  // Give reaction button a distinct color variable so hover circle matches other interactions
+  // ensure the button color is consistent (can be overridden per button via inline style)
+  // (already set above) but keep this as a fallback
+  tweetInteractionsReactionEl.style.setProperty(
+    "--color",
+    tweetInteractionsReactionEl.style.getPropertyValue("--color") ||
+      "255, 169, 0"
+  );
+
+  // Button (which already contains the count span) goes into the wrapper
+  reactionWrapper.appendChild(tweetInteractionsReactionEl);
+
+  // Populate count immediately if tweet has reactions
+  if (tweet.reaction_count && tweet.reaction_count > 0) {
+    reactionCountSpan.textContent = String(tweet.reaction_count);
+  }
+
+  tweetInteractionsRightEl.appendChild(reactionWrapper);
   tweetInteractionsRightEl.appendChild(tweetInteractionsBookmarkEl);
   tweetInteractionsRightEl.appendChild(tweetInteractionsShareEl);
 
@@ -1880,6 +2097,36 @@ export const addTweetToTimeline = (tweet, prepend = false) => {
   } else {
     tweetsContainer.appendChild(tweetEl);
   }
+
+  // If tweet didn't include reactions count, fetch reactions summary in background
+  // and update badge if server reports any reactions. This ensures counts appear
+  // on load for tweets that actually have reactions even if the timeline payload
+  // omitted the count.
+  (async () => {
+    try {
+      if (tweet.reaction_count === undefined) {
+        const resp = await query(`/tweets/${tweet.id}/reactions`);
+        if (
+          resp &&
+          Array.isArray(resp.reactions) &&
+          resp.reactions.length > 0
+        ) {
+          tweet.reaction_count = resp.reactions.length;
+          const reactionWrapper = tweetEl.querySelector(".reaction-wrapper");
+          const reactionCountSpan = reactionWrapper
+            ? reactionWrapper.querySelector(".reaction-count")
+            : null;
+          if (reactionWrapper && reactionCountSpan) {
+            reactionCountSpan.textContent = String(tweet.reaction_count);
+            if (!reactionCountSpan.parentNode)
+              reactionWrapper.appendChild(reactionCountSpan);
+          }
+        }
+      }
+    } catch (_) {
+      // ignore background fetch errors
+    }
+  })();
 
   return tweetEl;
 };

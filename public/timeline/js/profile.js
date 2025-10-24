@@ -1131,6 +1131,7 @@ document
   ?.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
+    const triggerEl = e.currentTarget;
 
     getUser()
       .then(async (currentUser) => {
@@ -1210,13 +1211,13 @@ document
           }
 
           createPopup({
-            triggerElement: e.currentTarget,
+            triggerElement: triggerEl,
             items,
           });
         } catch (err) {
           console.error("Error building profile dropdown:", err);
           createPopup({
-            triggerElement: e.currentTarget,
+            triggerElement: triggerEl,
             items: [
               {
                 title: "Copy link",
@@ -1235,7 +1236,7 @@ document
       .catch((err) => {
         console.error("Error fetching current user for dropdown:", err);
         createPopup({
-          triggerElement: e.currentTarget,
+          triggerElement: triggerEl,
           items: [
             {
               title: "Copy link",

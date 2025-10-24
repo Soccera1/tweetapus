@@ -112,6 +112,40 @@ export function createPopup(options) {
         typeof triggerElement.getBoundingClientRect === "function"
       ) {
         const r = triggerElement.getBoundingClientRect();
+        // debug logging removed
+        // Special-case: when the profile dropdown button is clicked some layout
+        // changes may cause its rect to be transient/invalid. If that happens,
+        // try to use the closest .profile-dropdown container or parent element
+        // as a more stable anchor.
+        if (
+          triggerElement.id === "profileDropdownBtn" &&
+          (r.width === 0 || r.height === 0 || Number.isNaN(r.top))
+        ) {
+          try {
+            // debug logging removed
+            const container = triggerElement.closest
+              ? triggerElement.closest(".profile-dropdown")
+              : triggerElement.parentElement;
+            if (
+              container &&
+              typeof container.getBoundingClientRect === "function"
+            ) {
+              const cr = container.getBoundingClientRect();
+              if (cr && (cr.width > 0 || cr.height > 0)) {
+                // debug logging removed
+                lastKnownRect = {
+                  top: cr.top,
+                  left: cr.left,
+                  right: cr.right,
+                  bottom: cr.bottom,
+                  width: cr.width,
+                  height: cr.height,
+                };
+                return lastKnownRect;
+              }
+            }
+          } catch (_) {}
+        }
         if (r) {
           lastKnownRect = {
             top: r.top,
@@ -145,8 +179,7 @@ export function createPopup(options) {
       }
 
       if (
-        triggerElement &&
-        triggerElement.parentElement &&
+        triggerElement?.parentElement &&
         typeof triggerElement.parentElement.getBoundingClientRect === "function"
       ) {
         const p = triggerElement.parentElement.getBoundingClientRect();
@@ -179,124 +212,141 @@ export function createPopup(options) {
     if (lastKnownRect) return lastKnownRect;
     return null;
   };
+  // firstPositioning removed; measuring always runs synchronously now
 
   const reposition = () => {
     // Make sure popup is measurable: move offscreen briefly so layout stabilizes
     popup.style.left = "-9999px";
     popup.style.top = "-9999px";
 
-    const popupRect = popup.getBoundingClientRect();
-    const triggerRect = computeTriggerRect();
+    // debug logging removed
 
-    if (triggerRect && (triggerRect.width > 0 || triggerRect.height > 0)) {
-      let left = triggerRect.left;
-      let top = triggerRect.bottom + 8;
-      let transformOriginX = "left";
-      let transformOriginY = "top";
+    const doMeasure = () => {
+      const popupRect = popup.getBoundingClientRect();
+      const triggerRect = computeTriggerRect();
 
-      if (triggerRect.width === 0 && triggerRect.height === 0 && anchor) {
-        left = anchor.x - popupRect.width / 2;
-        top = anchor.y + 10;
-        transformOriginX = "center";
-      }
+      // debug logging removed
 
-      const minLeft = 12;
-      const maxLeft = viewportWidth() - popupRect.width - 12;
+      if (triggerRect && (triggerRect.width > 0 || triggerRect.height > 0)) {
+        let left = triggerRect.left;
+        let top = triggerRect.bottom + 8;
+        let transformOriginX = "left";
+        let transformOriginY = "top";
 
-      if (left + popupRect.width > viewportWidth() - 12) {
-        left = triggerRect.right - popupRect.width;
-        transformOriginX = "right";
-      }
-
-      if (left < minLeft) {
-        left = minLeft;
-        transformOriginX = "left";
-      }
-
-      if (left > maxLeft) {
-        left = maxLeft;
-        transformOriginX = "right";
-      }
-
-      const minTop = 12;
-      const maxTop = viewportHeight() - popupRect.height - 12;
-      if (top > maxTop) {
-        // flip above the trigger
-        top = triggerRect.top - popupRect.height - 8;
-        transformOriginY = "bottom";
-      }
-
-      if (top < minTop) {
-        top = minTop;
-        transformOriginY = "top";
-      }
-
-      // Apply final placement using CSS variables (translate) instead of inline left/top
-      // Set the popup element back to viewport origin and place visually with translate
-      popup.style.left = "0px";
-      popup.style.top = "0px";
-      popup.style.setProperty("--popup-translate-x", `${Math.round(left)}px`);
-      popup.style.setProperty("--popup-translate-y", `${Math.round(top)}px`);
-      popup.style.transformOrigin = `${transformOriginX} ${transformOriginY}`;
-
-      // Debug: expose computed geometry for easier diagnosis
-      try {
-        if (typeof console !== "undefined" && console.debug) {
-          console.debug("popup reposition", {
-            triggerRect,
-            popupRect,
-            left: Math.round(left),
-            top: Math.round(top),
-            transformOriginX,
-            transformOriginY,
-          });
+        if (triggerRect.width === 0 && triggerRect.height === 0 && anchor) {
+          left = anchor.x - popupRect.width / 2;
+          top = anchor.y + 10;
+          transformOriginX = "center";
         }
-      } catch (_) {}
-    } else {
-      // Center in viewport
-      const left = Math.max(
-        12,
-        Math.min(
-          (viewportWidth() - popupRect.width) / 2,
-          viewportWidth() - popupRect.width - 12
-        )
-      );
-      const top = Math.max(
-        12,
-        Math.min(
-          (viewportHeight() - popupRect.height) / 2,
-          viewportHeight() - popupRect.height - 12
-        )
-      );
-      popup.style.left = "0px";
-      popup.style.top = "0px";
-      popup.style.setProperty("--popup-translate-x", `${Math.round(left)}px`);
-      popup.style.setProperty("--popup-translate-y", `${Math.round(top)}px`);
-      try {
-        if (typeof console !== "undefined" && console.debug) {
-          console.debug("popup reposition (center)", {
-            popupRect,
-            left: Math.round(left),
-            top: Math.round(top),
-          });
+
+        const minLeft = 12;
+        const maxLeft = viewportWidth() - popupRect.width - 12;
+
+        if (left + popupRect.width > viewportWidth() - 12) {
+          left = triggerRect.right - popupRect.width;
+          transformOriginX = "right";
         }
-      } catch (_) {}
-      popup.style.transformOrigin = "center center";
-    }
+
+        if (left < minLeft) {
+          left = minLeft;
+          transformOriginX = "left";
+        }
+
+        if (left > maxLeft) {
+          left = maxLeft;
+          transformOriginX = "right";
+        }
+
+        const minTop = 12;
+        const maxTop = viewportHeight() - popupRect.height - 12;
+        if (top > maxTop) {
+          // flip above the trigger
+          top = triggerRect.top - popupRect.height - 8;
+          transformOriginY = "bottom";
+        }
+
+        if (top < minTop) {
+          top = minTop;
+          transformOriginY = "top";
+        }
+
+        // Apply final placement using CSS variables (translate) instead of inline left/top
+        popup.style.left = "0px";
+        popup.style.top = "0px";
+        popup.style.setProperty("--popup-translate-x", `${Math.round(left)}px`);
+        popup.style.setProperty("--popup-translate-y", `${Math.round(top)}px`);
+        popup.style.transformOrigin = `${transformOriginX} ${transformOriginY}`;
+        try {
+          popupContent.style.transformOrigin = `${transformOriginX} ${transformOriginY}`;
+        } catch (_) {}
+
+        // debug logging removed
+
+        // removed reposition debug log
+      } else {
+        // Center in viewport
+        const left = Math.max(
+          12,
+          Math.min(
+            (viewportWidth() - popupRect.width) / 2,
+            viewportWidth() - popupRect.width - 12
+          )
+        );
+        const top = Math.max(
+          12,
+          Math.min(
+            (viewportHeight() - popupRect.height) / 2,
+            viewportHeight() - popupRect.height - 12
+          )
+        );
+        popup.style.left = "0px";
+        popup.style.top = "0px";
+        popup.style.setProperty("--popup-translate-x", `${Math.round(left)}px`);
+        popup.style.setProperty("--popup-translate-y", `${Math.round(top)}px`);
+        // removed center reposition debug log
+        popup.style.transformOrigin = "center center";
+        try {
+          popupContent.style.transformOrigin = "center center";
+        } catch (_) {}
+        // debug logging removed
+      }
+    };
+
+    // Always measure immediately; avoid special-case RAF delays which introduce
+    // a perceptible lag on open. Keeping measurements synchronous here keeps
+    // the popup appearing instantly at the computed location.
+    try {
+      firstPositioning = false;
+    } catch (_) {}
+    doMeasure();
   };
 
   // Show + initial position
   popup.style.opacity = "0";
-  requestAnimationFrame(() => {
-    reposition();
-    popup.style.opacity = "1";
-    overlay.classList.add("visible");
-    popup.classList.add("visible");
-  });
-
-  // Immediate synchronous attempt to position (helps in some layout timing cases)
+  // Make visible immediately so CSS rules apply while we position
+  overlay.classList.add("visible");
+  popup.classList.add("visible");
+  // Sanity: if some other code moved or removed nodes, make sure overlay
+  // and popup are present and popupContent is a child of popup so CSS
+  // selectors like `.popup.visible .popup-content` can apply.
   try {
-    reposition();
+    if (popupContent.parentElement !== popup) popup.appendChild(popupContent);
+  } catch (_) {}
+  try {
+    if (popup.parentElement !== document.body) document.body.appendChild(popup);
+  } catch (_) {}
+  try {
+    if (overlay.parentElement !== document.body)
+      document.body.appendChild(overlay);
+  } catch (_) {}
+
+  // Position synchronously to avoid a 1-frame delay on show
+  reposition();
+  popup.style.opacity = "1";
+  // Ensure inner content becomes visible even if CSS load is delayed
+  try {
+    popupContent.style.transform = "";
+    popupContent.style.opacity = "";
   } catch (_) {}
 
   // Schedule a fallback reposition shortly after (fonts/images or layout may change)
@@ -337,7 +387,7 @@ export function createPopup(options) {
       childList: true,
       subtree: false,
     });
-  } catch (err) {
+  } catch (_) {
     // Fallback to body if observing offsetParent fails for some reason
     try {
       observer.observe(document.body, {
@@ -355,6 +405,18 @@ export function createPopup(options) {
   overlay._handleResize = handleResize;
   overlay._handleScroll = handleScroll;
   overlay._observer = observer;
+  // Watch the popup element for child changes and re-attach popupContent if
+  // some other code moves it elsewhere. This keeps `.popup .popup-content`
+  // selectors working and avoids inconsistent animations.
+  const popupContentObserver = new MutationObserver(() => {
+    try {
+      if (popupContent.parentElement !== popup) popup.appendChild(popupContent);
+    } catch (_) {}
+  });
+  try {
+    popupContentObserver.observe(popup, { childList: true });
+  } catch (_) {}
+  overlay._popupContentObserver = popupContentObserver;
   // expose popup element for external callers/debugging
   overlay._popup = popup;
 
@@ -376,6 +438,8 @@ export function createPopup(options) {
       if (overlay._handleScroll)
         window.removeEventListener("scroll", overlay._handleScroll);
       if (overlay._observer) overlay._observer.disconnect();
+      if (overlay._popupContentObserver)
+        overlay._popupContentObserver.disconnect();
       if (overlay._fallbackTimer) clearTimeout(overlay._fallbackTimer);
     } catch (_) {}
 
