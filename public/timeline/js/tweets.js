@@ -2037,7 +2037,7 @@ export const createTweetElement = (tweet, config = {}) => {
       );
 
       const rect = tweetInteractionsReactionEl.getBoundingClientRect();
-      showEmojiPickerPopup(
+      await showEmojiPickerPopup(
         async (emoji) => {
           try {
             triggerReactionBurst(tweetInteractionsReactionEl, emoji, 6);
