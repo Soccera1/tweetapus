@@ -121,18 +121,12 @@ function createNotificationElement(notification) {
 
   const icons = {
     default: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22c1.1046 0 2-.8954 2-2h-4c0 1.1046.8954 2 2 2z"/><path d="M18.364 16.364A9 9 0 1 0 5.636 16.364L6 15.999V11a6 6 0 1 1 12 0v4.999l.364.365z"/></svg>`,
-    // colorful emoji-style reaction icon (smiley) — uses explicit fills so it looks like an emoji
+    // simple single-color reaction icon (uses currentColor so it's one color)
     reaction: `<svg width="16" height="16" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stop-color="#fff176"/>
-          <stop offset="1" stop-color="#ffd54f"/>
-        </linearGradient>
-      </defs>
-      <circle cx="32" cy="32" r="30" fill="url(#g1)" stroke="#f9a825" stroke-width="2" />
-      <circle cx="22" cy="26" r="4" fill="#333" />
-      <circle cx="42" cy="26" r="4" fill="#333" />
-      <path d="M22 40c3 3 7 5 10 5s7-2 10-5" stroke="#333" stroke-width="3" stroke-linecap="round" fill="none" />
+      <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="3" />
+      <circle cx="22" cy="26" r="2" fill="currentColor" />
+      <circle cx="42" cy="26" r="2" fill="currentColor" />
+      <path d="M22 40c3 3 7 5 10 5s7-2 10-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none" />
     </svg>`,
     like: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
 			<path d="M5.00002 2.54822C8.00003 2.09722 9.58337 4.93428 10 5.87387C10.4167 4.93428 12 2.09722 15 2.54822C18 2.99923 18.75 5.66154 18.75 7.05826C18.75 9.28572 18.1249 10.9821 16.2499 13.244C14.3749 15.506 10 18.3333 10 18.3333C10 18.3333 5.62498 15.506 3.74999 13.244C1.875 10.9821 1.25 9.28572 1.25 7.05826C1.25 5.66154 2 2.99923 5.00002 2.54822Z"/>
@@ -197,12 +191,10 @@ function createNotificationElement(notification) {
   const contentP = document.createElement("p");
 
   // Use actor display name (if available) and make it a clickable link to the profile.
-  // Fallback to username or a generic label.
+  // Do NOT insert a generic "Someone" placeholder — if actor metadata is missing,
+  // we'll fall back to rendering the server-provided content as-is.
   const actorName =
-    notification.actor_name ||
-    notification.actor_username ||
-    notification.actor_id ||
-    "Someone";
+    notification.actor_name || notification.actor_username || null;
   const actorUsername = notification.actor_username || "";
 
   // Helper to safely escape regex special chars when removing username from content text
@@ -216,39 +208,50 @@ function createNotificationElement(notification) {
     try {
       const re = new RegExp(`@?${escapeRegExp(actorUsername)}`, "gi");
       remainingText = remainingText.replace(re, "").trim();
-    } catch (e) {
+    } catch {
       // fall back to original content on any error
       remainingText = notification.content || "";
     }
   }
 
-  // Build DOM: <a class='notification-actor-link'>Actor Name</a> <span class='notification-rest'>rest of text · time</span>
-  const actorLink = document.createElement("a");
-  actorLink.className = "notification-actor-link";
-  actorLink.href = actorUsername ? `/@${actorUsername}` : "#";
-  actorLink.textContent = actorName;
-  actorLink.addEventListener("click", (ev) => {
-    // stop outer click handler and navigate to profile
-    ev.stopPropagation();
-    ev.preventDefault();
-    if (actorUsername) {
-      window.location.href = `/@${actorUsername}`;
-    }
-  });
+  // Build DOM. If we have an actor name, show it as a link and avoid inserting
+  // any generic placeholder. If actor metadata is missing, render the server-provided
+  // notification content directly.
+  if (actorName) {
+    const actorLink = document.createElement("a");
+    actorLink.className = "notification-actor-link";
+    actorLink.href = actorUsername ? `/@${actorUsername}` : "#";
+    actorLink.textContent = actorName;
+    actorLink.addEventListener("click", (ev) => {
+      // stop outer click handler and navigate to profile
+      ev.stopPropagation();
+      ev.preventDefault();
+      if (actorUsername) {
+        window.location.href = `/@${actorUsername}`;
+      }
+    });
 
-  const restSpan = document.createElement("span");
-  restSpan.className = "notification-rest";
-  restSpan.textContent = remainingText ? ` ${remainingText} ` : " ";
+    const restSpan = document.createElement("span");
+    restSpan.className = "notification-rest";
+    restSpan.textContent = remainingText ? ` ${remainingText} ` : " ";
 
-  const timeSpan = document.createElement("span");
-  timeSpan.className = "notification-time";
-  timeSpan.textContent = `· ${timeAgo}`;
+    const timeSpan = document.createElement("span");
+    timeSpan.className = "notification-time";
+    timeSpan.textContent = `· ${timeAgo}`;
 
-  contentP.appendChild(actorLink);
-  contentP.appendChild(restSpan);
-  contentP.appendChild(timeSpan);
-
-  contentEl.appendChild(contentP);
+    contentP.appendChild(actorLink);
+    contentP.appendChild(restSpan);
+    contentP.appendChild(timeSpan);
+    contentEl.appendChild(contentP);
+  } else {
+    // No actor metadata: show server-provided content directly (no 'Someone').
+    contentP.textContent = (notification.content || "").trim() + " ";
+    const timeSpan = document.createElement("span");
+    timeSpan.className = "notification-time";
+    timeSpan.textContent = `· ${timeAgo}`;
+    contentP.appendChild(timeSpan);
+    contentEl.appendChild(contentP);
+  }
 
   if (notification.tweet) {
     if (notification.type === "reply") {
@@ -302,7 +305,7 @@ function createNotificationElement(notification) {
     if (!relatedId) return;
 
     if (
-      ["like", "retweet", "reply", "quote", "mention"].includes(
+      ["like", "retweet", "reply", "quote", "mention", "reaction"].includes(
         notificationType
       )
     ) {
@@ -327,6 +330,27 @@ function createNotificationElement(notification) {
       } catch (error) {
         console.error("Failed to load profile:", error);
         toastQueue.add(`<h1>Failed to load profile</h1>`);
+      }
+    } else if (notificationType?.startsWith("community_")) {
+      try {
+        const mod = await import("./communities.js");
+        if (mod.loadCommunityDetail) mod.loadCommunityDetail(relatedId);
+        else window.location.href = `/communities/${relatedId}`;
+      } catch (error) {
+        console.error("Failed to open community:", error);
+        // Fallback to direct navigation
+        window.location.href = `/communities/${relatedId}`;
+      }
+    } else if (
+      ["group_invite", "group_message", "dm_message"].includes(notificationType)
+    ) {
+      try {
+        await import("./dm.js");
+        if (window.openConversation) window.openConversation(relatedId);
+        else window.location.href = `/dm/${relatedId}`;
+      } catch (error) {
+        console.error("Failed to open DM:", error);
+        window.location.href = `/dm/${relatedId}`;
       }
     }
   });

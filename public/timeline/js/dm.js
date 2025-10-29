@@ -634,9 +634,18 @@ async function sendMessage() {
 }
 
 let typingTimeout = null;
+let lastTypingSent = 0;
+const TYPING_THROTTLE = 3000;
 
 async function broadcastTypingIndicator() {
   if (!currentConversation) return;
+
+  const now = Date.now();
+  if (now - lastTypingSent < TYPING_THROTTLE) {
+    return;
+  }
+
+  lastTypingSent = now;
 
   try {
     await query(`/dm/conversations/${currentConversation.id}/typing`, {
@@ -654,6 +663,8 @@ async function stopTypingIndicator() {
     clearTimeout(typingTimeout);
     typingTimeout = null;
   }
+
+  lastTypingSent = 0;
 
   try {
     await query(`/dm/conversations/${currentConversation.id}/typing-stop`, {
@@ -676,7 +687,7 @@ function handleTypingInput() {
   typingTimeout = setTimeout(() => {
     stopTypingIndicator();
     typingTimeout = null;
-  }, 2000);
+  }, 3000);
 }
 
 async function markConversationAsRead(conversationId) {
