@@ -1,4 +1,3 @@
-import { initializePresence } from "../../shared/presence.js";
 import toastQueue from "../../shared/toasts.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
@@ -43,8 +42,6 @@ window.onunhandledrejection = (event) => {
 
 (async () => {
   if (!authToken) return;
-
-  initializePresence();
 
   let currentTimeline = "home";
 

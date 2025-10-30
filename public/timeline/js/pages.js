@@ -12,13 +12,23 @@ const pages = {
   settings: null,
 };
 const states = {};
+const cleanups = {};
 const lazyInitializers = {
   search: false,
   communities: false,
 };
 
 function showPage(page, options = {}) {
-  const { recoverState = () => {} } = options;
+  const { recoverState = () => {}, cleanup = () => {} } = options;
+
+  if (history.state?.stateId && cleanups[history.state.stateId]) {
+    try {
+      cleanups[history.state.stateId]();
+      delete cleanups[history.state.stateId];
+    } catch (error) {
+      console.error("Error in cleanup:", error);
+    }
+  }
 
   Object.values(pages).forEach((p) => {
     if (p) {
@@ -81,7 +91,7 @@ function showPage(page, options = {}) {
 
 export default function switchPage(
   page,
-  { recoverState = () => {}, path = "/" } = {}
+  { recoverState = () => {}, path = "/", cleanup = () => {} } = {}
 ) {
   if (history.state) {
     history.replaceState(
@@ -94,10 +104,11 @@ export default function switchPage(
     );
   }
 
-  showPage(page, { recoverState, path });
+  showPage(page, { recoverState, path, cleanup });
 
   const stateId = crypto.randomUUID();
   states[stateId] = recoverState;
+  cleanups[stateId] = cleanup;
 
   history.pushState(
     {
@@ -124,6 +135,15 @@ window.addEventListener("popstate", (event) => {
     stateId: null,
     scroll: 0,
   };
+
+  if (history.state?.stateId && cleanups[history.state.stateId]) {
+    try {
+      cleanups[history.state.stateId]();
+      delete cleanups[history.state.stateId];
+    } catch (error) {
+      console.error("Error in cleanup:", error);
+    }
+  }
 
   const recoverState = (stateId && states[stateId]) || (() => {});
 

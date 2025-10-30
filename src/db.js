@@ -365,21 +365,6 @@ CREATE INDEX IF NOT EXISTS idx_scheduled_posts_user_id ON scheduled_posts(user_i
 CREATE INDEX IF NOT EXISTS idx_scheduled_posts_scheduled_for ON scheduled_posts(scheduled_for);
 CREATE INDEX IF NOT EXISTS idx_scheduled_posts_status ON scheduled_posts(status);
 
-CREATE TABLE IF NOT EXISTS user_presence (
-  id TEXT PRIMARY KEY,
-  user_id TEXT UNIQUE NOT NULL,
-  online BOOLEAN DEFAULT FALSE,
-  last_seen TIMESTAMP DEFAULT (datetime('now', 'utc')),
-  device TEXT DEFAULT NULL,
-  ghost_mode BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
-  updated_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_user_presence_user_id ON user_presence(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_presence_online ON user_presence(online);
-
 CREATE TABLE IF NOT EXISTS moderation_logs (
   id TEXT PRIMARY KEY,
   moderator_id TEXT NOT NULL,

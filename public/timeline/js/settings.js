@@ -500,78 +500,13 @@ const createPrivacyContent = () => {
   section.className = "settings-section";
 
   const h1 = document.createElement("h1");
-  h1.textContent = "Privacy & Presence";
+  h1.textContent = "Privacy";
   section.appendChild(h1);
 
   const group = document.createElement("div");
   group.className = "setting-group";
 
-  const h2 = document.createElement("h2");
-  h2.textContent = "Online Status";
-  group.appendChild(h2);
-
-  const ghostItem = document.createElement("div");
-  ghostItem.className = "setting-item";
-
-  const ghostLabel = document.createElement("div");
-  ghostLabel.className = "setting-label";
-  const ghostTitle = document.createElement("div");
-  ghostTitle.className = "setting-title";
-  ghostTitle.textContent = "Ghost Mode";
-  const ghostDesc = document.createElement("div");
-  ghostDesc.className = "setting-description";
-  ghostDesc.textContent = "Hide your online status and last seen from others";
-  ghostLabel.appendChild(ghostTitle);
-  ghostLabel.appendChild(ghostDesc);
-
-  const ghostControl = document.createElement("div");
-  ghostControl.className = "setting-control";
-
-  const ghostToggle = document.createElement("label");
-  ghostToggle.className = "toggle-switch";
-  ghostToggle.innerHTML = `
-    <input type="checkbox" id="ghost-mode-toggle" />
-    <span class="toggle-slider"></span>
-  `;
-
-  ghostControl.appendChild(ghostToggle);
-  ghostItem.appendChild(ghostLabel);
-  ghostItem.appendChild(ghostControl);
-  group.appendChild(ghostItem);
-
   section.appendChild(group);
-
-  setTimeout(() => {
-    const checkbox = document.getElementById("ghost-mode-toggle");
-    checkbox.addEventListener("change", async (e) => {
-      const enabled = e.target.checked;
-      try {
-        const result = await query("/presence/ghost-mode", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ enabled }),
-        });
-
-        if (result.success) {
-          toastQueue.add(
-            `<h1>Ghost Mode ${enabled ? "Enabled" : "Disabled"}</h1><p>${
-              enabled
-                ? "Your online status is now hidden"
-                : "Your online status is now visible"
-            }</p>`
-          );
-        } else {
-          e.target.checked = !enabled;
-          toastQueue.add(`<h1>Failed to update ghost mode</h1>`);
-        }
-      } catch {
-        e.target.checked = !enabled;
-        toastQueue.add(`<h1>Failed to update ghost mode</h1>`);
-      }
-    });
-  }, 100);
 
   return section;
 };

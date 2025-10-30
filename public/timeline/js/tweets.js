@@ -6,6 +6,21 @@ import query from "./api.js";
 import getUser from "./auth.js";
 import openTweet from "./tweet.js";
 
+// Avatar radius handling:
+// Users configure avatar_radius as pixels for their profile avatar (profile
+// avatar size is 100px). To keep that visual curvature consistent across
+// different avatar sizes (timeline, previews, lists), convert configured
+// pixel radii into percentages relative to the profile avatar size when
+// rendering smaller avatars. Do not change the profile page rendering itself.
+const PROFILE_AVATAR_PX = 100;
+function avatarPxToPercent(px) {
+  const n = Number(px) || 0;
+  const pct = (n / PROFILE_AVATAR_PX) * 100;
+  // clamp to sensible range 0-100
+  const clamped = Math.max(0, Math.min(100, pct));
+  return `${clamped}%`;
+}
+
 async function checkReplyPermissions(tweet, replyRestriction) {
   try {
     const data = await query(`/tweets/can-reply/${tweet.id}`);

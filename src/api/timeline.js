@@ -88,6 +88,15 @@ const countReactionsForPost = db.query(`
   SELECT COUNT(*) as total FROM post_reactions WHERE post_id = ?
 `);
 
+const getTopReactionsForPost = db.query(`
+  SELECT emoji, COUNT(*) as count
+  FROM post_reactions
+  WHERE post_id = ?
+  GROUP BY emoji
+  ORDER BY count DESC
+  LIMIT 2
+`);
+
 const getAttachmentsByPostId = db.query(`
   SELECT * FROM attachments WHERE post_id = ?
 `);
@@ -423,6 +432,7 @@ export default new Elysia({ prefix: "/timeline" })
           retweeted_by_user: userRetweetedPosts.has(post.id),
           bookmarked_by_user: userBookmarkedPosts.has(post.id),
           reaction_count: countReactionsForPost.get(post.id)?.total || 0,
+          top_reactions: getTopReactionsForPost.all(post.id),
           poll: getPollDataForTweet(post.id, user.id),
           quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
           top_reply: shouldShowTopReply ? topReply : null,
@@ -653,6 +663,7 @@ export default new Elysia({ prefix: "/timeline" })
           retweeted_by_user: userRetweetedPosts.has(post.id),
           bookmarked_by_user: userBookmarkedPosts.has(post.id),
           reaction_count: countReactionsForPost.get(post.id)?.total || 0,
+          top_reactions: getTopReactionsForPost.all(post.id),
           poll: getPollDataForTweet(post.id, user.id),
           quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
           top_reply: shouldShowTopReply ? topReply : null,

@@ -2819,6 +2819,10 @@ nav {
     border-color: var(--border-primary);
   }
 
+    /* Previous visual override for gold avatars removed. Avatar-radius scaling
+       is handled in JS so user-configured pixel radii scale proportionally
+       across avatar sizes (profile vs smaller contexts). */
+
   &.active {
     transform: scale(0.98);
   }

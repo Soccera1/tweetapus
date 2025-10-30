@@ -9,7 +9,6 @@ import communities from "./api/communities.js";
 import dm from "./api/dm.js";
 import hashtags from "./api/hashtags.js";
 import notifications from "./api/notifications.js";
-import presence from "./api/presence.js";
 import profile, { avatarRoutes } from "./api/profile.js";
 import scheduled from "./api/scheduled.js";
 import search from "./api/search.js";
@@ -94,6 +93,5 @@ export default new Elysia({
   .use(tenor)
   .use(hashtags)
   .use(scheduled)
-  .use(presence)
   .use(avatarRoutes)
   .use(uploadRoutes);
