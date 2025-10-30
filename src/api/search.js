@@ -145,24 +145,20 @@ export default new Elysia({ prefix: "/search" })
   )
   .get("/users", async ({ query: { q }, jwt, headers }) => {
     const authorization = headers.authorization;
-    let user = null;
 
     if (authorization) {
       try {
         const payload = await jwt.verify(authorization.replace("Bearer ", ""));
         if (payload) {
-          user = getUserByUsername.get(payload.username) || null;
+          getUserByUsername.get(payload.username) || null;
         }
       } catch (e) {
         console.error("Search users: JWT verify failed", e);
-        user = null;
       }
     }
 
     if (!q || q.trim().length === 0) return { users: [] };
 
-    // For very short queries, prefer prefix matching to improve accuracy
-    // (e.g. typing "al" should prioritize usernames starting with "al")
     const raw = q.trim();
     const searchTerm = raw.length < 3 ? `${raw}%` : `%${raw}%`;
     const users = searchUsersQuery.all(searchTerm, searchTerm);
@@ -170,8 +166,6 @@ export default new Elysia({ prefix: "/search" })
     return { users };
   })
   .get("/posts", async ({ query: { q }, jwt, headers }) => {
-    // Allow unauthenticated searches: try to resolve the user if an
-    // Authorization header exists, but continue even if verification fails.
     const authorization = headers.authorization;
     let user = null;
 
@@ -218,7 +212,7 @@ export default new Elysia({ prefix: "/search" })
     let userLikedPosts = new Set();
     let userRetweetedPosts = new Set();
 
-    if (user && user.id) {
+    if (user?.id) {
       const getUserLikesQuery = db.query(
         `SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${likePlaceholders})`
       );

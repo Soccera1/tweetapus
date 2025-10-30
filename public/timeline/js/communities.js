@@ -553,17 +553,39 @@ async function showMembersTab() {
     `/communities/${currentCommunity.id}/members?limit=100`
   );
 
+  // Filter out suspended accounts on the client-side. Prefer server-side
+  // filtering, but handle common suspension markers returned by the API.
+  // Also check nested `user` object when APIs return user-level flags.
+  const visibleMembers = (members || []).filter((m) => {
+    const suspendedFlags = [
+      m.suspended,
+      m.suspended_at,
+      m.suspended_by,
+      m.is_suspended,
+    ];
+
+    if (m.user) {
+      suspendedFlags.push(
+        m.user.suspended,
+        m.user.is_suspended,
+        m.user.suspended_at
+      );
+    }
+
+    return !suspendedFlags.some((v) => Boolean(v));
+  });
+
   content.innerHTML = "";
 
-  if (!members || members.length === 0) {
+  if (!visibleMembers || visibleMembers.length === 0) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "No members yet.";
+    empty.textContent = "No visible members.";
     content.appendChild(empty);
     return;
   }
 
-  for (const member of members) {
+  for (const member of visibleMembers) {
     const memberEl = createMemberElement(member);
     content.appendChild(memberEl);
   }
@@ -653,9 +675,10 @@ function createMemberElement(member) {
         roleSelect.appendChild(adminOpt);
       }
 
-      roleSelect.addEventListener("change", (e) =>
-        changeUserRole(member.user_id, e.target.value)
-      );
+      roleSelect.addEventListener("change", (e) => {
+        e.stopPropagation();
+        changeUserRole(member.user_id, e.target.value);
+      });
       actions.appendChild(roleSelect);
     }
 
@@ -664,7 +687,8 @@ function createMemberElement(member) {
       ? "profile-btn"
       : "profile-btn profile-btn-secondary";
     banBtn.textContent = member.banned ? "Unban" : "Ban";
-    banBtn.addEventListener("click", () => {
+    banBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
       if (member.banned) {
         unbanUser(member.user_id);
       } else {
@@ -675,6 +699,25 @@ function createMemberElement(member) {
 
     div.appendChild(actions);
   }
+
+  // Clicking the member row should open the user's profile. Use the SPA
+  // navigation when available; fall back to a full navigation.
+  div.addEventListener("click", () => {
+    const username = encodeURIComponent(
+      (member.username || "").replace(/^@/, "")
+    );
+    const profilePath = `/@${username}`;
+    try {
+      if (typeof switchPage === "function") {
+        // Use SPA navigation if available but keep the requested path
+        switchPage("profile", { path: profilePath });
+        return;
+      }
+    } catch {
+      // ignore and fallback
+    }
+    window.location.href = profilePath;
+  });
 
   return div;
 }

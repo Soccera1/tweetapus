@@ -541,97 +541,125 @@ const updatePollDisplay = (pollElement, poll) => {
   metaContainer.appendChild(pollTimeEl);
 };
 
-async function createExpandedStats(
-  tweetId,
-  extendedStats = {
-    likes: [],
-    quotes: [],
-    retweets: [],
-  }
-) {
-  const statsContainer = document.createElement("div");
-  statsContainer.className = "expanded-tweet-stats";
+async function showInteractionsModal(tweetId) {
+  const modalContent = document.createElement("div");
+  modalContent.className = "interactions-modal-content";
 
-  try {
-    const likesData = { users: extendedStats?.likes || [] };
-    const retweetsData = { users: extendedStats?.retweets || [] };
-    const quotesData = { users: extendedStats?.quotes || [] };
+  const tabsContainer = document.createElement("div");
+  tabsContainer.className = "interactions-tabs";
 
-    const stats = [];
+  const tabs = [
+    { id: "likes", label: "Likes", icon: "❤️" },
+    { id: "retweets", label: "Retweets", icon: "🔄" },
+    { id: "quotes", label: "Quotes", icon: "💬" },
+  ];
 
-    if (likesData.users && likesData.users.length > 0) {
-      stats.push({
-        type: "likes",
-        users: likesData.users,
-      });
+  const contentContainer = document.createElement("div");
+  contentContainer.className = "interactions-content";
+
+  let activeTab = "likes";
+
+  const loadTabContent = async (tabId) => {
+    contentContainer.innerHTML = '<div class="loading">Loading...</div>';
+
+    try {
+      const data = await query(`/tweets/${tweetId}/${tabId}`);
+
+      contentContainer.innerHTML = "";
+
+      if (tabId === "quotes") {
+        if (!data.tweets || data.tweets.length === 0) {
+          contentContainer.innerHTML = `<div class="empty-state">No quotes yet</div>`;
+          return;
+        }
+
+        data.tweets.forEach((tweet) => {
+          const tweetEl = createTweetElement(tweet, {
+            clickToOpen: true,
+            showTopReply: false,
+            isTopReply: false,
+            size: "normal",
+          });
+          contentContainer.appendChild(tweetEl);
+        });
+      } else {
+        if (!data.users || data.users.length === 0) {
+          contentContainer.innerHTML = `<div class="empty-state">No ${tabId} yet</div>`;
+          return;
+        }
+
+        const usersList = document.createElement("div");
+        usersList.className = "users-list";
+
+        data.users.forEach((user) => {
+          const userItem = document.createElement("div");
+          userItem.className = "user-item";
+
+          const timeText =
+            tabId === "likes"
+              ? `liked ${formatInteractionTime(new Date(user.liked_at))}`
+              : `retweeted ${formatInteractionTime(new Date(user.retweeted_at))}`;
+
+          userItem.innerHTML = `
+            <div class="user-avatar">
+              <img src="${user.avatar || "/public/shared/default-avatar.png"}" alt="${user.name || user.username}" />
+            </div>
+            <div class="user-info">
+              <div class="user-name">${user.name || user.username}</div>
+              <div class="user-username">@${user.username}</div>
+              <div class="user-time">${timeText}</div>
+            </div>
+          `;
+
+          userItem.addEventListener("click", async () => {
+            modal.close();
+            const { default: openProfile } = await import("./profile.js");
+            openProfile(user.username);
+          });
+
+          usersList.appendChild(userItem);
+        });
+
+        contentContainer.appendChild(usersList);
+      }
+    } catch (error) {
+      console.error("Error loading interactions:", error);
+      contentContainer.innerHTML = `<div class="empty-state">Failed to load ${tabId}</div>`;
+    }
+  };
+
+  tabs.forEach((tab) => {
+    const tabButton = document.createElement("button");
+    tabButton.className = "tab-button";
+    tabButton.dataset.tab = tab.id;
+    tabButton.innerHTML = `<span class="tab-icon">${tab.icon}</span><span>${tab.label}</span>`;
+
+    if (tab.id === activeTab) {
+      tabButton.classList.add("active");
     }
 
-    if (retweetsData.users && retweetsData.users.length > 0) {
-      stats.push({
-        type: "retweets",
-        users: retweetsData.users,
+    tabButton.addEventListener("click", () => {
+      tabsContainer.querySelectorAll(".tab-button").forEach((btn) => {
+        btn.classList.remove("active");
       });
-    }
-
-    if (quotesData.users && quotesData.users.length > 0) {
-      stats.push({
-        type: "quotes",
-        users: quotesData.users,
-      });
-    }
-
-    stats.forEach((stat) => {
-      const statElement = document.createElement("div");
-      statElement.className = "tweet-stat-item";
-
-      const avatars = stat.users
-        .slice(0, 3)
-        .map((user) => {
-          const radius =
-            user.avatar_radius !== null && user.avatar_radius !== undefined
-              ? `${user.avatar_radius}px`
-              : user.gold
-              ? "4px"
-              : "50px";
-          return `<img src="${
-            user.avatar || "/public/shared/default-avatar.png"
-          }" alt="${
-            user.name || user.username
-          }" class="stat-avatar" style="border-radius: ${radius};" />`;
-        })
-        .join("");
-
-      const names = stat.users
-        .slice(0, 2)
-        .map((user) => user.name || user.username)
-        .join(", ");
-      const moreCount = stat.users.length > 2 ? stat.users.length - 2 : 0;
-
-      statElement.innerHTML = `
-				<div class="stat-avatars">${avatars}</div>
-				<div class="stat-text">
-					${names}${moreCount > 0 ? ` and ${moreCount} others` : ""} ${
-        stat.type === "likes"
-          ? "liked"
-          : stat.type === "retweets"
-          ? "retweeted"
-          : "quoted"
-      } this
-				</div>
-			`;
-
-      statElement.addEventListener("click", async () => {
-        const title = stat.type.charAt(0).toUpperCase() + stat.type.slice(1);
-        await showInteractionUsers(tweetId, stat.type, title);
-      });
-
-      statsContainer.appendChild(statElement);
+      tabButton.classList.add("active");
+      activeTab = tab.id;
+      loadTabContent(tab.id);
     });
-  } catch (error) {
-    console.error("Error loading stats:", error);
-  }
 
-  return statsContainer;
+    tabsContainer.appendChild(tabButton);
+  });
+
+  modalContent.appendChild(tabsContainer);
+  modalContent.appendChild(contentContainer);
+
+  const modal = createModal({
+    title: "Interactions",
+    content: modalContent,
+    className: "interactions-tabbed-modal",
+  });
+
+  await loadTabContent(activeTab);
 }
 
 export const createTweetElement = (tweet, config = {}) => {
@@ -645,8 +673,6 @@ export const createTweetElement = (tweet, config = {}) => {
     showTopReply = false,
     isTopReply = false,
     size = "normal",
-    showStats = false,
-    extendedStats = null,
   } = config;
 
   // Normalize reaction count from server payload variations so badge can render on load
@@ -1425,6 +1451,14 @@ export const createTweetElement = (tweet, config = {}) => {
     // MARK: options btns
     const defaultItems = [
       {
+        id: "see-interactions",
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+        title: "See interactions",
+        onClick: async () => {
+          await showInteractionsModal(tweet.id);
+        },
+      },
+      {
         id: "bookmark",
         icon: `
         <svg
@@ -2049,7 +2083,9 @@ export const createTweetElement = (tweet, config = {}) => {
 
   const reactionCountSpan = document.createElement("span");
   reactionCountSpan.className = "reaction-count";
-  reactionCountSpan.textContent = "";
+  if (tweet.reaction_count && tweet.reaction_count > 0) {
+    reactionCountSpan.textContent = String(tweet.reaction_count);
+  }
 
   const tweetInteractionsReactionEl = document.createElement("button");
   tweetInteractionsReactionEl.className = "engagement reaction-btn";
@@ -2058,8 +2094,6 @@ export const createTweetElement = (tweet, config = {}) => {
   tweetInteractionsReactionEl.style.setProperty("--color", "255, 180, 0");
   tweetInteractionsReactionEl.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-smile-plus-icon lucide-smile-plus"><path d="M22 11v1a10 10 0 1 1-9-10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/><path d="M16 5h6"/><path d="M19 2v6"/></svg>`;
-
-  tweetInteractionsReactionEl.appendChild(reactionCountSpan);
 
   tweetInteractionsReactionEl.addEventListener("click", async (e) => {
     e.preventDefault();
@@ -2088,15 +2122,7 @@ export const createTweetElement = (tweet, config = {}) => {
             if (result?.success) {
               if (typeof result.total_reactions === "number") {
                 tweet.reaction_count = result.total_reactions;
-
-                if (tweet.reaction_count > 0) {
-                  if (!reactionCountSpan.parentNode) {
-                    tweetInteractionsRightEl.appendChild(reactionCountSpan);
-                  }
-                  reactionCountSpan.textContent = String(tweet.reaction_count);
-                } else if (reactionCountSpan.parentNode) {
-                  reactionCountSpan.remove();
-                }
+                reactionCountSpan.textContent = tweet.reaction_count > 0 ? String(tweet.reaction_count) : "";
               } else if (typeof result.reacted === "boolean") {
                 const hadInitialCount =
                   tweet.reaction_count && tweet.reaction_count > 0;
@@ -2106,26 +2132,13 @@ export const createTweetElement = (tweet, config = {}) => {
                   tweet.reaction_count = result.reacted
                     ? tweet.reaction_count + 1
                     : Math.max(0, tweet.reaction_count - 1);
-
-                  if (tweet.reaction_count > 0) {
-                    if (!reactionCountSpan.parentNode) {
-                      tweetInteractionsRightEl.appendChild(reactionCountSpan);
-                    }
-                    reactionCountSpan.textContent = String(
-                      tweet.reaction_count
-                    );
-                  } else if (reactionCountSpan.parentNode) {
-                    reactionCountSpan.remove();
-                  }
+                  reactionCountSpan.textContent = tweet.reaction_count > 0 ? String(tweet.reaction_count) : "";
                 }
               } else {
                 const hadInitialCount =
                   tweet.reaction_count && tweet.reaction_count > 0;
                 if (hadInitialCount) {
                   tweet.reaction_count = (tweet.reaction_count || 0) + 1;
-                  if (!reactionCountSpan.parentNode) {
-                    tweetInteractionsRightEl.appendChild(reactionCountSpan);
-                  }
                   reactionCountSpan.textContent = String(tweet.reaction_count);
                 }
               }
@@ -2148,17 +2161,9 @@ export const createTweetElement = (tweet, config = {}) => {
 
   const reactionWrapper = document.createElement("div");
   reactionWrapper.className = "reaction-wrapper";
-  tweetInteractionsReactionEl.style.setProperty(
-    "--color",
-    tweetInteractionsReactionEl.style.getPropertyValue("--color") ||
-      "255, 169, 0"
-  );
-
+  
   reactionWrapper.appendChild(tweetInteractionsReactionEl);
-
-  if (tweet.reaction_count && tweet.reaction_count > 0) {
-    reactionCountSpan.textContent = String(tweet.reaction_count);
-  }
+  reactionWrapper.appendChild(reactionCountSpan);
 
   tweetInteractionsRightEl.appendChild(reactionWrapper);
   tweetInteractionsRightEl.appendChild(tweetInteractionsOptionsEl);
@@ -2195,14 +2200,6 @@ export const createTweetElement = (tweet, config = {}) => {
         e.stopPropagation();
       }
       openTweet(tweet);
-    });
-  }
-
-  if (showStats) {
-    createExpandedStats(tweet.id, extendedStats).then((statsEl) => {
-      if (statsEl && statsEl.children.length > 0) {
-        tweetEl.appendChild(statsEl);
-      }
     });
   }
 
