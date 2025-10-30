@@ -10,6 +10,18 @@ const showToast = (message, type = "info") => {
   toastQueue.add(`${typeMap[type] || typeMap.info}<p>${message}</p>`);
 };
 
+function formatRoleLabel(role) {
+  if (!role || typeof role !== "string") return role || "";
+  const trimmed = role.trim().toLowerCase();
+  if (trimmed.includes(" ")) {
+    return trimmed
+      .split(/\s+/)
+      .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
+      .join(" ");
+  }
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
 import api from "../timeline/js/api.js";
 
 let currentCommunity = null;
@@ -66,7 +78,9 @@ function createCommunityCard(community, showRole = false) {
 
   const roleHTML =
     showRole && community.role
-      ? `<span class="role-badge ${community.role}">${community.role}</span>`
+      ? `<span class="role-badge ${community.role}">${formatRoleLabel(
+          community.role
+        )}</span>`
       : "";
 
   const lockIcon =
@@ -129,21 +143,21 @@ async function openCommunityModal(communityId) {
   if (!currentMember) {
     if (data.joinRequest) {
       actionButton =
-        '<button class="btn-secondary" disabled>Request Pending</button>';
+        '<button class="btn secondary" disabled>Request Pending</button>';
     } else {
-      actionButton = `<button class="btn-primary" id="joinCommunityBtn">Join Community</button>`;
+      actionButton = `<button class="btn primary" id="joinCommunityBtn">Join Community</button>`;
     }
   } else if (currentMember.role !== "owner") {
     actionButton =
-      '<button class="btn-danger" id="leaveCommunityBtn">Leave Community</button>';
+      '<button class="btn danger" id="leaveCommunityBtn">Leave Community</button>';
   }
 
   const editButton = canManage
-    ? '<button class="btn-secondary" id="editCommunityBtn">Edit Community</button>'
+    ? '<button class="btn secondary" id="editCommunityBtn">Edit Community</button>'
     : "";
 
   const deleteButton = isOwner
-    ? '<button class="btn-danger" id="deleteCommunityBtn">Delete Community</button>'
+    ? '<button class="btn danger" id="deleteCommunityBtn">Delete Community</button>'
     : "";
 
   header.innerHTML = `
@@ -215,7 +229,7 @@ async function showTweetsTab() {
 
   if (currentMember) {
     const composeBtn = document.createElement("button");
-    composeBtn.className = "btn-primary";
+    composeBtn.className = "btn primary";
     composeBtn.textContent = "Tweet in this community";
     composeBtn.style.marginBottom = "16px";
     composeBtn.addEventListener("click", async () => {
@@ -312,8 +326,8 @@ function createMemberElement(member) {
   let actionsHTML = "";
   if (canManage) {
     const banButton = member.banned
-      ? `<button class="btn-small" data-action="unban" data-user="${member.user_id}">Unban</button>`
-      : `<button class="btn-small btn-danger" data-action="ban" data-user="${member.user_id}">Ban</button>`;
+      ? `<button class="btn small" data-action="unban" data-user="${member.user_id}">Unban</button>`
+      : `<button class="btn small btn-danger" data-action="ban" data-user="${member.user_id}">Ban</button>`;
 
     const roleButton =
       canChangeRole && !member.banned
@@ -342,7 +356,9 @@ function createMemberElement(member) {
     <div class="member-info">
       <div class="member-name">
         <strong>${member.name || member.username}</strong>
-        <span class="role-badge ${member.role}">${member.role}</span>
+        <span class="role-badge ${member.role}">${formatRoleLabel(
+    member.role
+  )}</span>
       </div>
       <span class="member-username">@${member.username}</span>
       ${member.banned ? '<span class="banned-badge">BANNED</span>' : ""}
@@ -400,10 +416,10 @@ function createRequestElement(request) {
       <span class="request-username">@${request.username}</span>
     </div>
     <div class="request-actions">
-      <button class="btn-small btn-primary" data-action="approve" data-request="${
+      <button class="btn small btn-primary" data-action="approve" data-request="${
         request.id
       }">Approve</button>
-      <button class="btn-small btn-danger" data-action="reject" data-request="${
+      <button class="btn small btn-danger" data-action="reject" data-request="${
         request.id
       }">Reject</button>
     </div>

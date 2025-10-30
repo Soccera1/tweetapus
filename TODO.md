@@ -2,6 +2,4 @@
 - db indexes for speedse's
 - switching between accounts
 - community notes
-- tweet emoji reactions (which happy robot can react with if you tag it)
-- the reaction button should show the top 3 most reacted emojis
 - tweetapus circles like twiter circle

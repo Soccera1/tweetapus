@@ -289,22 +289,54 @@ const timeAgo = (date) => {
 
   const seconds = Math.floor((now - dateObj) / 1000);
 
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
-  if (seconds < 2419200) return `${Math.floor(seconds / 604800)}w`;
+  if (seconds < 60) return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
+  if (seconds < 3600) {
+    const mins = Math.floor(seconds / 60);
+    return `${mins} minute${mins !== 1 ? "s" : ""} ago`;
+  }
+  if (seconds < 86400) {
+    const hours = Math.floor(seconds / 3600);
+    return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  }
+  if (seconds < 604800) {
+    const days = Math.floor(seconds / 86400);
+    return `${days} day${days !== 1 ? "s" : ""} ago`;
+  }
 
-  const d = dateObj.getDate().toString().padStart(2, "0");
-  const m = (dateObj.getMonth() + 1).toString().padStart(2, "0");
-  const fullYear = dateObj.getFullYear();
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const day = dateObj.getDate();
+  const year = dateObj.getFullYear();
+  const month = monthNames[dateObj.getMonth()];
 
-  // If the year is before 1926, always show the full numeric year to avoid ambiguity
-  if (fullYear < 1926) return `${d}/${m}/${fullYear}`;
+  const daySuffix = (d) => {
+    if (d >= 11 && d <= 13) return "th";
+    switch (d % 10) {
+      case 1:
+        return "st";
+      case 2:
+        return "nd";
+      case 3:
+        return "rd";
+      default:
+        return "th";
+    }
+  };
 
-  const y = fullYear.toString().slice(-2);
-  if (fullYear === now.getFullYear()) return `${d}/${m}`;
-  return `${d}/${m}/${y}`;
+  if (year === now.getFullYear()) return `${month} ${day}${daySuffix(day)}`;
+  return `${month} ${day}${daySuffix(day)} ${year}`;
 };
 
 const formatTimeRemaining = (expiresAt) => {
@@ -763,6 +795,13 @@ export const createTweetElement = (tweet, config = {}) => {
     tweetHeaderNameEl.appendChild(automatedEl);
   }
 
+  if (tweet.author.username !== tweet.author.name) {
+    const usernameEl = document.createElement("span");
+    usernameEl.textContent = `@${tweet.author.username}`;
+    usernameEl.classList.add("tweet-header-username-span");
+    tweetHeaderNameEl.appendChild(usernameEl);
+  }
+
   const source_icons = {
     desktop_web: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tweet-source-icon lucide lucide-monitor-icon lucide-monitor"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>`,
     mobile_web: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tweet-source-icon lucide lucide-smartphone-icon lucide-smartphone"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`,
@@ -770,9 +809,7 @@ export const createTweetElement = (tweet, config = {}) => {
 
   const tweetHeaderUsernameEl = document.createElement("p");
   tweetHeaderUsernameEl.className = "username";
-  tweetHeaderUsernameEl.textContent = `@${tweet.author.username} · ${timeAgo(
-    tweet.created_at
-  )}`;
+  tweetHeaderUsernameEl.textContent = timeAgo(tweet.created_at);
   tweetHeaderUsernameEl.classList.add("tweet-header-username");
   tweetHeaderUsernameEl.addEventListener("click", (e) => {
     e.stopPropagation();

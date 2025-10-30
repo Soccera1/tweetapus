@@ -8,13 +8,24 @@ import switchPage from "./pages.js";
 
 const showToast = (message, type = "info") => {
   const typeMap = {
-    success: "<h1>✓ Success</h1>",
-    error: "<h1>✗ Error</h1>",
-    info: "<h1>ℹ Info</h1>",
+    success: "<h1>Success!</h1>",
+    error: "<h1>Error</h1>",
+    info: "<h1>Info</h1>",
   };
   toastQueue.add(`${typeMap[type] || typeMap.info}<p>${message}</p>`);
 };
 
+function formatRoleLabel(role) {
+  if (!role || typeof role !== "string") return role || "";
+  const trimmed = role.trim().toLowerCase();
+  if (trimmed.includes(" ")) {
+    return trimmed
+      .split(/\s+/)
+      .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
+      .join(" ");
+  }
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
 let currentCommunity = null;
 let currentMember = null;
 let initialized = false;
@@ -184,7 +195,7 @@ function createCommunityCard(community, showRole = false) {
   info.className = "community-info";
 
   const titleContainer = document.createElement("h3");
-  titleContainer.textContent = community.name + " ";
+  titleContainer.textContent = `${community.name} `;
 
   if (community.access_mode === "locked") {
     const lockIcon = document.createElement("span");
@@ -207,7 +218,7 @@ function createCommunityCard(community, showRole = false) {
   if (showRole && community.role) {
     const roleBadge = document.createElement("span");
     roleBadge.className = `role-badge ${community.role}`;
-    roleBadge.textContent = community.role;
+    roleBadge.textContent = formatRoleLabel(community.role);
     meta.appendChild(roleBadge);
   }
 
@@ -587,7 +598,7 @@ function createMemberElement(member) {
 
   const roleBadge = document.createElement("span");
   roleBadge.className = `role-badge ${member.role}`;
-  roleBadge.textContent = member.role;
+  roleBadge.textContent = formatRoleLabel(member.role);
   nameDiv.appendChild(roleBadge);
 
   const username = document.createElement("span");
