@@ -31,6 +31,14 @@ export async function showEmojiPickerPopup(onEmojiSelect, position = {}) {
   picker.style.left = `${x}px`;
   picker.style.top = `${y}px`;
 
+  picker.addEventListener("emoji-click", (event) => {
+    if (onEmojiSelect) {
+      onEmojiSelect(event.detail.unicode);
+    }
+    picker.remove();
+    document.removeEventListener("click", closeOnClickOutside);
+  });
+
   const closeOnClickOutside = (e) => {
     if (!picker.contains(e.target)) {
       picker.remove();

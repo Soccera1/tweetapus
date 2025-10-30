@@ -4,6 +4,7 @@ body {
   margin: 0px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
 }
 
 #profileContainer.suspended .profile-banner {
@@ -2610,6 +2611,7 @@ nav {
   .modal {
     position: relative;
     transition: none;
+    display: block;
 
     @starting-style {
       & {
@@ -5326,11 +5328,31 @@ nav {
   gap: 4px;
 }
 
+.top-reactions {
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  display: none;
+}
+
+.top-reactions:hover {
+  transform: scale(1.1);
+}
+
 .reaction-count {
   font-size: 13px;
   color: var(--text-secondary);
   min-width: 16px;
   text-align: left;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  display: none;
+}
+
+.reaction-count:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
 }
 
 .reaction-btn {

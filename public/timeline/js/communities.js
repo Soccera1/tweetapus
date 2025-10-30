@@ -1,43 +1,139 @@
 import {
-  convertToWebPAvatar,
-  convertToWebPBanner,
+	convertToWebPAvatar,
+	convertToWebPBanner,
 } from "../../shared/image-utils.js";
 import toastQueue from "../../shared/toasts.js";
 import api from "./api.js";
 import switchPage from "./pages.js";
 
 const showToast = (message, type = "info") => {
-  const typeMap = {
-    success: "<h1>Success!</h1>",
-    error: "<h1>Error</h1>",
-    info: "<h1>Info</h1>",
-  };
-  toastQueue.add(`${typeMap[type] || typeMap.info}<p>${message}</p>`);
+	const typeMap = {
+		success: "<h1>Success!</h1>",
+		error: "<h1>Error</h1>",
+		info: "<h1>Info</h1>",
+	};
+	toastQueue.add(`${typeMap[type] || typeMap.info}<p>${message}</p>`);
 };
 
 function formatRoleLabel(role) {
-  if (!role || typeof role !== "string") return role || "";
-  const trimmed = role.trim().toLowerCase();
-  if (trimmed.includes(" ")) {
-    return trimmed
-      .split(/\s+/)
-      .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
-      .join(" ");
-  }
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+	if (!role || typeof role !== "string") return role || "";
+	const trimmed = role.trim().toLowerCase();
+	if (trimmed.includes(" ")) {
+		return trimmed
+			.split(/\s+/)
+			.map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
+			.join(" ");
+	}
+	return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+// Returns true if the given object (member/user/profile) shows signs of a
+// suspended or disabled account. Handles multiple common field names and
+// nested shapes returned by different API variants.
+function isSuspendedEntity(obj) {
+	if (!obj) return false;
+
+	// Quick checks for common boolean/timestamp/string markers
+	const flags = [
+		obj.suspended,
+		obj.is_suspended,
+		obj.suspended_at,
+		obj.suspended_by,
+		obj.status,
+		obj.state,
+		obj.deleted,
+		obj.disabled,
+		obj.banned,
+	];
+
+	// nested profile (some APIs attach a profile object)
+	if (obj.profile) {
+		flags.push(
+			obj.profile.suspended,
+			obj.profile.is_suspended,
+			obj.profile.suspended_at,
+			obj.profile.status,
+			obj.profile.deleted,
+		);
+	}
+
+	// nested user/account shapes
+	if (obj.user) {
+		flags.push(
+			obj.user.suspended,
+			obj.user.is_suspended,
+			obj.user.suspended_at,
+			obj.user.status,
+			obj.user.deleted,
+			obj.user.disabled,
+		);
+		if (obj.user.profile) {
+			flags.push(obj.user.profile.suspended, obj.user.profile.status);
+		}
+	}
+
+	if (obj.account) {
+		flags.push(
+			obj.account.suspended,
+			obj.account.is_suspended,
+			obj.account.status,
+		);
+	}
+
+	// Some APIs return status/state as strings like 'suspended'. Check those too.
+	if (
+		typeof obj.status === "string" &&
+		obj.status.toLowerCase().includes("suspend")
+	)
+		return true;
+	if (
+		typeof obj.state === "string" &&
+		obj.state.toLowerCase().includes("suspend")
+	)
+		return true;
+
+	return flags.some((v) => Boolean(v));
 }
 let currentCommunity = null;
 let currentMember = null;
-let initialized = false;
+const initialized = false;
 
 export function initializeCommunitiesPage() {
   if (initialized) {
     loadCommunities();
     return;
-  }
-
-  initialized = true;
+        // Some APIs return status/state as strings like 'suspended'. Check those too.
+        if (typeof obj.status === "string" && obj.status.toLowerCase().includes("suspend")) return true;
+        if (typeof obj.state === "string" && obj.state.toLowerCase().includes("suspend")) return true;
   loadCommunities();
+        // Generic heuristic: inspect a couple levels of nested properties for
+        // keywords that indicate suspension/banning/deletion. This helps catch
+        // non-standard shapes without making network requests.
+        const keywords = ["suspend", "bann", "deleted", "disabled", "deactivated"];
+        function inspect(o, depth = 0) {
+          if (!o || depth > 2) return false;
+          if (typeof o === "string") {
+            const s = o.toLowerCase();
+            return keywords.some((k) => s.includes(k));
+          }
+          if (typeof o === "number" || typeof o === "boolean") return false;
+          if (Array.isArray(o)) {
+            for (const item of o) if (inspect(item, depth + 1)) return true;
+            return false;
+          }
+          try {
+            for (const k of Object.keys(o)) {
+              const v = o[k];
+              if (typeof k === "string" && keywords.some((kw) => k.toLowerCase().includes(kw))) return true;
+              if (inspect(v, depth + 1)) return true;
+            }
+          } catch (_) {
+            // ignore any exotic objects
+          }
+          return false;
+        }
+
+        if (inspect(obj)) return true;
+
 
   document.querySelectorAll(".communities-tab").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -555,24 +651,21 @@ async function showMembersTab() {
 
   // Filter out suspended accounts on the client-side. Prefer server-side
   // filtering, but handle common suspension markers returned by the API.
-  // Also check nested `user` object when APIs return user-level flags.
+  // Use a helper that checks multiple common shapes/fields to be robust
+  // across API variants.
   const visibleMembers = (members || []).filter((m) => {
-    const suspendedFlags = [
-      m.suspended,
-      m.suspended_at,
-      m.suspended_by,
-      m.is_suspended,
-    ];
+    if (!m) return false;
 
-    if (m.user) {
-      suspendedFlags.push(
-        m.user.suspended,
-        m.user.is_suspended,
-        m.user.suspended_at
-      );
-    }
+    // If the returned element is itself a user-like object, respect that
+    if (isSuspendedEntity(m)) return false;
 
-    return !suspendedFlags.some((v) => Boolean(v));
+    // If member wraps a user/profile/account object, check those too
+    if (m.user && isSuspendedEntity(m.user)) return false;
+    if (m.profile && isSuspendedEntity(m.profile)) return false;
+    if (m.account && isSuspendedEntity(m.account)) return false;
+    if (m.member && isSuspendedEntity(m.member)) return false;
+
+    return true;
   });
 
   content.innerHTML = "";
@@ -702,21 +795,21 @@ function createMemberElement(member) {
 
   // Clicking the member row should open the user's profile. Use the SPA
   // navigation when available; fall back to a full navigation.
-  div.addEventListener("click", () => {
-    const username = encodeURIComponent(
-      (member.username || "").replace(/^@/, "")
-    );
-    const profilePath = `/@${username}`;
+  div.addEventListener("click", async () => {
+    // Prefer the SPA profile loader so the profile content is fetched and
+    // rendered. Fall back to a full navigation if dynamic import fails.
+    const rawUsername = (member.username || "").replace(/^@/, "");
     try {
-      if (typeof switchPage === "function") {
-        // Use SPA navigation if available but keep the requested path
-        switchPage("profile", { path: profilePath });
-        return;
-      }
+      const { loadProfile } = await import("./profile.js");
+      // loadProfile will call switchPage internally and fetch the profile
+      // data. Use the raw username (not URL-encoded) for data fetching.
+      loadProfile(rawUsername);
+      return;
     } catch {
-      // ignore and fallback
+      // fallback to full navigation to the public route
+      const username = encodeURIComponent(rawUsername);
+      window.location.href = `/@${username}`;
     }
-    window.location.href = profilePath;
   });
 
   return div;

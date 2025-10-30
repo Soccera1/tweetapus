@@ -351,6 +351,15 @@ const listReactionsForPost = db.query(`
   LIMIT ?
 `);
 
+const getTopReactionsForPost = db.query(`
+  SELECT emoji, COUNT(*) as count
+  FROM post_reactions
+  WHERE post_id = ?
+  GROUP BY emoji
+  ORDER BY count DESC
+  LIMIT 2
+`);
+
 export default new Elysia({ prefix: "/tweets" })
   .use(jwt({ name: "jwt", secret: JWT_SECRET }))
   .use(
@@ -814,8 +823,9 @@ export default new Elysia({ prefix: "/tweets" })
 
       const reactions = listReactionsForPost.all(id, parseInt(limit));
       const total = countReactionsForPost.get(id)?.total || 0;
+      const topReactions = getTopReactionsForPost.all(id);
 
-      return { success: true, reactions, total_reactions: total };
+      return { success: true, reactions, total_reactions: total, top_reactions: topReactions };
     } catch (err) {
       console.error("Get reactions error:", err);
       return { error: "Failed to get reactions" };
