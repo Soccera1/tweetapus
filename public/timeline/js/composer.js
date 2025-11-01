@@ -737,7 +737,6 @@ export const useComposer = (
     addPollOptionBtn.addEventListener("click", () => addPollOption());
   }
 
-  // Reply restriction functionality
   if (replyRestrictionBtn && replyRestrictionSelect) {
     if (replyTo) {
       replyRestrictionBtn.style.display = "none";

@@ -843,13 +843,6 @@ export const createTweetElement = (tweet, config = {}) => {
     tweetHeaderNameEl.appendChild(labelEl);
   }
 
-  if (tweet.author.label_automated) {
-    const automatedEl = document.createElement("span");
-    automatedEl.className = "tweet-label label-automated";
-    automatedEl.textContent = "Automated";
-    tweetHeaderNameEl.appendChild(automatedEl);
-  }
-
   if (tweet.author.username !== tweet.author.name) {
     const usernameEl = document.createElement("span");
     usernameEl.textContent = `@${tweet.author.username}`;
@@ -1260,35 +1253,40 @@ export const createTweetElement = (tweet, config = {}) => {
       return;
     }
 
-    try {
-      const result = await query(`/tweets/${tweet.id}/like`, {
-        method: "POST",
-      });
+    const newIsLiked = tweetInteractionsLikeEl.dataset.liked !== "true";
+    tweetInteractionsLikeEl.dataset.liked = newIsLiked;
 
-      if (result.success) {
-        const newIsLiked = result.liked;
-        tweetInteractionsLikeEl.dataset.liked = newIsLiked;
+    const svg = tweetInteractionsLikeEl.querySelector("svg path");
+    const likeCountSpan = tweetInteractionsLikeEl.querySelector(".like-count");
+    const currentCount = parseInt(likeCountSpan.textContent || "0");
 
-        const svg = tweetInteractionsLikeEl.querySelector("svg path");
-        const likeCountSpan =
-          tweetInteractionsLikeEl.querySelector(".like-count");
-        const currentCount = parseInt(likeCountSpan.textContent || "0");
+    if (newIsLiked) {
+      svg.setAttribute("fill", "#F91980");
+      svg.setAttribute("stroke", "#F91980");
+      likeCountSpan.textContent = currentCount === -1 ? "" : currentCount + 1;
 
-        if (newIsLiked) {
-          svg.setAttribute("fill", "#F91980");
-          svg.setAttribute("stroke", "#F91980");
-          likeCountSpan.textContent = currentCount + 1;
-        } else {
-          svg.setAttribute("fill", "none");
-          svg.setAttribute("stroke", "currentColor");
-          likeCountSpan.textContent = Math.max(0, currentCount - 1);
-        }
-      } else {
-        toastQueue.add(`<h1>${result.error || "Failed to like tweet"}</h1>`);
-      }
-    } catch (error) {
-      console.error("Error liking tweet:", error);
-      toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+      tweetInteractionsLikeEl.querySelector("svg").classList.add("like-bump");
+
+      setTimeout(() => {
+        tweetInteractionsLikeEl
+          .querySelector("svg")
+          .classList.remove("like-bump");
+      }, 500);
+    } else {
+      svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "currentColor");
+      likeCountSpan.textContent =
+        Math.max(0, currentCount - 1) === 0
+          ? ""
+          : Math.max(0, currentCount - 1);
+    }
+
+    const result = await query(`/tweets/${tweet.id}/like`, {
+      method: "POST",
+    });
+
+    if (!result.success) {
+      toastQueue.add(`<h1>${result.error || "Failed to like tweet"}</h1>`);
     }
   });
 
@@ -1620,7 +1618,7 @@ export const createTweetElement = (tweet, config = {}) => {
           };
           document.head.appendChild(script);
         },
-      }
+      },
     ];
 
     const userItems = [
