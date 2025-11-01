@@ -141,11 +141,10 @@ export const celebrateAchievement = (achievementText) => {
 };
 
 export const createReaction = (emoji, x, y) => {
-  try {
-    const el = document.createElement("div");
-    el.className = "floating-reaction";
-    el.textContent = emoji;
-    el.style.cssText = `
+  const el = document.createElement("div");
+  el.className = "floating-reaction";
+  el.textContent = emoji;
+  el.style.cssText = `
       position: fixed;
       left: ${x}px;
       top: ${y}px;
@@ -157,24 +156,19 @@ export const createReaction = (emoji, x, y) => {
       transition: transform 700ms cubic-bezier(.2,.9,.2,1), opacity 700ms ease-out;
     `;
 
-    document.body.appendChild(el);
+  document.body.appendChild(el);
 
-    // animate to a random upward offset and fade out
-    requestAnimationFrame(() => {
-      const dx = -10 + Math.random() * 20;
-      const dy = -70 - Math.random() * 40;
-      const scale = 0.9 + Math.random() * 0.6;
-      el.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
-      el.style.opacity = "0";
-    });
+  requestAnimationFrame(() => {
+    const dx = -10 + Math.random() * 20;
+    const dy = -70 - Math.random() * 40;
+    const scale = 0.9 + Math.random() * 0.6;
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    el.style.opacity = "0";
+  });
 
-    setTimeout(() => {
-      try {
-        el.remove();
-      } catch (_) {}
-    }, 800);
-  } catch (err) {
-    // silent fail to avoid breaking UI
-    console.error("createReaction error:", err);
-  }
+  setTimeout(() => {
+    try {
+      el.remove();
+    } catch (_) {}
+  }, 800);
 };
