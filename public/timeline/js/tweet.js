@@ -37,7 +37,7 @@ export default async function openTweet(
   }
 
   let isLoadingMoreReplies = false;
-  let hasMoreReplies = true;
+  let hasMoreReplies = false;
   let oldestReplyId = null;
   let scrollHandler = null;
 
@@ -82,7 +82,7 @@ export default async function openTweet(
         tweet = apiOutput.tweet;
         threadPostsCache = apiOutput.threadPosts;
         repliesCache = apiOutput.replies;
-        hasMoreReplies = apiOutput.hasMoreReplies || false;
+        hasMoreReplies = apiOutput?.hasMoreReplies || false;
         tweet.extendedStats = apiOutput.extendedStats;
       }
 

@@ -92,67 +92,11 @@ const renderPosts = async (posts, isReplies = false) => {
 
   container.innerHTML = "";
 
-  const uniqueUsernames = [...new Set(posts.map((post) => post.username))];
-
-  const profileCache = {};
-  await Promise.all(
-    uniqueUsernames.map(async (username) => {
-      if (username === currentUsername && currentProfile) {
-        profileCache[username] = currentProfile.profile;
-      } else {
-        const { error, profile } = await query(`/profile/${username}`);
-
-        if (error) {
-          if (error === "User is suspended") {
-            profileCache[username] = null;
-            return;
-          }
-          toastQueue.add(`<h1>${escapeHTML(error)}</h1>`);
-          return;
-        }
-
-        profileCache[username] = profile;
-      }
-    })
-  );
-
   for (const post of posts) {
-    const authorProfile = profileCache[post.username];
-
-    if (!authorProfile) {
-      if (post.content_type === "retweet") {
-        continue;
-      }
-    }
-
-    const transformedPost = {
-      id: post.id,
-      content: post.content,
-      created_at: post.created_at,
-      like_count: post.like_count || 0,
-      reply_count: post.reply_count || 0,
-      retweet_count: post.retweet_count || 0,
-      liked_by_user: post.liked_by_user || false,
-      retweeted_by_user: post.retweeted_by_user || false,
-      source: post.source,
-      poll: post.poll,
-      quoted_tweet: post.quoted_tweet,
-      attachments: post.attachments,
-      author: {
-        username: post.username,
-        name: authorProfile?.name || post.username,
-        avatar: authorProfile?.avatar,
-        avatar_radius: authorProfile?.avatar_radius ?? null,
-        verified: authorProfile?.verified || false,
-        gold: authorProfile?.gold || false,
-      },
-    };
-
-    const tweetElement = createTweetElement(transformedPost, {
+    const tweetElement = createTweetElement(post, {
       clickToOpen: true,
     });
 
-    // Add retweet indicator if this is a retweet
     if (post.content_type === "retweet") {
       const retweetIndicator = document.createElement("div");
       retweetIndicator.className = "retweet-indicator";
@@ -1192,10 +1136,10 @@ const saveProfile = async (event) => {
             isOwnProfile: true,
           });
         } catch (_err) {
-          loadProfile(currentProfile.profile.username);
+          openProfile(currentProfile.profile.username);
         }
       } else {
-        loadProfile(currentProfile.profile.username);
+        openProfile(currentProfile.profile.username);
       }
 
       closeEditModal();
@@ -1213,10 +1157,6 @@ const saveProfile = async (event) => {
     console.error("Profile update error:", error);
     toastQueue.add(`<h1>Update Failed</h1><p>Failed to update profile</p>`);
   }
-};
-
-const loadProfile = async (username) => {
-  openProfile(username);
 };
 
 document.querySelector(".back-button").addEventListener("click", (e) => {
@@ -1539,4 +1479,4 @@ async function showFollowersList(username, type) {
   }
 }
 
-export { loadProfile };
+export { openProfile };

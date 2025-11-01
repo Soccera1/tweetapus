@@ -244,9 +244,10 @@ addRoute(
   (pathname) => pathname.startsWith("/@"),
   (pathname) => {
     const username = pathname.slice(2);
+    
     (async () => {
-      const { loadProfile } = await import("./profile.js");
-      loadProfile(username);
+      const { openProfile } = await import("./profile.js");
+      openProfile(username);
     })();
   }
 );

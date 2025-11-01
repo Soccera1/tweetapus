@@ -764,23 +764,11 @@ function createMemberElement(member) {
     div.appendChild(actions);
   }
 
-  // Clicking the member row should open the user's profile. Use the SPA
-  // navigation when available; fall back to a full navigation.
   div.addEventListener("click", async () => {
-    // Prefer the SPA profile loader so the profile content is fetched and
-    // rendered. Fall back to a full navigation if dynamic import fails.
     const rawUsername = (member.username || "").replace(/^@/, "");
-    try {
-      const { loadProfile } = await import("./profile.js");
-      // loadProfile will call switchPage internally and fetch the profile
-      // data. Use the raw username (not URL-encoded) for data fetching.
-      loadProfile(rawUsername);
-      return;
-    } catch {
-      // fallback to full navigation to the public route
-      const username = encodeURIComponent(rawUsername);
-      window.location.href = `/@${username}`;
-    }
+
+    const { openProfile } = await import("./profile.js");
+    openProfile(rawUsername);
   });
 
   return div;
