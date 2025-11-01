@@ -1620,74 +1620,7 @@ export const createTweetElement = (tweet, config = {}) => {
           };
           document.head.appendChild(script);
         },
-      },
-      {
-        id: "view-reactions",
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-smile-plus-icon lucide-smile-plus"><path d="M22 11v1a10 10 0 1 1-9-10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/><path d="M16 5h6"/><path d="M19 2v6"/></svg>`,
-        title: "View reactions",
-        onClick: async () => {
-          const tweetId = tweet.id;
-
-          const data = await query(`/tweets/${tweetId}/reactions`);
-
-          const container = document.createElement("div");
-          container.className = "reactions-list";
-
-          if (!data || !data.reactions || data.reactions.length === 0) {
-            container.innerHTML = `<p>No reactions yet.</p>`;
-          } else {
-            data.reactions.forEach((r) => {
-              const item = document.createElement("div");
-              item.className = "reaction-item";
-              const avatarSrc =
-                r.user?.avatar ||
-                r.avatar ||
-                r.avatar_url ||
-                "/public/shared/default-avatar.png";
-
-              const displayName =
-                r.name ||
-                r.user?.name ||
-                r.user?.display_name ||
-                r.user?.username ||
-                r.username ||
-                r.handle ||
-                "Unknown";
-
-              const usernameText =
-                r.username || r.user?.username || r.handle || "";
-
-              item.innerHTML = `
-            <div class="reaction-user-avatar"><img src="${avatarSrc}" alt="${displayName
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")}" loading="lazy"/></div>
-            <div class="reaction-content">
-              <div class="reaction-emoji">${r.emoji}</div>
-              <div class="reaction-user-info">
-                <div class="reaction-user-name">${displayName
-                  .replaceAll("<", "&lt;")
-                  .replaceAll(">", "&gt;")}</div>
-                <div class="reaction-user-username">${
-                  usernameText
-                    ? `@${usernameText
-                        .replaceAll("<", "&lt;")
-                        .replaceAll(">", "&gt;")}`
-                    : ""
-                }</div>
-              </div>
-            </div>
-          `;
-              container.appendChild(item);
-            });
-          }
-
-          createModal({
-            title: "Reactions",
-            content: container,
-            className: "reactions-modal",
-          });
-        },
-      },
+      }
     ];
 
     const userItems = [
