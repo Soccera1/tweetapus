@@ -18,7 +18,6 @@ export function createPopup(options) {
   const popupContent = document.createElement("div");
   popupContent.className = "popup-content";
 
-  // Build options
   items.forEach((item) => {
     const button = document.createElement("button");
     button.className = "popup-option";
@@ -55,7 +54,7 @@ export function createPopup(options) {
       } catch (err) {
         console.error(err);
       }
-      // Close after action
+
       closePopup();
     });
 
@@ -64,24 +63,16 @@ export function createPopup(options) {
 
   popup.appendChild(popupContent);
 
-  // Append overlay (covers viewport) and add popup inside overlay so overlay
-  // can correctly capture outside clicks and stacking order is predictable.
-  // Append overlay and popup as siblings on body. Overlay sits below the
-  // popup and captures outside clicks while the popup is visually on top.
   document.body.appendChild(overlay);
   document.body.appendChild(popup);
-  // Ensure overlay and popup sit above most page content
   try {
     overlay.style.zIndex = "9999";
     popup.style.zIndex = "10000";
   } catch (_) {}
-  // Use fixed positioning so coordinates are in viewport space
   popup.style.position = "fixed";
-  // Start at viewport origin; final placement will use CSS variables and transform
   popup.style.left = "0px";
   popup.style.top = "0px";
 
-  // Positioning helpers
   const viewportWidth = () => window.innerWidth;
   const viewportHeight = () => window.innerHeight;
 
@@ -112,17 +103,11 @@ export function createPopup(options) {
         typeof triggerElement.getBoundingClientRect === "function"
       ) {
         const r = triggerElement.getBoundingClientRect();
-        // debug logging removed
-        // Special-case: when the profile dropdown button is clicked some layout
-        // changes may cause its rect to be transient/invalid. If that happens,
-        // try to use the closest .profile-dropdown container or parent element
-        // as a more stable anchor.
         if (
           triggerElement.id === "profileDropdownBtn" &&
           (r.width === 0 || r.height === 0 || Number.isNaN(r.top))
         ) {
           try {
-            // debug logging removed
             const container = triggerElement.closest
               ? triggerElement.closest(".profile-dropdown")
               : triggerElement.parentElement;
@@ -132,7 +117,6 @@ export function createPopup(options) {
             ) {
               const cr = container.getBoundingClientRect();
               if (cr && (cr.width > 0 || cr.height > 0)) {
-                // debug logging removed
                 lastKnownRect = {
                   top: cr.top,
                   left: cr.left,
@@ -212,20 +196,14 @@ export function createPopup(options) {
     if (lastKnownRect) return lastKnownRect;
     return null;
   };
-  // firstPositioning removed; measuring always runs synchronously now
 
   const reposition = () => {
-    // Make sure popup is measurable: move offscreen briefly so layout stabilizes
     popup.style.left = "-9999px";
     popup.style.top = "-9999px";
-
-    // debug logging removed
 
     const doMeasure = () => {
       const popupRect = popup.getBoundingClientRect();
       const triggerRect = computeTriggerRect();
-
-      // debug logging removed
 
       if (triggerRect && (triggerRect.width > 0 || triggerRect.height > 0)) {
         let left = triggerRect.left;
@@ -260,7 +238,6 @@ export function createPopup(options) {
         const minTop = 12;
         const maxTop = viewportHeight() - popupRect.height - 12;
         if (top > maxTop) {
-          // flip above the trigger
           top = triggerRect.top - popupRect.height - 8;
           transformOriginY = "bottom";
         }
@@ -270,7 +247,6 @@ export function createPopup(options) {
           transformOriginY = "top";
         }
 
-        // Apply final placement using CSS variables (translate) instead of inline left/top
         popup.style.left = "0px";
         popup.style.top = "0px";
         popup.style.setProperty("--popup-translate-x", `${Math.round(left)}px`);
@@ -279,12 +255,7 @@ export function createPopup(options) {
         try {
           popupContent.style.transformOrigin = `${transformOriginX} ${transformOriginY}`;
         } catch (_) {}
-
-        // debug logging removed
-
-        // removed reposition debug log
       } else {
-        // Center in viewport
         const left = Math.max(
           12,
           Math.min(
@@ -303,32 +274,22 @@ export function createPopup(options) {
         popup.style.top = "0px";
         popup.style.setProperty("--popup-translate-x", `${Math.round(left)}px`);
         popup.style.setProperty("--popup-translate-y", `${Math.round(top)}px`);
-        // removed center reposition debug log
         popup.style.transformOrigin = "center center";
         try {
           popupContent.style.transformOrigin = "center center";
         } catch (_) {}
-        // debug logging removed
       }
     };
 
-    // Always measure immediately; avoid special-case RAF delays which introduce
-    // a perceptible lag on open. Keeping measurements synchronous here keeps
-    // the popup appearing instantly at the computed location.
     try {
       firstPositioning = false;
     } catch (_) {}
     doMeasure();
   };
 
-  // Show + initial position
   popup.style.opacity = "0";
-  // Make visible immediately so CSS rules apply while we position
   overlay.classList.add("visible");
   popup.classList.add("visible");
-  // Sanity: if some other code moved or removed nodes, make sure overlay
-  // and popup are present and popupContent is a child of popup so CSS
-  // selectors like `.popup.visible .popup-content` can apply.
   try {
     if (popupContent.parentElement !== popup) popup.appendChild(popupContent);
   } catch (_) {}
@@ -340,25 +301,13 @@ export function createPopup(options) {
       document.body.appendChild(overlay);
   } catch (_) {}
 
-  // Position synchronously to avoid a 1-frame delay on show
   reposition();
   popup.style.opacity = "1";
-  // Ensure inner content becomes visible even if CSS load is delayed
   try {
     popupContent.style.transform = "";
     popupContent.style.opacity = "";
   } catch (_) {}
 
-  // Schedule a fallback reposition shortly after (fonts/images or layout may change)
-  const fallbackTimer = setTimeout(() => {
-    try {
-      reposition();
-    } catch (_) {}
-  }, 50);
-  overlay._fallbackTimer = fallbackTimer;
-
-  // Keep popup positioned while it's open (scroll/resize/mutations)
-  // Debounced reposition to avoid layout thrash when many mutations/scrolls occur
   let scheduled = false;
   const scheduleReposition = () => {
     if (scheduled) return;
@@ -377,8 +326,6 @@ export function createPopup(options) {
   window.addEventListener("resize", handleResize, { passive: true });
   window.addEventListener("scroll", handleScroll, { passive: true });
 
-  // Limit observation scope to document.body (overlay covers viewport). Observing
-  // body is cheaper now because subtree:false is used and reposition is debounced.
   const observeTarget = document.body;
   const observer = new MutationObserver(() => scheduleReposition());
   try {
@@ -388,26 +335,19 @@ export function createPopup(options) {
       subtree: false,
     });
   } catch (_) {
-    // Fallback to body if observing offsetParent fails for some reason
     try {
       observer.observe(document.body, {
         attributes: true,
         childList: true,
         subtree: false,
       });
-    } catch (_) {
-      // give up silently; reposition still runs on resize/scroll
-    }
+    } catch (_) {}
   }
 
-  // Attach these objects so closePopup can clean them up
   overlay._reposition = reposition;
   overlay._handleResize = handleResize;
   overlay._handleScroll = handleScroll;
   overlay._observer = observer;
-  // Watch the popup element for child changes and re-attach popupContent if
-  // some other code moves it elsewhere. This keeps `.popup .popup-content`
-  // selectors working and avoids inconsistent animations.
   const popupContentObserver = new MutationObserver(() => {
     try {
       if (popupContent.parentElement !== popup) popup.appendChild(popupContent);
@@ -417,7 +357,6 @@ export function createPopup(options) {
     popupContentObserver.observe(popup, { childList: true });
   } catch (_) {}
   overlay._popupContentObserver = popupContentObserver;
-  // expose popup element for external callers/debugging
   overlay._popup = popup;
 
   let isClosing = false;
@@ -425,13 +364,11 @@ export function createPopup(options) {
   const closePopup = () => {
     if (isClosing) return;
     isClosing = true;
-    // Start closing both overlay and popup so CSS transitions run on both.
     overlay.classList.remove("visible");
     overlay.classList.add("closing");
     popup.classList.remove("visible");
     popup.classList.add("closing");
     document.removeEventListener("keydown", handleKeyDown);
-    // cleanup listeners and observer
     try {
       if (overlay._handleResize)
         window.removeEventListener("resize", overlay._handleResize);
@@ -440,7 +377,6 @@ export function createPopup(options) {
       if (overlay._observer) overlay._observer.disconnect();
       if (overlay._popupContentObserver)
         overlay._popupContentObserver.disconnect();
-      if (overlay._fallbackTimer) clearTimeout(overlay._fallbackTimer);
     } catch (_) {}
 
     try {
@@ -528,12 +464,9 @@ export function createModal(options) {
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 
-  // If this modal is the settings modal, enforce a stable wide size inline
-  // so it can't be constrained by other generic modal rules elsewhere.
   if (className?.includes("settings-modal")) {
     try {
       modal.style.boxSizing = "border-box";
-      // Use !important via setProperty to override ALL other CSS rules
       modal.style.setProperty(
         "width",
         "min(1400px, calc(100vw - 32px))",
@@ -554,7 +487,6 @@ export function createModal(options) {
     });
   }
 
-  // Prevent clicks inside modal from closing it
   modal.addEventListener("click", (e) => {
     e.stopPropagation();
   });

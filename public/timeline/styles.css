@@ -141,6 +141,7 @@ nav {
     font-weight: 400;
     justify-content: flex-start;
     width: fit-content;
+    user-select: none;
 
     &:hover {
       background-color: rgba(var(--primary-rgb), 0.08);
@@ -206,7 +207,6 @@ nav {
   .account {
     margin-top: auto;
     padding: 10px 12px;
-    transition: background-color 0.2s ease;
     gap: 4px;
     width: fit-content;
     margin-bottom: 12px;
@@ -220,6 +220,7 @@ nav {
       height: 36px;
       border-radius: 50%;
       font-size: 0px;
+      pointer-events: none;
     }
 
     svg {
@@ -2954,19 +2955,6 @@ nav {
     padding: 0;
   }
 
-  .reaction-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    transition: background-color 0.12s;
-
-    &:hover {
-      background: var(--bg-overlay-light);
-    }
-  }
-
   .reaction-emoji {
     font-size: 24px;
     width: 32px;
@@ -5404,14 +5392,9 @@ nav {
 .reaction-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
   padding: 12px;
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
-}
-
-.reaction-item:hover {
-  background-color: var(--bg-secondary);
+  padding-top: 2px;
 }
 
 .reaction-user-avatar {

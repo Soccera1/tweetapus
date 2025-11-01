@@ -1,6 +1,3 @@
-/* Improved layout for the reactions modal. No animations were added — only spacing,
-	 sizing, and alignment tweaks to make the layout cleaner and more consistent. */
-
 .modal.reactions-modal {
   position: relative;
   width: 100%;
