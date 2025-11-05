@@ -36,7 +36,6 @@ const settingsPages = [
     content: () => createPasskeysContent(),
   },
   { key: "themes", title: "Themes", content: () => createThemesContent() },
-  { key: "privacy", title: "Privacy", content: () => createPrivacyContent() },
   {
     key: "scheduled",
     title: "Scheduled",
@@ -379,22 +378,6 @@ const createOtherContent = () => {
   wrap.appendChild(h1);
   wrap.appendChild(p);
   return wrap;
-};
-
-const createPrivacyContent = () => {
-  const section = document.createElement("div");
-  section.className = "settings-section";
-
-  const h1 = document.createElement("h1");
-  h1.textContent = "Privacy";
-  section.appendChild(h1);
-
-  const group = document.createElement("div");
-  group.className = "setting-group";
-
-  section.appendChild(group);
-
-  return section;
 };
 
 const createExperimentsContent = () => {
@@ -987,10 +970,6 @@ const setupSettingsEventHandlers = async () => {
         localStorage.setItem("theme", currentUser.theme);
         handleThemeModeChange(currentUser.theme);
       }
-      if (currentUser.accent_color) {
-        localStorage.setItem("accentColor", currentUser.accent_color);
-        applyAccentColor(currentUser.accent_color);
-      }
     }
   } catch (error) {
     console.error("Failed to query user data:", error);
@@ -1188,7 +1167,6 @@ const saveThemeToServer = async () => {
       currentUser.theme = theme;
       currentUser.accent_color = accent;
       handleThemeModeChange(theme);
-      applyAccentColor(accent);
       toastQueue.add(
         `<h1>Saved</h1><p>Your theme is now saved to your account</p>`
       );
@@ -1219,48 +1197,6 @@ const handleThemeModeChange = (theme) => {
     root.classList.remove("dark");
     localStorage.setItem("theme", "light");
   }
-};
-
-const setAccentColor = (color, showToast = true) => {
-  applyAccentColor(color);
-
-  document.querySelectorAll(".color-option").forEach((option) => {
-    option.classList.remove("active");
-    if (option.dataset.color === color) {
-      option.classList.add("active");
-    }
-  });
-
-  // If it's a custom color, update the custom picker
-  const customOption = document.querySelector(
-    '.color-option[data-color="custom"]'
-  );
-  if (customOption && !document.querySelector(`[data-color="${color}"]`)) {
-    customOption.classList.add("active");
-    customOption.style.background = color;
-    const picker = customOption.querySelector(".custom-color-picker");
-    if (picker) {
-      picker.value = color;
-      picker.style.background = color;
-    }
-  }
-
-  if (showToast && !isRestoringState) {
-    toastQueue.add(
-      `<h1>Accent Color Changed</h1><p>Your accent color has been updated</p>`
-    );
-  }
-};
-
-const applyAccentColor = (color) => {
-  const root = document.documentElement;
-  root.style.setProperty("--primary", color);
-  const rgb = hexToRgb(color);
-  if (rgb)
-    root.style.setProperty("--primary-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
-  root.style.setProperty("--primary-hover", adjustBrightness(color, -10));
-  root.style.setProperty("--primary-focus", adjustBrightness(color, -20));
-  localStorage.setItem("accentColor", color);
 };
 
 const loadCurrentThemeMode = () => {

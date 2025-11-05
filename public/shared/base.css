@@ -73,7 +73,7 @@ img {
 
   &.secondary {
     background: transparent;
-    color: var(--btn-secondary-color);
+    color: var(--text-primary);
     border: 1px solid var(--btn-secondary-border);
 
     &:hover:not(:disabled) {

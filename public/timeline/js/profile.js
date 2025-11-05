@@ -326,11 +326,6 @@ const renderProfile = (data) => {
       return el;
     };
 
-    const headerTarget = document.getElementById("profileHeaderName");
-    if (headerTarget && !headerTarget.querySelector(".follows-me-badge")) {
-      headerTarget.appendChild(createFollowsBadge());
-    }
-
     const displayNameEl = document.getElementById("profileDisplayName");
     if (displayNameEl && !displayNameEl.querySelector(".follows-me-badge")) {
       displayNameEl.appendChild(createFollowsBadge());

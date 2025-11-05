@@ -1241,38 +1241,6 @@ export default new Elysia({ prefix: "/profile" })
       }
     }
   )
-  .patch("/:username/privacy", async ({ params, jwt, headers, body }) => {
-    const authorization = headers.authorization;
-    if (!authorization) return { error: "Authentication required" };
-
-    try {
-      const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-      if (!payload) return { error: "Invalid token" };
-
-      const currentUser = getUserByUsername.get(payload.username);
-      if (!currentUser) return { error: "User not found" };
-
-      const { username } = params;
-      if (currentUser.username !== username) {
-        return { error: "You can only change your own privacy settings" };
-      }
-
-      const { private: isPrivate } = body;
-      if (typeof isPrivate !== "boolean") {
-        return { error: "Private setting must be a boolean value" };
-      }
-
-      db.query("UPDATE users SET private = ? WHERE id = ?").run(
-        isPrivate,
-        currentUser.id
-      );
-
-      return { success: true, private: isPrivate };
-    } catch (error) {
-      console.error("Update privacy error:", error);
-      return { error: "Failed to update privacy settings" };
-    }
-  })
   .post("/pin/:tweetId", async ({ params, jwt, headers }) => {
     const authorization = headers.authorization;
     if (!authorization) return { error: "Authentication required" };
