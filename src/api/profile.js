@@ -1286,7 +1286,6 @@ export default new Elysia({ prefix: "/profile" })
 
       const { tweetId } = params;
 
-      // Check if tweet exists and belongs to user
       const tweet = db
         .query("SELECT * FROM posts WHERE id = ? AND user_id = ?")
         .get(tweetId, currentUser.id);
@@ -1294,18 +1293,15 @@ export default new Elysia({ prefix: "/profile" })
         return { error: "Tweet not found or doesn't belong to you" };
       }
 
-      // Check if user already has a pinned tweet
       const existingPinned = db
         .query("SELECT * FROM posts WHERE user_id = ? AND pinned = 1")
         .get(currentUser.id);
       if (existingPinned) {
-        // Unpin the existing tweet
         db.query("UPDATE posts SET pinned = 0 WHERE id = ?").run(
           existingPinned.id
         );
       }
 
-      // Pin the new tweet
       db.query("UPDATE posts SET pinned = 1 WHERE id = ?").run(tweetId);
 
       return { success: true };

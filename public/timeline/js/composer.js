@@ -128,7 +128,11 @@ export const useComposer = (
   textarea.addEventListener("input", () => {
     textarea.style.height = "0px";
     void textarea.offsetHeight;
-    textarea.style.height = `${Math.max(textarea.scrollHeight, 42)}px`;
+    if (textarea.scrollHeight === 30) {
+      textarea.style.height = `25px`;
+    } else {
+      textarea.style.height = `${Math.max(textarea.scrollHeight, 25)}px`;
+    }
 
     if (textarea.scrollHeight < 250) {
       textarea.style.overflow = "hidden";

@@ -477,8 +477,6 @@ nav {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 8px;
-        padding-top: 8px;
 
         .compose-actions {
           display: flex;
@@ -6676,6 +6674,7 @@ emoji-picker {
   --num-columns: 8;
   --outline-color: var(--primary);
   --indicator-color: var(--primary);
+  --input-padding: 6px 12px;
 
   z-index: 10000;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
