@@ -36,7 +36,6 @@ const settingsPages = [
     content: () => createPasskeysContent(),
   },
   { key: "themes", title: "Themes", content: () => createThemesContent() },
-  { key: "privacy", title: "Privacy", content: () => createPrivacyContent() },
   {
     key: "scheduled",
     title: "Scheduled",
@@ -377,22 +376,6 @@ const createOtherContent = () => {
   wrap.appendChild(h1);
   wrap.appendChild(p);
   return wrap;
-};
-
-const createPrivacyContent = () => {
-  const section = document.createElement("div");
-  section.className = "settings-section";
-
-  const h1 = document.createElement("h1");
-  h1.textContent = "Privacy";
-  section.appendChild(h1);
-
-  const group = document.createElement("div");
-  group.className = "setting-group";
-
-  section.appendChild(group);
-
-  return section;
 };
 
 const createExperimentsContent = () => {
