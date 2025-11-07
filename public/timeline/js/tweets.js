@@ -7,7 +7,38 @@ import getUser from "./auth.js";
 import switchPage from "./pages.js";
 import openTweet from "./tweet.js";
 
-// Fetch emoji list once and cache it; used to replace :shortcodes: with images.
+const DOMPURIFY_CONFIG = {
+  ALLOWED_TAGS: [
+    "b",
+    "i",
+    "u",
+    "s",
+    "a",
+    "p",
+    "br",
+    "marquee",
+    "strong",
+    "em",
+    "code",
+    "pre",
+    "blockquote",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "ul",
+    "ol",
+    "li",
+    "span",
+    "big",
+    "sub",
+    "sup",
+  ],
+  ALLOWED_ATTR: ["href", "target", "rel", "class"],
+};
+
 const emojiMapPromise = (async () => {
   try {
     const resp = await fetch("/api/emojis");
@@ -342,37 +373,7 @@ const linkifyText = (text) => {
 
   const el = document.createElement("div");
 
-  el.innerHTML = DOMPurify.sanitize(processedHtml, {
-    ALLOWED_TAGS: [
-      "b",
-      "i",
-      "u",
-      "s",
-      "a",
-      "p",
-      "br",
-      "marquee",
-      "strong",
-      "em",
-      "code",
-      "pre",
-      "blockquote",
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "ul",
-      "ol",
-      "li",
-      "span",
-      "big",
-      "sub",
-      "sup",
-    ],
-    ALLOWED_ATTR: ["href", "target", "rel", "class"],
-  });
+  el.innerHTML = DOMPurify.sanitize(processedHtml, DOMPURIFY_CONFIG);
 
   el.querySelectorAll("a").forEach((a) => {
     a.setAttribute("target", "_blank");
@@ -1039,7 +1040,8 @@ export const createTweetElement = (tweet, config = {}) => {
           gfm: true,
           headerIds: false,
           mangle: false,
-        })
+        }),
+        DOMPURIFY_CONFIG
       );
 
       articleBody.querySelectorAll("a").forEach((anchor) => {
