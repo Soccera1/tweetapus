@@ -1,14 +1,14 @@
-import toastQueue from "../../shared/toasts.js";
-import { createModal } from "../../shared/ui-utils.js";
 import {
   NOTIFICATION_ICON_CLASSES,
   NOTIFICATION_ICON_MAP,
 } from "../../shared/notification-icons.js";
+import toastQueue from "../../shared/toasts.js";
+import { createModal } from "../../shared/ui-utils.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
 import switchPage, { addRoute } from "./pages.js";
-import { createTweetElement } from "./tweets.js";
 import { openProfile } from "./profile.js";
+import { createTweetElement } from "./tweets.js";
 
 let currentNotifications = [];
 let isLoadingMoreNotifications = false;
@@ -295,7 +295,9 @@ function createNotificationElement(notification) {
       tweetPreviewEl.appendChild(tweetElement);
       contentEl.appendChild(tweetPreviewEl);
     } else if (
-      ["like", "retweet", "quote", "mention", "fact_check"].includes(notification.type)
+      ["like", "retweet", "quote", "mention", "fact_check"].includes(
+        notification.type
+      )
     ) {
       const tweetContent =
         notification.tweet.content.length > 100
@@ -358,9 +360,15 @@ function createNotificationElement(notification) {
     if (!relatedId) return;
 
     if (
-      ["like", "retweet", "reply", "quote", "mention", "reaction", "fact_check"].includes(
-        notificationType
-      )
+      [
+        "like",
+        "retweet",
+        "reply",
+        "quote",
+        "mention",
+        "reaction",
+        "fact_check",
+      ].includes(notificationType)
     ) {
       if (relatedId.startsWith("meta:") || relatedId.startsWith("subtitle:"))
         return;
