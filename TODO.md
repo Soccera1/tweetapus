@@ -1,4 +1,4 @@
-
+claude working on:
 - affiliates tab on profiles with affiliates
 - ability to remove an affiliate badge from my profile
 - affiliate badges on tweets

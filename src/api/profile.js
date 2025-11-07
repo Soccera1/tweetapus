@@ -174,6 +174,13 @@ const denyAffiliateRequest = db.query(
   `UPDATE affiliate_requests SET status = 'denied', responded_at = datetime('now', 'utc') WHERE id = ?`
 );
 
+const getAffiliatesList = db.query(`
+  SELECT u.id, u.username, u.name, u.avatar, u.verified, u.gold, u.avatar_radius, u.bio
+  FROM users u
+  WHERE u.affiliate = 1 AND u.affiliate_with = ?
+  ORDER BY u.created_at DESC
+`);
+
 const getPendingFollowRequests = db.query(`
   SELECT fr.*, u.username, u.name, u.avatar, u.verified, u.gold, u.avatar_radius, u.bio
   FROM follow_requests fr
@@ -1440,6 +1447,38 @@ export default new Elysia({ prefix: "/profile" })
       }
     }
   )
+  .get("/:username/affiliates", async ({ params }) => {
+    try {
+      const { username } = params;
+      const user = getUserByUsername.get(username);
+      if (!user) return { error: "User not found" };
+
+      const affiliates = getAffiliatesList.all(user.id);
+      return { affiliates };
+    } catch (err) {
+      console.error("Get affiliates error:", err);
+      return { error: "Failed to get affiliates" };
+    }
+  })
+  .delete("/remove-affiliate", async ({ jwt, headers }) => {
+    const authorization = headers.authorization;
+    if (!authorization) return { error: "Authentication required" };
+
+    try {
+      const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+      if (!payload) return { error: "Invalid token" };
+
+      const currentUser = getUserByUsername.get(payload.username);
+      if (!currentUser) return { error: "User not found" };
+
+      updateUserAffiliateWith.run(0, null, currentUser.id);
+
+      return { success: true };
+    } catch (err) {
+      console.error("Remove affiliate error:", err);
+      return { error: "Failed to remove affiliate" };
+    }
+  })
   .post("/pin/:tweetId", async ({ params, jwt, headers }) => {
     const authorization = headers.authorization;
     if (!authorization) return { error: "Authentication required" };

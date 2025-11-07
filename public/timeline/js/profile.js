@@ -1622,19 +1622,28 @@ document
                         }
                       );
                       if (result?.success) {
-                        if (currentProfile?.profile) {
-                          currentProfile.profile.affiliate = true;
-                          currentProfile.profile.affiliate_with_profile = {
-                            id: r.requester_id || r.id,
+                        const newAffiliate =
+                          result.affiliate || {
+                            id: r.requester_id,
                             username: r.username,
                             name: r.name,
                             avatar: r.avatar,
                             verified: r.verified,
                             gold: r.gold,
                             avatar_radius: r.avatar_radius,
+                            bio: r.bio,
                           };
-                          renderProfile(currentProfile);
+                        if (!currentProfile.affiliates) {
+                          currentProfile.affiliates = [];
                         }
+                        const exists = currentProfile.affiliates.some(
+                          (aff) => aff.id === newAffiliate.id
+                        );
+                        if (!exists) {
+                          currentProfile.affiliates.push(newAffiliate);
+                        }
+                        currentAffiliates = currentProfile.affiliates;
+                        renderProfile(currentProfile);
                         item.remove();
                         toastQueue.add(
                           `<h1>Approved</h1><p>Affiliate badge granted</p>`
@@ -1699,6 +1708,33 @@ document
                 toastQueue.add(`<h1>Error</h1><p>Please try again</p>`);
               }
             };
+
+            if (currentProfile.profile.affiliate) {
+              items.push({
+                id: "remove-affiliate-badge",
+                icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l7-7-7-7"/></svg>`,
+                title: "Remove affiliate badge",
+                onClick: async () => {
+                  const result = await query(
+                    `/profile/${currentProfile.profile.username}/affiliate`,
+                    { method: "DELETE" }
+                  );
+                  if (result?.success) {
+                    currentProfile.profile.affiliate = false;
+                    currentProfile.profile.affiliate_with = null;
+                    delete currentProfile.profile.affiliate_with_profile;
+                    renderProfile(currentProfile);
+                    toastQueue.add(`<h1>Affiliate badge removed</h1>`);
+                  } else {
+                    toastQueue.add(
+                      `<h1>Failed</h1><p>${
+                        result?.error || "Unable to update affiliate badge"
+                      }</p>`
+                    );
+                  }
+                },
+              });
+            }
 
             items.push({
               id: "manage-affiliates",
