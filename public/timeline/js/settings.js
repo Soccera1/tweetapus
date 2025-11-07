@@ -46,7 +46,6 @@ const settingsPages = [
     title: "Experiments",
     content: () => createExperimentsContent(),
   },
-  { key: "other", title: "Other", content: () => createOtherContent() },
 ];
 
 const createThemesContent = () => {
@@ -364,18 +363,6 @@ const deletePasskey = async (passkeyId) => {
     console.error("Failed to delete passkey:", error);
     toastQueue.add(`<h1>Error</h1><p>Failed to remove passkey</p>`);
   }
-};
-
-const createOtherContent = () => {
-  const wrap = document.createElement("div");
-  wrap.className = "settings-section";
-  const h1 = document.createElement("h1");
-  h1.textContent = "Other or Uncategorized Settings";
-  const p = document.createElement("p");
-  p.textContent = "Additional settings will be added here.";
-  wrap.appendChild(h1);
-  wrap.appendChild(p);
-  return wrap;
 };
 
 const createExperimentsContent = () => {
