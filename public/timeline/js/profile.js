@@ -76,7 +76,6 @@ export default async function openProfile(username) {
       );
       if (affiliatesTabBtn) {
         if (currentAffiliates.length > 0) {
-          affiliatesTabBtn.style.display = "flex";
           affiliatesTabBtn.textContent = `Affiliates (${currentAffiliates.length})`;
         } else {
           affiliatesTabBtn.style.display = "none";
@@ -699,6 +698,7 @@ const renderProfile = (data) => {
     if (!suspended && currentAffiliates.length > 0) {
       affiliatesTabBtn.textContent = `Affiliates (${currentAffiliates.length})`;
     } else {
+      affiliatesTabBtn.style.display = "none";
       affiliatesTabBtn.classList.remove("active");
     }
   }
