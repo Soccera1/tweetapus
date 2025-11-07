@@ -63,15 +63,17 @@ export default async function openProfile(username) {
 
       currentProfile = data;
       renderProfile(data);
-      
+
       const affiliatesData = await query(`/profile/${username}/affiliates`);
       if (!affiliatesData.error && affiliatesData.affiliates) {
         currentAffiliates = affiliatesData.affiliates;
       } else {
         currentAffiliates = [];
       }
-      
-      const affiliatesTabBtn = document.querySelector('.profile-tab-btn[data-tab="affiliates"]');
+
+      const affiliatesTabBtn = document.querySelector(
+        '.profile-tab-btn[data-tab="affiliates"]'
+      );
       if (affiliatesTabBtn) {
         if (currentAffiliates.length > 0) {
           affiliatesTabBtn.style.display = "flex";
@@ -113,8 +115,7 @@ const renderAffiliates = () => {
 
     const avatar = document.createElement("img");
     avatar.className = "affiliate-avatar";
-    avatar.src =
-      aff.avatar || "/public/shared/assets/default-avatar.png";
+    avatar.src = aff.avatar || "/public/shared/assets/default-avatar.png";
     avatar.alt = aff.name || aff.username;
 
     if (aff.avatar_radius !== null && aff.avatar_radius !== undefined) {
@@ -374,9 +375,8 @@ const renderProfile = (data) => {
     const existingMainBadge = mainDisplayNameEl.querySelector(
       ".verification-badge"
     );
-    const existingMainAdmin = mainDisplayNameEl.querySelector(
-      ".role-badge.admin"
-    );
+    const existingMainAdmin =
+      mainDisplayNameEl.querySelector(".role-badge.admin");
 
     if (!suspended && (profile.verified || profile.gold)) {
       const badgeColor = profile.gold ? "#D4AF37" : "var(--primary)";
@@ -426,13 +426,16 @@ const renderProfile = (data) => {
         });
 
         const affElImage = document.createElement("img");
-        affElImage.src = aff.avatar || "/public/shared/assets/default-avatar.png";
+        affElImage.src =
+          aff.avatar || "/public/shared/assets/default-avatar.png";
         affElImage.alt = aff.name || aff.username;
         affElImage.className = "affiliate-with-avatar";
         affElMain.appendChild(affElImage);
 
-        const followsBadge = mainDisplayNameEl.querySelector(".follows-me-badge");
-        if (followsBadge) mainDisplayNameEl.insertBefore(affElMain, followsBadge);
+        const followsBadge =
+          mainDisplayNameEl.querySelector(".follows-me-badge");
+        if (followsBadge)
+          mainDisplayNameEl.insertBefore(affElMain, followsBadge);
         else mainDisplayNameEl.appendChild(affElMain);
 
         const imgMain = affElMain.querySelector("img");
@@ -798,6 +801,15 @@ const showEditModal = () => {
   document.getElementById("editLabelType").value = profile.label_type || "";
   document.getElementById("editLabelAutomated").checked =
     profile.label_automated || false;
+
+  const affiliateRemoveSection = document.getElementById("affiliateRemoveSection");
+  if (affiliateRemoveSection) {
+    if (profile.affiliate && profile.affiliate_with) {
+      affiliateRemoveSection.style.display = "block";
+    } else {
+      affiliateRemoveSection.style.display = "none";
+    }
+  }
 
   updateEditAvatarDisplay();
 
@@ -1449,6 +1461,42 @@ editBannerUpload?.addEventListener("change", (e) => {
 
 editRemoveBannerBtn?.addEventListener("click", handleEditBannerRemoval);
 
+document.getElementById("removeAffiliateBtn")?.addEventListener("click", async () => {
+  if (!confirm("Are you sure you want to remove your affiliate badge? This action cannot be undone.")) {
+    return;
+  }
+
+  try {
+    const { success, error } = await query("/profile/remove-affiliate", {
+      method: "DELETE",
+    });
+
+    if (error) {
+      toastQueue.add(`<h1>${escapeHTML(error)}</h1>`);
+      return;
+    }
+
+    if (success) {
+      toastQueue.add("<h1>Affiliate badge removed successfully</h1>");
+      
+      if (currentProfile?.profile) {
+        currentProfile.profile.affiliate = false;
+        currentProfile.profile.affiliate_with = null;
+        currentProfile.profile.affiliate_with_profile = null;
+      }
+      
+      const affiliateRemoveSection = document.getElementById("affiliateRemoveSection");
+      if (affiliateRemoveSection) {
+        affiliateRemoveSection.style.display = "none";
+      }
+      
+      renderProfile(currentProfile);
+    }
+  } catch (err) {
+    toastQueue.add("<h1>Failed to remove affiliate badge</h1>");
+  }
+});
+
 document
   .getElementById("profileDropdownBtn")
   ?.addEventListener("click", (e) => {
@@ -1639,17 +1687,16 @@ document
                         }
                       );
                       if (result?.success) {
-                        const newAffiliate =
-                          result.affiliate || {
-                            id: r.requester_id,
-                            username: r.username,
-                            name: r.name,
-                            avatar: r.avatar,
-                            verified: r.verified,
-                            gold: r.gold,
-                            avatar_radius: r.avatar_radius,
-                            bio: r.bio,
-                          };
+                        const newAffiliate = result.affiliate || {
+                          id: r.requester_id,
+                          username: r.username,
+                          name: r.name,
+                          avatar: r.avatar,
+                          verified: r.verified,
+                          gold: r.gold,
+                          avatar_radius: r.avatar_radius,
+                          bio: r.bio,
+                        };
                         if (!currentProfile.affiliates) {
                           currentProfile.affiliates = [];
                         }

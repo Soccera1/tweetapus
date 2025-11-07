@@ -915,6 +915,42 @@ export const createTweetElement = (tweet, config = {}) => {
     tweetHeaderNameEl.appendChild(adminEl);
   }
 
+  // Affiliate badge
+  if (tweet.author.affiliate && tweet.author.affiliate_with_profile) {
+    const affiliateEl = document.createElement("a");
+    affiliateEl.href = `/@${tweet.author.affiliate_with_profile.username}`;
+    affiliateEl.className = "role-badge affiliate-with";
+    affiliateEl.title = `Affiliated with @${tweet.author.affiliate_with_profile.username}`;
+    
+    affiliateEl.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      import("./profile.js").then(({ default: openProfile }) => {
+        openProfile(tweet.author.affiliate_with_profile.username);
+      });
+    });
+
+    const affiliateImg = document.createElement("img");
+    affiliateImg.src = tweet.author.affiliate_with_profile.avatar || "/public/shared/assets/default-avatar.png";
+    affiliateImg.alt = tweet.author.affiliate_with_profile.name || tweet.author.affiliate_with_profile.username;
+    affiliateImg.className = "affiliate-with-avatar";
+    affiliateImg.style.width = "20px";
+    affiliateImg.style.height = "20px";
+    affiliateImg.style.objectFit = "cover";
+    
+    if (tweet.author.affiliate_with_profile.avatar_radius !== null && 
+        tweet.author.affiliate_with_profile.avatar_radius !== undefined) {
+      affiliateImg.style.borderRadius = `${tweet.author.affiliate_with_profile.avatar_radius}px`;
+    } else if (tweet.author.affiliate_with_profile.gold) {
+      affiliateImg.style.borderRadius = "4px";
+    } else {
+      affiliateImg.style.borderRadius = "50%";
+    }
+    
+    affiliateEl.appendChild(affiliateImg);
+    tweetHeaderNameEl.appendChild(affiliateEl);
+  }
+
   if (tweet.author.label_type) {
     const labelEl = document.createElement("span");
     labelEl.className = `tweet-label label-${tweet.author.label_type}`;

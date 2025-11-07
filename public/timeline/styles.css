@@ -6499,7 +6499,6 @@ nav {
 
 .profile-btn-primary {
   background-color: var(--primary);
-  color: white !important;
   border: 1px solid var(--primary);
 
   &:hover:not(:disabled) {
