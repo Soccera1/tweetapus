@@ -1772,6 +1772,11 @@ export const createTweetElement = (tweet, config = {}) => {
           const wrapper = document.createElement("div");
           wrapper.className = "tweet-share-wrapper";
 
+          const attribution = document.createElement("div");
+          attribution.className = "tweet-share-attribution";
+          attribution.innerHTML = `Tweetapus`;
+          wrapper.appendChild(attribution);
+
           const tweetContainer = document.createElement("div");
           tweetContainer.className = "tweet-share-container";
 
@@ -1780,7 +1785,6 @@ export const createTweetElement = (tweet, config = {}) => {
 
           document.body.appendChild(wrapper);
 
-          // load html2canvas
           const script = document.createElement("script");
           script.src =
             "https://html2canvas.hertzen.com/dist/html2canvas.min.js";

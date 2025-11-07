@@ -87,17 +87,24 @@ body {
   justify-content: center;
   align-items: center;
   padding: 120px 80px;
-  background-color: var(--bg-primary);
+  background-color: var(--primary);
   z-index: -1;
   pointer-events: none;
-}
 
-.tweet-share-container {
-  background-color: var(--bg-primary);
-  border-radius: 16px;
-  padding: 16px;
-  width: 460px;
-  box-sizing: border-box;
+  .tweet-share-container {
+    background-color: var(--bg-primary);
+    border-radius: 16px;
+    padding: 16px;
+    width: 460px;
+    box-sizing: border-box;
+  }
+
+  .tweet-share-attribution {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    color: var(--primary-fg)
+  }
 }
 
 .hidden {
@@ -5901,10 +5908,10 @@ nav {
   }
 
   &.admin {
-        padding: 0px;
-        background: transparent;
-        color: white;
-        margin-bottom: -3px;
+    padding: 0px;
+    background: transparent;
+    color: white;
+    margin-bottom: -3px;
   }
 
   &.mod {
