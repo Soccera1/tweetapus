@@ -217,10 +217,12 @@ export function openImageCropper(file, options = {}) {
         outCtx.fillStyle = "#0000";
         outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
 
-        const sx = (0 - offsetX) / scale;
-        const sy = (0 - offsetY) / scale;
-        const sw = outCanvas.width / scale;
-        const sh = outCanvas.height / scale;
+        const srcWidth = canvas.width / scale;
+        const srcHeight = canvas.height / scale;
+        const rawSx = -offsetX / scale;
+        const rawSy = -offsetY / scale;
+        const sx = Math.max(0, Math.min(rawSx, img.width - srcWidth));
+        const sy = Math.max(0, Math.min(rawSy, img.height - srcHeight));
 
         outCtx.imageSmoothingEnabled = true;
         outCtx.imageSmoothingQuality = "high";
@@ -228,8 +230,8 @@ export function openImageCropper(file, options = {}) {
           img,
           sx,
           sy,
-          sw,
-          sh,
+          srcWidth,
+          srcHeight,
           0,
           0,
           outCanvas.width,

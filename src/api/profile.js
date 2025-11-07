@@ -1504,7 +1504,7 @@ export default new Elysia({ prefix: "/profile" })
       addNotification(
         targetUser.id,
         "affiliate_request",
-        `@${currentUser.username} requested you to become an affiliate`,
+        `${currentUser.username} requested you to become an affiliate`,
         `affiliate_request:${id}`,
         currentUser.id,
         currentUser.username,

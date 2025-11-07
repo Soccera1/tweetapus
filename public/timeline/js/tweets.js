@@ -60,11 +60,19 @@ const createFactCheck = (fact_check) => {
       : "Additional context";
 
   const note = document.createElement("p");
-  note.textContent = fact_check.note;
+
+  const linkRegex = /https?:\/\/[^\s<>"']+/g;
+  const htmlString = fact_check.note
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\n", "<br>")
+    .replace(linkRegex, (url) => `<a href="${url.startsWith("http") ? url : `https://${url}`}" target="_blank" rel="noopener noreferrer">${ url.length > 60 ? `${url.slice(0, 50)}…` : url}</a>`);
+  note.innerHTML = DOMPurify.sanitize(htmlString, DOMPURIFY_CONFIG);
+
 
   const footer = document.createElement("p");
   footer.className = "fact-check-footer";
-  footer.innerHTML = `This note has been added by a trusted Tweetapus admin`;
+  footer.innerText = `This note has been added by a trusted Tweetapus admin`;
 
   content.appendChild(title);
   content.appendChild(note);
@@ -124,7 +132,6 @@ async function replaceEmojiShortcodesInElement(container) {
       regex.lastIndex = 0;
       if (!regex.test(text)) continue;
 
-      // Build replacement pieces
       regex.lastIndex = 0;
       const frag = document.createDocumentFragment();
       let lastIndex = 0;
@@ -335,9 +342,6 @@ DOMPurify.addHook("uponSanitizeElement", (node, data) => {
 });
 
 const linkifyText = (text) => {
-  const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-  const hashtagRegex = /#([a-zA-Z0-9_]+)/g;
-
   const normalizeListMarkers = (md) => {
     const lines = md.split("\n");
     let inFence = false;
@@ -367,36 +371,43 @@ const linkifyText = (text) => {
       .replace(/\^([^^\n]+)\^/g, "<sup>$1</sup>");
   };
 
-  const html = marked.parse(normalizeListMarkers(text.trim()), {
+  let processedText = text.replace(
+    /(^|[\s])@([a-zA-Z0-9_]+)/g,
+    '$1<span data-mention="$2">@$2</span>'
+  );
+  processedText = processedText.replace(
+    /(^|[\s])#([a-zA-Z0-9_]+)/g,
+    '$1<span data-hashtag="$2">#$2</span>'
+  );
+
+  const html = marked.parse(normalizeListMarkers(processedText.trim()), {
     breaks: true,
     gfm: true,
-    html: false,
+    html: true,
     headerIds: false,
     mangle: false,
   });
 
   let processedHtml = html.replace(
-    mentionRegex,
+    /<span data-mention="([^"]+)">@\1<\/span>/g,
     '<a href="javascript:" class="tweet-mention" data-username="$1">@$1</a>'
   );
-
   processedHtml = processedHtml.replace(
-    hashtagRegex,
-    (match, tag, offset, str) => {
-      if (offset > 0 && str[offset - 1] === "&") return match;
-      return `<a href="javascript:" class="tweet-hashtag" data-hashtag="${tag}">#${tag}</a>`;
-    }
+    /<span data-hashtag="([^"]+)">#\1<\/span>/g,
+    '<a href="javascript:" class="tweet-hashtag" data-hashtag="$1">#$1</a>'
   );
 
   processedHtml = processCustomMarkdown(processedHtml);
 
   const el = document.createElement("div");
-
   el.innerHTML = DOMPurify.sanitize(processedHtml, DOMPURIFY_CONFIG);
 
   el.querySelectorAll("a").forEach((a) => {
     a.setAttribute("target", "_blank");
     a.setAttribute("rel", "noopener noreferrer");
+    if (a.innerText.length > 60) {
+      a.innerText = `${a.innerText.slice(0, 60)}…`;
+    }
   });
 
   return el.innerHTML;
@@ -806,7 +817,6 @@ export const createTweetElement = (tweet, config = {}) => {
     size = "normal",
   } = config;
 
-  // Normalize reaction count from server payload variations so badge can render on load
   if (!tweet.reaction_count) {
     if (typeof tweet.total_reactions === "number") {
       tweet.reaction_count = tweet.total_reactions;
@@ -850,8 +860,6 @@ export const createTweetElement = (tweet, config = {}) => {
     tweet.author.avatar_radius !== null &&
     tweet.author.avatar_radius !== undefined
   ) {
-    // Convert user-configured pixel radius (profile reference) into a
-    // percentage so it scales visually on smaller avatars.
     const rr = avatarPxToPercent(tweet.author.avatar_radius);
     tweetHeaderAvatarEl.style.setProperty("border-radius", rr, "important");
   } else if (tweet.author.gold) {
@@ -862,7 +870,7 @@ export const createTweetElement = (tweet, config = {}) => {
   tweetHeaderAvatarEl.loading = "lazy";
   tweetHeaderAvatarEl.addEventListener("click", (e) => {
     e.stopPropagation();
-    // If the author is suspended, send user back to timeline instead of opening profile.
+
     if (tweet.author?.suspended) {
       switchPage("timeline", { path: "/" });
       return;
@@ -944,7 +952,6 @@ export const createTweetElement = (tweet, config = {}) => {
           </svg>`;
   }
 
-  // Admin badge
   if (tweet.author.admin) {
     const adminEl = document.createElement("span");
     adminEl.className = "role-badge admin";
@@ -952,7 +959,6 @@ export const createTweetElement = (tweet, config = {}) => {
     tweetHeaderNameEl.appendChild(adminEl);
   }
 
-  // Affiliate badge
   if (tweet.author.affiliate && tweet.author.affiliate_with_profile) {
     const affiliateEl = document.createElement("a");
     affiliateEl.href = `/@${tweet.author.affiliate_with_profile.username}`;
@@ -1157,6 +1163,7 @@ export const createTweetElement = (tweet, config = {}) => {
 
     const rawContent = tweet.content ? tweet.content.trim() : "";
 
+    // TODO: replace with real future tweetapus link
     const tweetLinkRegex =
       /https?:\/\/(?:www\.)?(?:localhost:3000|tweetapus\.com)\/tweet\/([a-zA-Z0-9_-]+)/g;
     let contentWithoutLinks = rawContent;
@@ -1357,15 +1364,12 @@ export const createTweetElement = (tweet, config = {}) => {
   }
 
   if (tweet.quoted_tweet) {
-    // Handle quoted tweets that are unavailable due to suspension specially.
     if (tweet.quoted_tweet.unavailable_reason === "suspended") {
       const suspendedQuoteEl = document.createElement("div");
       suspendedQuoteEl.className =
         "tweet-preview unavailable-quote suspended-quote";
       suspendedQuoteEl.textContent = "This tweet is from a suspended account.";
-      // Prevent clicks on the placeholder from bubbling up and triggering
-      // the parent tweet's click handler (which would redirect to the
-      // timeline). The placeholder should be inert.
+
       suspendedQuoteEl.addEventListener("click", (ev) => {
         ev.preventDefault();
         ev.stopPropagation();
@@ -1634,6 +1638,18 @@ export const createTweetElement = (tweet, config = {}) => {
       items: menuItems,
     });
   });
+
+  if (tweet.fact_check?.severity === "danger") {
+    tweetInteractionsLikeEl.disabled = true;
+    tweetInteractionsRetweetEl.disabled = true;
+
+    tweetInteractionsLikeEl.style.opacity = "0.5";
+    tweetInteractionsRetweetEl.style.opacity = "0.5";
+
+    tweetInteractionsLikeEl.style.pointerEvents = "none";
+    tweetInteractionsRetweetEl.style.pointerEvents = "none";
+
+  }
 
   const tweetInteractionsOptionsEl = document.createElement("button");
   tweetInteractionsOptionsEl.className = "engagement";

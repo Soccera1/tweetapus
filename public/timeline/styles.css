@@ -1258,20 +1258,23 @@ nav {
       p {
         margin: 0;
         font-size: 14px;
-                line-height: 1.6;
+        line-height: 1.6;
         color: var(--text-primary);
+
+        a {
+          color: var(--primary);
+        }
 
         &.fact-check-footer {
           margin-top: 8px;
-        line-height: 1.4;
+          line-height: 1.4;
           color: var(--text-secondary);
-                    opacity: .7;
-                    font-size: 13px;
+          opacity: 0.7;
+          font-size: 13px;
 
-                    a {
-                      color: white;
-                      text-decoration: underline;
-                    }
+          a {
+            color: white;
+          }
         }
       }
     }
@@ -7547,6 +7550,8 @@ emoji-picker.emoji-picker-popup {
 
 .role-badge.affiliate-with {
   padding: 0px;
+  margin-bottom: -2px;
+  margin-left: 5px;
 
   img {
     width: 20px;

@@ -160,9 +160,9 @@ window.onunhandledrejection = (event) => {
     lastScrollCheck = now;
 
     const scrollPosition = window.innerHeight + window.scrollY;
-    const threshold = document.documentElement.scrollHeight - 800;
-
-    if (scrollPosition >= threshold) {
+    const threshold = document.documentElement.scrollHeight - 500;
+    // Tr Cursor
+    if (scrollPosition >= threshold && location.href === "") {
       await loadTimeline(currentTimeline, true);
     }
   });

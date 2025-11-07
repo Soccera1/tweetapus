@@ -23,7 +23,7 @@
 
     .image-cropper-canvas {
       width: 100%;
-      aspect-ratio: 1 / 1;
+      height: auto;
       border-radius: 12px;
       background-color: var(--bg-secondary);
       box-shadow: inset 0 0 0 1px var(--border-primary);
