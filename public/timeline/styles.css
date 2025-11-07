@@ -5901,8 +5901,10 @@ nav {
   }
 
   &.admin {
-    background: #dbeafe;
-    color: #1e40af;
+        padding: 0px;
+        background: transparent;
+        color: white;
+        margin-bottom: -3px;
   }
 
   &.mod {
@@ -5920,11 +5922,6 @@ nav {
   &.owner {
     background: #78350f;
     color: #fef3c7;
-  }
-
-  &.admin {
-    background: #1e3a8a;
-    color: #dbeafe;
   }
 
   &.mod {
