@@ -217,6 +217,8 @@ const renderProfile = (data) => {
   if (profileNameEl) {
     profileNameEl.textContent = profile.name || profile.username;
     const existingBadge = profileNameEl.querySelector(".verification-badge");
+    const existingAdminBadge = profileNameEl.querySelector(".role-badge.admin");
+
     if (!suspended && (profile.verified || profile.gold)) {
       const badgeColor = profile.gold ? "#D4AF37" : "var(--primary)";
       if (!existingBadge) {
@@ -236,6 +238,16 @@ const renderProfile = (data) => {
     } else if (existingBadge) {
       existingBadge.remove();
     }
+
+    // Admin badge handling
+    if (!suspended && profile.admin && !existingAdminBadge) {
+      const adminBadge = document.createElement("span");
+      adminBadge.className = "role-badge admin";
+      adminBadge.textContent = "Admin";
+      profileNameEl.appendChild(adminBadge);
+    } else if ((!profile.admin || suspended) && existingAdminBadge) {
+      existingAdminBadge.remove();
+    }
   }
 
   const mainDisplayNameEl = document.getElementById("profileDisplayName");
@@ -243,6 +255,9 @@ const renderProfile = (data) => {
     const existingMainBadge = mainDisplayNameEl.querySelector(
       ".verification-badge"
     );
+    const existingMainAdmin =
+      mainDisplayNameEl.querySelector(".role-badge.admin");
+
     if (!suspended && (profile.verified || profile.gold)) {
       const badgeColor = profile.gold ? "#D4AF37" : "var(--primary)";
       if (!existingMainBadge) {
@@ -271,6 +286,21 @@ const renderProfile = (data) => {
       }
     } else if (existingMainBadge) {
       existingMainBadge.remove();
+    }
+
+    if (!suspended && profile.admin && !existingMainAdmin) {
+      const adminBadgeMain = document.createElement("span");
+      adminBadgeMain.className = "role-badge admin";
+      adminBadgeMain.textContent = "Admin";
+      const followsBadge2 =
+        mainDisplayNameEl.querySelector(".follows-me-badge");
+      if (followsBadge2) {
+        mainDisplayNameEl.insertBefore(adminBadgeMain, followsBadge2);
+      } else {
+        mainDisplayNameEl.appendChild(adminBadgeMain);
+      }
+    } else if ((!profile.admin || suspended) && existingMainAdmin) {
+      existingMainAdmin.remove();
     }
   }
 
@@ -383,12 +413,7 @@ const renderProfile = (data) => {
 
   const meta = [];
   if (!suspended) {
-    if (profile.location)
-      meta.push(
-        `${escapeHTML(
-          profile.location
-        )}`
-      );
+    if (profile.location) meta.push(`${escapeHTML(profile.location)}`);
     if (profile.website) {
       const url = profile.website.startsWith("http")
         ? profile.website

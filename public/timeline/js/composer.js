@@ -1140,6 +1140,7 @@ export const createComposer = async ({
   replyTo = null,
   quoteTweet = null,
   communityId = null,
+  autofocus = false
 }) => {
   const el = document.createElement("div");
   el.classList.add("compose-tweet");
@@ -1147,7 +1148,7 @@ export const createComposer = async ({
         <div class="compose-header">
           <img src="" alt="Your avatar" id="compose-avatar">
           <div class="compose-input">
-            <textarea id="tweet-textarea" style="overflow:hidden"></textarea>
+            <textarea id="tweet-textarea" style="overflow:hidden"${autofocus ? "autofocus" : ""}></textarea>
             <div id="quoted-tweet-container"></div>
             <div id="poll-container" style="display: none;">
               <div class="poll-options"></div>
@@ -1269,7 +1270,6 @@ export const createComposer = async ({
     avatarImg.style.borderRadius = "50%";
   }
 
-  // Determine max characters based on user's character_limit or tier
   try {
     const user = await getUser();
     const maxChars =

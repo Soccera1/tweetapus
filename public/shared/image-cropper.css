@@ -29,7 +29,6 @@
       box-shadow: inset 0 0 0 1px var(--border-primary);
       cursor: grab;
       touch-action: none;
-      /* make it visually clear what's the crop area */
       position: relative;
     }
 

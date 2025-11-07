@@ -62,7 +62,6 @@ export function openImageCropper(file, options = {}) {
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
 
-      // crop state
       let scale = 1;
       let baseScale = 1;
       let offsetX = 0;
@@ -111,7 +110,6 @@ export function openImageCropper(file, options = {}) {
       });
 
       window.addEventListener("pointermove", (ev) => {
-        // if there are two pointers, treat move as pinch (handled elsewhere)
         if (pointers.size === 2) return;
         if (!dragging) return;
         const dx = ev.clientX - lastX;
@@ -129,7 +127,6 @@ export function openImageCropper(file, options = {}) {
         canvas.style.cursor = "grab";
       });
 
-      // pointer tracking for pinch-to-zoom
       canvas.addEventListener("pointerdown", (ev) => {
         pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
       });
@@ -144,7 +141,6 @@ export function openImageCropper(file, options = {}) {
           const dist = Math.hypot(dx, dy);
           if (prevPinchDistance && Math.abs(dist - prevPinchDistance) > 2) {
             const ratio = dist / prevPinchDistance;
-            // convert ratio into slider delta for smoother control
             const delta = Math.log2(ratio) * 0.25;
             zoom.value = Math.min(
               1,
@@ -166,7 +162,6 @@ export function openImageCropper(file, options = {}) {
       canvas.addEventListener("pointerout", endPointer);
       canvas.addEventListener("pointerleave", endPointer);
 
-      // wheel zooming (desktop)
       canvas.addEventListener(
         "wheel",
         (ev) => {
@@ -196,7 +191,6 @@ export function openImageCropper(file, options = {}) {
         draw();
       });
 
-      // initialize scale so image never renders smaller than source bounds
       const scaleX = canvas.width / img.width;
       const scaleY = canvas.height / img.height;
       const coverScale = Math.max(scaleX, scaleY);
@@ -204,7 +198,6 @@ export function openImageCropper(file, options = {}) {
       scale = baseScale;
       offsetX = (canvas.width - img.width * scale) / 2;
       offsetY = (canvas.height - img.height * scale) / 2;
-      // allow a much larger maximum zoom so users can zoom in further
       const maxAbsoluteScale = Math.max(6, baseScale * 4);
       maxFactor = Math.max(2, maxAbsoluteScale / baseScale);
       zoom.value = 0;
@@ -217,7 +210,6 @@ export function openImageCropper(file, options = {}) {
 
       applyBtn.addEventListener("click", () => {
         applyBtn.disabled = true;
-        // create output canvas with requested size
         const outCanvas = document.createElement("canvas");
         outCanvas.width = outSize;
         outCanvas.height = Math.round(outSize / aspect);
@@ -225,15 +217,11 @@ export function openImageCropper(file, options = {}) {
         outCtx.fillStyle = "#0000";
         outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
 
-        // compute source rect on the image used by canvas
-        // we drew the image at (offsetX, offsetY) with size img.width*scale
-        // map output canvas pixel to source canvas pixel
         const sx = (0 - offsetX) / scale;
         const sy = (0 - offsetY) / scale;
         const sw = outCanvas.width / scale;
         const sh = outCanvas.height / scale;
 
-        // draw high-quality by drawing the original image portion scaled to outCanvas
         outCtx.imageSmoothingEnabled = true;
         outCtx.imageSmoothingQuality = "high";
         outCtx.drawImage(

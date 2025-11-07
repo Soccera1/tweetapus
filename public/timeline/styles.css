@@ -278,7 +278,6 @@ nav {
 
     &.active {
       color: var(--text-primary);
-      background-color: var(--primary-color);
       pointer-events: none;
     }
 
@@ -471,6 +470,7 @@ nav {
 
       #quoted-tweet-container {
         margin-top: 8px;
+        margin-bottom: 10px;
       }
 
       .compose-footer {
@@ -699,6 +699,10 @@ nav {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+
+  &:empty {
+    display: none;
+  }
 
   .attachment-preview-item {
     position: relative;
@@ -1778,13 +1782,7 @@ nav {
     width: calc(100% + 48px);
   }
 
-  /* Suspended specific banner styling (dark-gray rectangle) */
-  .profile-banner {
-    /* keep original behavior for normal accounts; suspended banner background is set inline by JS */
-  }
-
   .profile-card {
-    background-color: var(--bg-primary);
     margin-bottom: 16px;
     position: relative;
     z-index: 1;
@@ -2053,7 +2051,6 @@ nav {
     .profile-tab-nav {
       display: flex;
       border-bottom: 1px solid var(--border-primary);
-      background-color: var(--bg-primary);
 
       .profile-tab-btn {
         flex: 1;
@@ -2645,6 +2642,7 @@ nav {
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
+            padding-bottom: 14px;
   }
 }
 
@@ -2928,6 +2926,44 @@ nav {
     flex-direction: column;
     gap: 12px;
     padding: 0;
+  }
+
+  .reaction-item {
+    position: relative;
+
+    &:hover .reaction-remove-btn {
+      opacity: 1;
+    }
+  }
+
+  .reaction-remove-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, background-color 0.2s, border-color 0.2s;
+    color: var(--text-secondary);
+
+    &:hover {
+      background: rgba(244, 67, 54, 0.1);
+      border-color: rgba(244, 67, 54, 0.3);
+      color: #f44336;
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
   }
 
   .reaction-emoji {
@@ -5509,12 +5545,9 @@ nav {
   padding: 1px 4px;
   font-weight: 600;
   border-radius: 3px;
-  text-transform: capitalize;
-  letter-spacing: 0.3px;
   font-size: 9px;
   vertical-align: middle;
   letter-spacing: -0.1px;
-  text-transform: uppercase;
 }
 
 .profile-label {

@@ -1,4 +1,3 @@
-// Load emoji map once for rendering custom emoji shortcodes (e.g. :name:)
 const emojiMapPromise = (async () => {
   try {
     const resp = await fetch("/api/emojis");
@@ -24,7 +23,6 @@ export const triggerReactionBurst = (element, emoji = null, count = 8) => {
       const x = centerX + Math.cos(angle) * distance;
       const y = centerY + Math.sin(angle) * distance;
 
-      // createReaction is async (it may fetch emoji map); fire-and-forget is fine
       createReaction(emoji || randomReaction(), x, y);
     }, i * 50);
   }
@@ -45,7 +43,6 @@ export const createReaction = async (emoji, x, y) => {
       transition: transform 700ms cubic-bezier(.2,.9,.2,1), opacity 700ms ease-out;
     `;
 
-  // If emoji is a shortcode like :name:, try to render the custom emoji image.
   let rendered = false;
   try {
     if (typeof emoji === "string") {
@@ -67,9 +64,7 @@ export const createReaction = async (emoji, x, y) => {
         }
       }
     }
-  } catch (_err) {
-    // fall back to text rendering
-  }
+  } catch (_err) {}
 
   if (!rendered) {
     el.textContent = emoji;

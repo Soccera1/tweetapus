@@ -891,7 +891,7 @@ export const createTweetElement = (tweet, config = {}) => {
             />
             <path
               d="M6 8.00002L7.33333 9.33335L10 6.66669"
-              stroke="white"
+              stroke="var(--primary-fg)"
               stroke-width="1.5"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -916,12 +916,20 @@ export const createTweetElement = (tweet, config = {}) => {
             />
             <path
               d="M6 8.00002L7.33333 9.33335L10 6.66669"
-              stroke="white"
+              stroke="var(--primary-fg)"
               stroke-width="1.5"
               stroke-linecap="round"
               stroke-linejoin="round"
             />
           </svg>`;
+  }
+
+  // Admin badge
+  if (tweet.author.admin) {
+    const adminEl = document.createElement("span");
+    adminEl.className = "role-badge admin";
+    adminEl.textContent = "Admin";
+    tweetHeaderNameEl.appendChild(adminEl);
   }
 
   if (tweet.author.label_type) {
@@ -1515,6 +1523,7 @@ export const createTweetElement = (tweet, config = {}) => {
             const composer = await createComposer({
               placeholder: "Add your thoughts about this tweet...",
               quoteTweet: tweet,
+              autofocus: true,
               callback: async (newTweet) => {
                 addTweetToTimeline(newTweet, true).classList.add("created");
                 setTimeout(() => {
@@ -2215,12 +2224,15 @@ export const createTweetElement = (tweet, config = {}) => {
     ) {
       container.innerHTML = `<p>No reactions yet.</p>`;
     } else {
+      const currentUser = await getUser();
+      
       reactionsData.reactions.forEach((r) => {
         const item = document.createElement("div");
         item.className = "reaction-item";
         const avatarSrc = r.avatar || "/public/shared/default-avatar.png";
         const displayName = r.name || r.username || "Unknown";
         const usernameText = r.username || "";
+        const isOwnReaction = currentUser && r.user_id === currentUser.id;
 
         item.innerHTML = `
           <div class="reaction-user-avatar"><img src="${avatarSrc}" alt="${displayName
@@ -2241,7 +2253,49 @@ export const createTweetElement = (tweet, config = {}) => {
               }</div>
             </div>
           </div>
+          ${isOwnReaction ? `<button class="reaction-remove-btn" title="Remove reaction"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash2-icon lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
         `;
+        
+        if (isOwnReaction) {
+          const removeBtn = item.querySelector(".reaction-remove-btn");
+          const emoji = r.emoji;
+          removeBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            
+            try {
+              const result = await query(`/tweets/${tweet.id}/reaction`, {
+                method: "POST",
+                body: { emoji },
+              });
+              
+              if (result.success) {
+                item.style.transition = "opacity 0.2s, transform 0.2s";
+                item.style.opacity = "0";
+                item.style.transform = "scale(0.95)";
+                setTimeout(() => {
+                  item.remove();
+                  if (container.querySelectorAll(".reaction-item").length === 0) {
+                    container.innerHTML = `<p>No reactions yet.</p>`;
+                  }
+                }, 200);
+                
+                if (result.total_reactions !== undefined) {
+                  reactionCountSpan.textContent = result.total_reactions || "";
+                }
+                
+                if (result.top_reactions) {
+                  topReactionsSpan.innerHTML = result.top_reactions
+                    .map((tr) => tr.emoji)
+                    .join("");
+                  replaceEmojiShortcodesInElement(topReactionsSpan);
+                }
+              }
+            } catch (err) {
+              console.error("Error removing reaction:", err);
+            }
+          });
+        }
+        
         container.appendChild(item);
       });
       replaceEmojiShortcodesInElement(container);
