@@ -1592,7 +1592,7 @@ document
               const affiliateItem = {
                 id: "request-affiliate",
                 icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6"></path><path d="M12 22v-6"></path><path d="M4 12h16"></path></svg>`,
-                title: `Request affiliate for @${currentProfile.profile.username}`,
+                title: `Invite to be your affiliate`,
                 onClick: async () => {
                   try {
                     const result = await query(

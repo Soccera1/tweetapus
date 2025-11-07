@@ -1349,6 +1349,23 @@ class AdminPanel {
                 }>
                 <label class="form-check-label">Admin</label>
               </div>
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="editProfileAffiliate" ${
+                  this.isFlagSet(user.affiliate) ? "checked" : ""
+                }>
+                <label class="form-check-label">Affiliate Badge</label>
+              </div>
+              <div class="mb-3" id="affiliateWithSection" style="${
+                this.isFlagSet(user.affiliate) && user.affiliate_with
+                  ? ""
+                  : "display: none;"
+              }">
+                <label class="form-label">Affiliated With Username</label>
+                <input type="text" class="form-control" id="editProfileAffiliateWith" value="${
+                  user.affiliate_with_username || ""
+                }" placeholder="Enter username">
+                <small class="text-muted">The user this account is affiliated with</small>
+              </div>
               <div class="mb-3">
                 <label class="form-label">Character Limit Override</label>
                 <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
@@ -1503,6 +1520,28 @@ class AdminPanel {
           if (gCheckbox.checked) vCheckbox.checked = false;
         });
       }
+
+      // Add affiliate checkbox toggle logic
+      const affiliateCheckbox = document.getElementById("editProfileAffiliate");
+      const affiliateWithSection = document.getElementById("affiliateWithSection");
+      
+      if (affiliateCheckbox && affiliateWithSection) {
+        const newAffiliate = affiliateCheckbox.cloneNode(true);
+        affiliateCheckbox.parentNode.replaceChild(newAffiliate, affiliateCheckbox);
+        
+        const aCheckbox = document.getElementById("editProfileAffiliate");
+        
+        aCheckbox.addEventListener("change", () => {
+          const section = document.getElementById("affiliateWithSection");
+          if (aCheckbox.checked) {
+            section.style.display = "block";
+          } else {
+            section.style.display = "none";
+            const affiliateWithInput = document.getElementById("editProfileAffiliateWith");
+            if (affiliateWithInput) affiliateWithInput.value = "";
+          }
+        });
+      }
     } catch {
       this.showError("Failed to load user details");
     }
@@ -1601,7 +1640,13 @@ class AdminPanel {
       verified: document.getElementById("editProfileVerified").checked,
       gold: document.getElementById("editProfileGold").checked,
       admin: document.getElementById("editProfileAdmin").checked,
+      affiliate: document.getElementById("editProfileAffiliate").checked,
     };
+
+    const affiliateWithInput = document.getElementById("editProfileAffiliateWith");
+    if (payload.affiliate && affiliateWithInput?.value?.trim()) {
+      payload.affiliate_with_username = affiliateWithInput.value.trim();
+    }
 
     const ghostFollowersInput = document.getElementById(
       "editProfileGhostFollowers"

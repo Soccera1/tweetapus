@@ -357,6 +357,8 @@ export default new Elysia({ prefix: "/timeline" })
 
     const users = getUsersQuery.all(...userIds);
 
+    enrichUsersWithAffiliateProfiles(users);
+
     const userMap = {};
     users.forEach((user) => {
       userMap[user.id] = user;
@@ -640,6 +642,8 @@ export default new Elysia({ prefix: "/timeline" })
     );
 
     const users = getUsersQuery.all(...userIds);
+
+    enrichUsersWithAffiliateProfiles(users);
 
     const userMap = {};
     users.forEach((user) => {

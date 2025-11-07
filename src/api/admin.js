@@ -407,6 +407,13 @@ export default new Elysia({ prefix: "/admin" })
       return { error: "User not found" };
     }
 
+    if (user.affiliate && user.affiliate_with) {
+      const affiliateUser = db.query("SELECT username FROM users WHERE id = ?").get(user.affiliate_with);
+      if (affiliateUser) {
+        user.affiliate_with_username = affiliateUser.username;
+      }
+    }
+
     const recentPosts = adminQueries.getUserRecentPosts.all(params.id);
     const suspensions = adminQueries.getUserSuspensions.all(params.id);
 
@@ -1185,6 +1192,26 @@ export default new Elysia({ prefix: "/admin" })
       if (body.admin !== undefined && body.admin !== user.admin)
         changes.admin = { old: user.admin, new: body.admin };
 
+      let affiliateWith = user.affiliate_with;
+      if (body.affiliate !== undefined && body.affiliate !== user.affiliate) {
+        changes.affiliate = { old: user.affiliate, new: body.affiliate };
+      }
+      
+      if (body.affiliate && body.affiliate_with_username) {
+        const affiliateUser = db.query("SELECT id FROM users WHERE username = ?").get(body.affiliate_with_username);
+        if (affiliateUser) {
+          affiliateWith = affiliateUser.id;
+          if (affiliateWith !== user.affiliate_with) {
+            changes.affiliate_with = { old: user.affiliate_with, new: affiliateWith };
+          }
+        }
+      } else if (!body.affiliate) {
+        affiliateWith = null;
+        if (user.affiliate_with !== null) {
+          changes.affiliate_with = { old: user.affiliate_with, new: null };
+        }
+      }
+
       if (body.ghost_followers !== undefined) {
         const currentGhostFollowers = db
           .query(
@@ -1360,7 +1387,7 @@ export default new Elysia({ prefix: "/admin" })
       }
 
       db.query(
-        "UPDATE users SET username = ?, name = ?, bio = ?, verified = ?, admin = ?, gold = ?, character_limit = ?, created_at = ? WHERE id = ?"
+        "UPDATE users SET username = ?, name = ?, bio = ?, verified = ?, admin = ?, gold = ?, affiliate = ?, affiliate_with = ?, character_limit = ?, created_at = ? WHERE id = ?"
       ).run(
         body.username || user.username,
         body.name !== undefined ? body.name : user.name,
@@ -1368,6 +1395,8 @@ export default new Elysia({ prefix: "/admin" })
         newVerified,
         body.admin !== undefined ? body.admin : user.admin,
         newGold,
+        body.affiliate !== undefined ? (body.affiliate ? 1 : 0) : (user.affiliate ? 1 : 0),
+        affiliateWith,
         body.character_limit !== undefined
           ? body.character_limit
           : user.character_limit,
@@ -1393,6 +1422,8 @@ export default new Elysia({ prefix: "/admin" })
         verified: t.Optional(t.Boolean()),
         gold: t.Optional(t.Boolean()),
         admin: t.Optional(t.Boolean()),
+        affiliate: t.Optional(t.Boolean()),
+        affiliate_with_username: t.Optional(t.String()),
         ghost_followers: t.Optional(t.Number()),
         ghost_following: t.Optional(t.Number()),
         character_limit: t.Optional(t.Union([t.Number(), t.Null()])),
