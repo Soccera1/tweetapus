@@ -455,166 +455,159 @@ export default new Elysia({ prefix: "/admin" })
         admin: t.Optional(t.Boolean()),
         cloneAffiliate: t.Optional(t.Boolean()),
       }),
-    })
+    }
+  )
 
-      .post(
-        "/users/:id/affiliate-requests",
-        async ({ params, body, user: moderator }) => {
-          const targetUsername = body.target_username?.trim();
-          if (!targetUsername) {
-            return { error: "Target username required" };
-          }
+  .post(
+    "/users/:id/affiliate-requests",
+    async ({ params, body, user: moderator }) => {
+      const targetUsername = body.target_username?.trim();
+      if (!targetUsername) {
+        return { error: "Target username required" };
+      }
 
-          let requester = adminQueries.findUserById.get(params.id);
-          if (!requester) {
-            requester = adminQueries.findUserByUsername.get(params.id);
-          }
+      let requester = adminQueries.findUserById.get(params.id);
+      if (!requester) {
+        requester = adminQueries.findUserByUsername.get(params.id);
+      }
 
-          if (!requester) {
-            return { error: "User not found" };
-          }
+      if (!requester) {
+        return { error: "User not found" };
+      }
 
-          const targetUser =
-            adminQueries.findUserByUsername.get(targetUsername);
-          if (!targetUser) {
-            return { error: "Target user not found" };
-          }
+      const targetUser = adminQueries.findUserByUsername.get(targetUsername);
+      if (!targetUser) {
+        return { error: "Target user not found" };
+      }
 
-          if (targetUser.id === requester.id) {
-            return {
-              error: "Cannot create affiliate relationship with the same user",
-            };
-          }
+      if (targetUser.id === requester.id) {
+        return {
+          error: "Cannot create affiliate relationship with the same user",
+        };
+      }
 
-          const existing = db
-            .query(
-              "SELECT * FROM affiliate_requests WHERE requester_id = ? AND target_id = ?"
-            )
-            .get(requester.id, targetUser.id);
+      const existing = db
+        .query(
+          "SELECT * FROM affiliate_requests WHERE requester_id = ? AND target_id = ?"
+        )
+        .get(requester.id, targetUser.id);
 
-          if (existing) {
-            if (existing.status === "pending") {
-              return { error: "Affiliate request already pending" };
-            }
-            if (existing.status === "approved") {
-              return { error: "Affiliate request already approved" };
-            }
-            adminQueries.deleteAffiliateRequest.run(
-              requester.id,
-              targetUser.id
-            );
-          }
+      if (existing) {
+        if (existing.status === "pending") {
+          return { error: "Affiliate request already pending" };
+        }
+        if (existing.status === "approved") {
+          return { error: "Affiliate request already approved" };
+        }
+        adminQueries.deleteAffiliateRequest.run(requester.id, targetUser.id);
+      }
 
-          const requestId = Bun.randomUUIDv7();
-          adminQueries.insertAffiliateRequest.run(
-            requestId,
-            requester.id,
-            targetUser.id
-          );
+      const requestId = Bun.randomUUIDv7();
+      adminQueries.insertAffiliateRequest.run(
+        requestId,
+        requester.id,
+        targetUser.id
+      );
 
-          addNotification(
-            targetUser.id,
-            "affiliate_request",
-            `@${requester.username} requested you to become an affiliate`,
-            `affiliate_request:${requestId}`,
-            requester.id,
-            requester.username,
-            requester.name || requester.username
-          );
+      addNotification(
+        targetUser.id,
+        "affiliate_request",
+        `@${requester.username} requested you to become an affiliate`,
+        `affiliate_request:${requestId}`,
+        requester.id,
+        requester.username,
+        requester.name || requester.username
+      );
 
-          logModerationAction(
-            moderator.id,
-            "send_affiliate_request",
-            "affiliate_request",
-            requestId,
-            {
-              requester: requester.username,
-              target: targetUser.username,
-            }
-          );
-
-          return { success: true, id: requestId };
-        },
+      logModerationAction(
+        moderator.id,
+        "send_affiliate_request",
+        "affiliate_request",
+        requestId,
         {
-          body: t.Object({
-            target_username: t.String(),
-          }),
+          requester: requester.username,
+          target: targetUser.username,
         }
-      )
+      );
 
-      .post(
-        "/affiliate-requests/:id/approve",
-        async ({ params, user: moderator }) => {
-          const request = adminQueries.getAffiliateRequestById.get(params.id);
-          if (!request) {
-            return { error: "Affiliate request not found" };
-          }
+      return { success: true, id: requestId };
+    },
+    {
+      body: t.Object({
+        target_username: t.String(),
+      }),
+    }
+  )
 
-          adminQueries.updateAffiliateRequestStatus.run("approved", params.id);
-          adminQueries.setUserAffiliate.run(
-            1,
-            request.requester_id,
-            request.target_id
-          );
+  .post(
+    "/affiliate-requests/:id/approve",
+    async ({ params, user: moderator }) => {
+      const request = adminQueries.getAffiliateRequestById.get(params.id);
+      if (!request) {
+        return { error: "Affiliate request not found" };
+      }
 
-          const requester = adminQueries.findUserById.get(request.requester_id);
-          const targetUser = adminQueries.findUserById.get(request.target_id);
+      adminQueries.updateAffiliateRequestStatus.run("approved", params.id);
+      adminQueries.setUserAffiliate.run(
+        1,
+        request.requester_id,
+        request.target_id
+      );
 
-          if (requester && targetUser) {
-            addNotification(
-              requester.id,
-              "affiliate_approved",
-              `@${targetUser.username} accepted your affiliate request`,
-              targetUser.username,
-              targetUser.id,
-              targetUser.username,
-              targetUser.name || targetUser.username
-            );
-          }
+      const requester = adminQueries.findUserById.get(request.requester_id);
+      const targetUser = adminQueries.findUserById.get(request.target_id);
 
-          logModerationAction(
-            moderator.id,
-            "force_accept_affiliate",
-            "affiliate_request",
-            params.id,
-            {
-              requester: requester?.username,
-              target: targetUser?.username,
-            }
-          );
+      if (requester && targetUser) {
+        addNotification(
+          requester.id,
+          "affiliate_approved",
+          `@${targetUser.username} accepted your affiliate request`,
+          targetUser.username,
+          targetUser.id,
+          targetUser.username,
+          targetUser.name || targetUser.username
+        );
+      }
 
-          return { success: true };
+      logModerationAction(
+        moderator.id,
+        "force_accept_affiliate",
+        "affiliate_request",
+        params.id,
+        {
+          requester: requester?.username,
+          target: targetUser?.username,
         }
-      )
+      );
 
-      .post(
-        "/affiliate-requests/:id/deny",
-        async ({ params, user: moderator }) => {
-          const request = adminQueries.getAffiliateRequestById.get(params.id);
-          if (!request) {
-            return { error: "Affiliate request not found" };
-          }
+      return { success: true };
+    }
+  )
 
-          adminQueries.updateAffiliateRequestStatus.run("denied", params.id);
+  .post("/affiliate-requests/:id/deny", async ({ params, user: moderator }) => {
+    const request = adminQueries.getAffiliateRequestById.get(params.id);
+    if (!request) {
+      return { error: "Affiliate request not found" };
+    }
 
-          const requester = adminQueries.findUserById.get(request.requester_id);
-          const targetUser = adminQueries.findUserById.get(request.target_id);
+    adminQueries.updateAffiliateRequestStatus.run("denied", params.id);
 
-          logModerationAction(
-            moderator.id,
-            "force_reject_affiliate",
-            "affiliate_request",
-            params.id,
-            {
-              requester: requester?.username,
-              target: targetUser?.username,
-            }
-          );
+    const requester = adminQueries.findUserById.get(request.requester_id);
+    const targetUser = adminQueries.findUserById.get(request.target_id);
 
-          return { success: true };
-        }
-      )
+    logModerationAction(
+      moderator.id,
+      "force_reject_affiliate",
+      "affiliate_request",
+      params.id,
+      {
+        requester: requester?.username,
+        target: targetUser?.username,
+      }
+    );
 
+    return { success: true };
+  })
 
   .get("/users/:id", async ({ params }) => {
     const user = adminQueries.getUserWithDetails.get(params.id);

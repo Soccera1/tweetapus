@@ -819,7 +819,11 @@ class AdminPanel {
                 (user) => `
               <tr>
                 <td>
-                  <input type="checkbox" class="form-check-input bulk-user-checkbox" value="${user.id}" onchange="adminPanel.toggleUserSelection('${user.id}', this.checked)">
+                  <input type="checkbox" class="form-check-input bulk-user-checkbox" value="${
+                    user.id
+                  }" onchange="adminPanel.toggleUserSelection('${
+                  user.id
+                }', this.checked)">
                 </td>
                 <td>
                   <div class="d-flex align-items-center">
@@ -1867,7 +1871,9 @@ class AdminPanel {
 
     const severity = prompt("Enter severity (warning/danger/info):", "warning");
     const validSeverities = ["warning", "danger", "info"];
-    const finalSeverity = validSeverities.includes(severity) ? severity : "warning";
+    const finalSeverity = validSeverities.includes(severity)
+      ? severity
+      : "warning";
 
     try {
       const response = await this.apiCall(`/api/admin/fact-check/${postId}`, {
@@ -1877,7 +1883,9 @@ class AdminPanel {
       });
 
       if (response.success) {
-        this.showSuccess("Fact-check added successfully. Notifications sent to all users who interacted with this post.");
+        this.showSuccess(
+          "Fact-check added successfully. Notifications sent to all users who interacted with this post."
+        );
       } else {
         this.showError(response.error || "Failed to add fact-check");
       }
