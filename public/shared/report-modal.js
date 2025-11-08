@@ -30,11 +30,10 @@ export function showReportModal({ type, id, username }) {
   const reasonLabel = document.createElement("label");
   reasonLabel.style.cssText = `
     font-weight: 500;
-    margin-bottom: 4px;
     color: var(--text-primary);
     font-size: 14px;
   `;
-  reasonLabel.textContent = "Reason for reporting *";
+  reasonLabel.textContent = "Reason *";
 
   const reasonSelect = document.createElement("select");
   reasonSelect.required = true;
@@ -71,7 +70,6 @@ export function showReportModal({ type, id, username }) {
   const additionalLabel = document.createElement("label");
   additionalLabel.style.cssText = `
     font-weight: 500;
-    margin-bottom: 4px;
     color: var(--text-primary);
     font-size: 14px;
   `;
@@ -168,7 +166,7 @@ export function showReportModal({ type, id, username }) {
   modalContent.appendChild(form);
 
   const { close } = createModal({
-    title: `Report ${type === "post" ? "Tweet" : "User"}${
+    title: `Report ${type === "post" ? "tweet by" : ""}${
       username ? ` @${username}` : ""
     }`,
     content: modalContent,

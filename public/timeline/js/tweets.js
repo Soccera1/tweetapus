@@ -918,7 +918,7 @@ export const createTweetElement = (tweet, config = {}) => {
             height="16"
             viewBox="0 0 16 16"
             fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+            xmlns="http:
             title="Verified Account"
           >
             <path
@@ -1396,6 +1396,19 @@ export const createTweetElement = (tweet, config = {}) => {
     }
   }
 
+  function formatNumber(num) {
+    if (num >= 1_000_000_000_000) {
+      return `${(num / 1_000_000_000_000).toFixed(2).replace(/\.?0+$/, "")}T`;
+    } else if (num >= 1_000_000_000) {
+      return `${(num / 1_000_000_000).toFixed(2).replace(/\.?0+$/, "")}B`;
+    } else if (num >= 1_000_000) {
+      return `${(num / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
+    } else if (num >= 10_000) {
+      return `${(num / 1_000).toFixed(1).replace(/\.?0+$/, "")}k`;
+    }
+    return num;
+  }
+
   const tweetInteractionsEl = document.createElement("div");
   tweetInteractionsEl.className = "tweet-interactions";
 
@@ -1418,7 +1431,9 @@ export const createTweetElement = (tweet, config = {}) => {
             stroke-linecap="round"
             stroke-linejoin="round"
           />
-        </svg> <span class="like-count">${tweet.like_count || ""}</span>`;
+        </svg> <span class="like-count">${
+          tweet.like_count ? formatNumber(tweet.like_count) : ""
+        }</span>`;
 
   tweetInteractionsLikeEl.addEventListener("click", async (e) => {
     e.preventDefault();
@@ -1439,7 +1454,8 @@ export const createTweetElement = (tweet, config = {}) => {
     if (newIsLiked) {
       svg.setAttribute("fill", "#F91980");
       svg.setAttribute("stroke", "#F91980");
-      likeCountSpan.textContent = currentCount === -1 ? "" : currentCount + 1;
+      likeCountSpan.textContent =
+        currentCount === -1 ? "" : formatNumber(currentCount + 1);
 
       tweetInteractionsLikeEl.querySelector("svg").classList.add("like-bump");
 
@@ -1454,7 +1470,7 @@ export const createTweetElement = (tweet, config = {}) => {
       likeCountSpan.textContent =
         Math.max(0, currentCount - 1) === 0
           ? ""
-          : Math.max(0, currentCount - 1);
+          : formatNumber(Math.max(0, currentCount - 1));
     }
 
     const result = await query(`/tweets/${tweet.id}/like`, {
@@ -1483,7 +1499,7 @@ export const createTweetElement = (tweet, config = {}) => {
             stroke-linecap="round"
             stroke-linejoin="round"
           />
-        </svg> ${tweet.reply_count || ""}`;
+        </svg> ${tweet.reply_count ? formatNumber(tweet.reply_count) : ""}`;
 
   tweetInteractionsReplyEl.addEventListener("click", async (e) => {
     if (!clickToOpen) return;
@@ -1528,7 +1544,7 @@ export const createTweetElement = (tweet, config = {}) => {
                 stroke-linejoin="round"
               />
             </svg> <span class="retweet-count">${
-              tweet.retweet_count || ""
+              tweet.retweet_count ? formatNumber(tweet.retweet_count) : ""
             }</span>`;
 
   tweetInteractionsRetweetEl.addEventListener("click", async (e) => {
@@ -1568,12 +1584,15 @@ export const createTweetElement = (tweet, config = {}) => {
                 svgPaths.forEach((path) =>
                   path.setAttribute("stroke", "#00BA7C")
                 );
-                retweetCountSpan.textContent = currentCount + 1;
+                retweetCountSpan.textContent =
+                  currentCount + 1 ? formatNumber(currentCount + 1) : "";
               } else {
                 svgPaths.forEach((path) =>
                   path.setAttribute("stroke", "currentColor")
                 );
-                retweetCountSpan.textContent = Math.max(0, currentCount - 1);
+                retweetCountSpan.textContent = Math.max(0, currentCount - 1)
+                  ? formatNumber(Math.max(0, currentCount - 1))
+                  : "";
               }
             } else {
               toastQueue.add(`<h1>${result.error || "Failed to retweet"}</h1>`);
