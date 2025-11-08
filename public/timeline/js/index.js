@@ -161,8 +161,8 @@ window.onunhandledrejection = (event) => {
 
     const scrollPosition = window.innerHeight + window.scrollY;
     const threshold = document.documentElement.scrollHeight - 500;
-    // Tr Cursor
-    if (scrollPosition >= threshold && location.href === "") {
+
+    if (scrollPosition >= threshold && (!location.href || location.href === "/")) {
       await loadTimeline(currentTimeline, true);
     }
   });
@@ -219,7 +219,7 @@ window.onunhandledrejection = (event) => {
 })();
 
 addRoute(
-  (pathname) => pathname === "/",
+  (pathname) => pathname === "/" || !pathname,
   () => showPage("timeline")
 );
 

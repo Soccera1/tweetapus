@@ -443,7 +443,7 @@ const createExperimentsContent = () => {
             }</p>`
           );
 
-          if (window.location.pathname === "/") {
+          if (window.location.pathname === "/" || !pathname) {
             window.location.reload();
           }
         } else {
