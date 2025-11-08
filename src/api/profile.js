@@ -979,7 +979,6 @@ export default new Elysia({ prefix: "/profile" })
       }
     }
 
-    // If target account is private, create follow request
     if (targetUser.private) {
       const requestId = Bun.randomUUIDv7();
       createFollowRequest.run(requestId, currentUser.id, targetUser.id);
@@ -987,7 +986,7 @@ export default new Elysia({ prefix: "/profile" })
       addNotification(
         targetUser.id,
         "follow_request",
-        `@${currentUser.username} requested to follow you`,
+        `has requested to follow you`,
         currentUser.username,
         currentUser.id,
         currentUser.username,
@@ -1002,7 +1001,7 @@ export default new Elysia({ prefix: "/profile" })
       addNotification(
         targetUser.id,
         "follow",
-        `@${currentUser.username} started following you`,
+        `followed you`,
         currentUser.username,
         currentUser.id,
         currentUser.username,
@@ -1068,14 +1067,11 @@ export default new Elysia({ prefix: "/profile" })
         return { error: "Avatar file is required" };
       }
 
-      // Get file extension based on MIME type first
-      // By default only WebP is allowed. GIF uploads are allowed only for gold accounts.
       const allowedTypes = {
         "image/webp": ".webp",
       };
 
       if (currentUser.gold) {
-        // Allow GIF uploads for gold users (so animated avatars are possible)
         allowedTypes["image/gif"] = ".gif";
       }
 
@@ -1498,7 +1494,7 @@ export default new Elysia({ prefix: "/profile" })
           addNotification(
             requester.id,
             "follow_approved",
-            `@${currentUser.username} approved your follow request`,
+            `has approved your follow request`,
             currentUser.username,
             currentUser.id,
             currentUser.username,
