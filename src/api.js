@@ -20,6 +20,44 @@ import upload, { uploadRoutes } from "./api/upload.js";
 import db from "./db.js";
 import ratelimit from "./helpers/ratelimit.js";
 
+function formatExpiry(expiryStr) {
+  const now = new Date();
+  const expiry = new Date(expiryStr);
+
+  const diffMs = expiry - now;
+  if (diffMs <= 0) return "expired";
+
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return "in less than 1 minute";
+  if (diffMin < 60) return `in ${diffMin} minute${diffMin > 1 ? "s" : ""}`;
+  if (diffHour < 24) {
+    const hours = diffHour;
+    const minutes = diffMin % 60;
+    return `in ${hours} hour${hours > 1 ? "s" : ""}${
+      minutes ? ` and ${minutes} minute${minutes > 1 ? "s" : ""}` : ""
+    }`;
+  }
+  if (diffDay < 7) {
+    const days = diffDay;
+    const hours = diffHour % 24;
+    return `in ${days} day${days > 1 ? "s" : ""}${
+      hours ? ` and ${hours} hour${hours > 1 ? "s" : ""}` : ""
+    }`;
+  }
+
+  return expiry.toLocaleString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 const isSuspendedQuery = db.query(`
   SELECT * FROM suspensions WHERE user_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > datetime('now'))
 `);
@@ -46,7 +84,7 @@ export default new Elysia({
       generator: ratelimit,
     })
   )
-  .onBeforeHandle(({ headers }) => {
+  .onBeforeHandle(async ({ headers }) => {
     const token = headers.authorization?.split(" ")[1];
     if (!token) return;
 
@@ -72,9 +110,21 @@ export default new Elysia({
     }
 
     if (cached.suspension) {
+      const suspensionHtml = (
+        await Bun.file("./src/assets/suspended.html").text()
+      ).replace(
+        "%%text%%",
+        `Reason: ${cached.suspension.reason}${
+          cached.suspension.expires_at
+            ? `<br>Expires ${formatExpiry(cached.suspension.expires_at)}`
+            : ""
+        }`
+      );
+
+      console.log("suspended", cached.suspension);
       return {
         error: "You are suspended",
-        suspension: cached.suspension,
+        suspension: suspensionHtml,
       };
     }
   })
