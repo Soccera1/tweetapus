@@ -1651,7 +1651,7 @@ export default new Elysia({ prefix: "/profile" })
           addNotification(
             requester.id,
             "affiliate_approved",
-            `@${currentUser.username} accepted your affiliate request`,
+            `accepted your affiliate request`,
             currentUser.username,
             currentUser.id,
             currentUser.username,
