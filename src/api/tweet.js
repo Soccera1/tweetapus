@@ -498,21 +498,32 @@ export default new Elysia({ prefix: "/tweets" })
         if (!interactive_card.media_url || !interactive_card.media_type) {
           return { error: "Card media is required" };
         }
-        if (!['image', 'video', 'gif'].includes(interactive_card.media_type)) {
+        if (!["image", "video", "gif"].includes(interactive_card.media_type)) {
           return { error: "Invalid media type for card" };
         }
-        if (!interactive_card.options || !Array.isArray(interactive_card.options) || interactive_card.options.length < 2 || interactive_card.options.length > 4) {
+        if (
+          !interactive_card.options ||
+          !Array.isArray(interactive_card.options) ||
+          interactive_card.options.length < 2 ||
+          interactive_card.options.length > 4
+        ) {
           return { error: "Card must have 2-4 options" };
         }
         for (const option of interactive_card.options) {
           if (!option.description || !option.tweet_text) {
-            return { error: "Each option must have description and tweet text" };
+            return {
+              error: "Each option must have description and tweet text",
+            };
           }
           if (option.description.length > 100) {
-            return { error: "Option description must be 100 characters or less" };
+            return {
+              error: "Option description must be 100 characters or less",
+            };
           }
           if (option.tweet_text.length > 280) {
-            return { error: "Option tweet text must be 280 characters or less" };
+            return {
+              error: "Option tweet text must be 280 characters or less",
+            };
           }
         }
       }

@@ -57,7 +57,7 @@ export const useComposer = (
   let replyRestriction = "everyone";
   let selectedGif = null;
   let scheduledFor = null;
-  let interactiveCard = null;
+  const interactiveCard = null;
 
   const updateCharacterCount = () => {
     const length = textarea.value.length;
