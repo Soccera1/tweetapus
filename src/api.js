@@ -10,6 +10,7 @@ import dm from "./api/dm.js";
 import hashtags from "./api/hashtags.js";
 import notifications from "./api/notifications.js";
 import profile, { avatarRoutes } from "./api/profile.js";
+import reports from "./api/reports.js";
 import scheduled from "./api/scheduled.js";
 import search from "./api/search.js";
 import tenor from "./api/tenor.js";
@@ -105,5 +106,6 @@ export default new Elysia({
   .use(tenor)
   .use(hashtags)
   .use(scheduled)
+  .use(reports)
   .use(avatarRoutes)
   .use(uploadRoutes);

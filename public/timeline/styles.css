@@ -1188,7 +1188,7 @@ nav {
       }
     }
 
-    a {
+    a, .tweet-ellipsis {
       color: var(--primary);
       text-underline-offset: 3px;
     }
@@ -6069,11 +6069,9 @@ nav {
 .community-detail-tab-content .compose-tweet {
   margin: 0 0 18px 0;
   padding: 12px 14px;
+  padding-top: 20px;
   border-bottom: 1px solid var(--border-primary);
   width: 100%;
-  box-sizing: border-box;
-  border-radius: 12px;
-  background: var(--bg-primary);
 }
 
 .community-detail-tab-content textarea:focus,
@@ -6144,7 +6142,6 @@ nav {
 
 .community-only-container {
   padding: 12px 16px;
-  border-top: 1px solid var(--border-primary);
   display: flex;
   align-items: center;
   gap: 8px;

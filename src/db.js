@@ -524,4 +524,40 @@ CREATE INDEX IF NOT EXISTS idx_fact_checks_post_id ON fact_checks(post_id);
 CREATE INDEX IF NOT EXISTS idx_fact_checks_created_by ON fact_checks(created_by);
 `);
 
+db.exec(`
+CREATE TABLE IF NOT EXISTS reports (
+  id TEXT PRIMARY KEY,
+  reporter_id TEXT NOT NULL,
+  reported_type TEXT NOT NULL,
+  reported_id TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  additional_info TEXT DEFAULT NULL,
+  status TEXT DEFAULT 'pending',
+  resolved_by TEXT DEFAULT NULL,
+  resolved_at TIMESTAMP DEFAULT NULL,
+  resolution_action TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_reports_reporter_id ON reports(reporter_id);
+CREATE INDEX IF NOT EXISTS idx_reports_reported_id ON reports(reported_id);
+CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
+CREATE INDEX IF NOT EXISTS idx_reports_created_at ON reports(created_at);
+
+CREATE TABLE IF NOT EXISTS report_bans (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  banned_by TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (banned_by) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE(user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_report_bans_user_id ON report_bans(user_id);
+`);
+
 export default db;

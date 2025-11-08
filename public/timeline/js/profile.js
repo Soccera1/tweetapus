@@ -6,6 +6,7 @@ import {
   convertToWebPBanner,
   isConvertibleImage,
 } from "../../shared/image-utils.js";
+import { showReportModal } from "../../shared/report-modal.js";
 import toastQueue from "../../shared/toasts.js";
 import { createModal, createPopup } from "../../shared/ui-utils.js";
 import query from "./api.js";
@@ -1822,6 +1823,26 @@ document
                   console.error("Block/unblock error:", err);
                   toastQueue.add(`<h1>Network error. Please try again.</h1>`);
                 }
+              },
+            });
+          }
+
+          if (
+            currentUser &&
+            currentProfile &&
+            currentProfile.profile &&
+            currentUser.id !== currentProfile.profile.id
+          ) {
+            items.push({
+              id: "report-user",
+              icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+              title: `Report @${currentProfile.profile.username}`,
+              onClick: () => {
+                showReportModal({
+                  type: "user",
+                  id: currentProfile.profile.id,
+                  username: currentProfile.profile.username,
+                });
               },
             });
           }
