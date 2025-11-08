@@ -1639,18 +1639,6 @@ export const createTweetElement = (tweet, config = {}) => {
     });
   });
 
-  if (tweet.fact_check?.severity === "danger") {
-    tweetInteractionsLikeEl.disabled = true;
-    tweetInteractionsRetweetEl.disabled = true;
-
-    tweetInteractionsLikeEl.style.opacity = "0.5";
-    tweetInteractionsRetweetEl.style.opacity = "0.5";
-
-    tweetInteractionsLikeEl.style.pointerEvents = "none";
-    tweetInteractionsRetweetEl.style.pointerEvents = "none";
-
-  }
-
   const tweetInteractionsOptionsEl = document.createElement("button");
   tweetInteractionsOptionsEl.className = "engagement";
   tweetInteractionsOptionsEl.style.setProperty("--color", "17, 133, 254");
