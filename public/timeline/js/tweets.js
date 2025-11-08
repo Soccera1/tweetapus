@@ -981,9 +981,7 @@ export const createTweetElement = (tweet, config = {}) => {
       tweet.author.affiliate_with_profile.name ||
       tweet.author.affiliate_with_profile.username;
     affiliateImg.className = "affiliate-with-avatar";
-    affiliateImg.style.width = "20px";
-    affiliateImg.style.height = "20px";
-    affiliateImg.style.objectFit = "cover";
+    affiliateImg.draggable = false;
 
     if (
       tweet.author.affiliate_with_profile.avatar_radius !== null &&

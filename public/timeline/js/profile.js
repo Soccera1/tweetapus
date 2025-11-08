@@ -665,6 +665,7 @@ const renderProfile = (data) => {
         const affElImage = document.createElement("img");
         affElImage.src =
           aff.avatar || "/public/shared/assets/default-avatar.png";
+        affElImage.draggable = false;
         affElImage.alt = aff.name || aff.username;
         affElImage.className = "affiliate-with-avatar";
         affElMain.appendChild(affElImage);
