@@ -2,11 +2,11 @@
   color-scheme: light;
 
   --primary: rgb(var(--primary-rgb));
-  --primary-rgb: 30, 102, 245;
-  --primary-hover: #1b5ce0;
-  --primary-focus: #174fc0;
+  --primary-rgb: 172, 151, 255;
+  --primary-hover: #a08dee;
+  --primary-focus: #9986e5;
 
-  --primary-fg: white;
+  --primary-fg: black;
 
   --text-primary: #4c4f69;
   --text-secondary: #5c5f77;
@@ -55,8 +55,8 @@
   color-scheme: dark;
 
   --primary-rgb: 172, 151, 255;
-  --primary-hover: #c29def;
-  --primary-focus: #ae87de;
+  --primary-hover: #a08dee;
+  --primary-focus: #9986e5;
 
   --primary-fg: black;
 
