@@ -1667,7 +1667,6 @@ export const createTweetElement = (tweet, config = {}) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // MARK: options btns
     const defaultItems = [
       {
         id: "see-interactions",
@@ -2222,7 +2221,7 @@ export const createTweetElement = (tweet, config = {}) => {
       <path d="M10 5C5 5 2 10 2 10s3 5 8 5 8-5 8-5-3-5-8-5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
     </svg>
-    <span>${tweet.view_count > 0 ? tweet.view_count : ""}</span>`;
+    <span>${tweet.view_count > 0 ? formatNumber(tweet.view_count) : ""}</span>`;
   tweetInteractionsViewsEl.style.setProperty("--color", "119, 119, 119");
   tweetInteractionsViewsEl.title = `${tweet.view_count || 0} views`;
 

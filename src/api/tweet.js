@@ -405,6 +405,37 @@ const getTopReactionsForPost = db.query(`
   LIMIT 2
 `);
 
+const createInteractiveCard = db.query(`
+  INSERT INTO interactive_cards (id, post_id, media_type, media_url)
+  VALUES (?, ?, ?, ?)
+  RETURNING *
+`);
+
+const createCardOption = db.query(`
+  INSERT INTO interactive_card_options (id, card_id, description, tweet_text, option_order)
+  VALUES (?, ?, ?, ?, ?)
+  RETURNING *
+`);
+
+const getCardByPostId = db.query(`
+  SELECT * FROM interactive_cards WHERE post_id = ?
+`);
+
+const getCardOptions = db.query(`
+  SELECT * FROM interactive_card_options WHERE card_id = ? ORDER BY option_order ASC
+`);
+
+const getCardDataForTweet = (tweetId) => {
+  const card = getCardByPostId.get(tweetId);
+  if (!card) return null;
+
+  const options = getCardOptions.all(card.id);
+  return {
+    ...card,
+    options,
+  };
+};
+
 export default new Elysia({ prefix: "/tweets" })
   .use(jwt({ name: "jwt", secret: JWT_SECRET }))
   .use(
@@ -439,6 +470,7 @@ export default new Elysia({ prefix: "/tweets" })
         community_id,
         community_only,
         spoiler_flags,
+        interactive_card,
       } = body;
       const tweetContent = typeof content === "string" ? content : "";
       const trimmedContent = tweetContent.trim();
@@ -458,12 +490,40 @@ export default new Elysia({ prefix: "/tweets" })
         }
       }
 
-      // Require at least one of: non-empty content, attachments, gif, poll, or article
+      if (interactive_card && !user.verified && !user.gold) {
+        return { error: "Only verified users can create interactive cards" };
+      }
+
+      if (interactive_card) {
+        if (!interactive_card.media_url || !interactive_card.media_type) {
+          return { error: "Card media is required" };
+        }
+        if (!['image', 'video', 'gif'].includes(interactive_card.media_type)) {
+          return { error: "Invalid media type for card" };
+        }
+        if (!interactive_card.options || !Array.isArray(interactive_card.options) || interactive_card.options.length < 2 || interactive_card.options.length > 4) {
+          return { error: "Card must have 2-4 options" };
+        }
+        for (const option of interactive_card.options) {
+          if (!option.description || !option.tweet_text) {
+            return { error: "Each option must have description and tweet text" };
+          }
+          if (option.description.length > 100) {
+            return { error: "Option description must be 100 characters or less" };
+          }
+          if (option.tweet_text.length > 280) {
+            return { error: "Option tweet text must be 280 characters or less" };
+          }
+        }
+      }
+
+      // Require at least one of: non-empty content, attachments, gif, poll, card or article
       if (
         !hasBody &&
         !hasAttachments &&
         !gif_url &&
         !poll &&
+        !interactive_card &&
         !targetArticleId
       ) {
         return { error: "Tweet content is required" };
@@ -780,6 +840,35 @@ export default new Elysia({ prefix: "/tweets" })
         }
       }
 
+      let cardData = null;
+      if (interactive_card) {
+        const cardId = Bun.randomUUIDv7();
+        const card = createInteractiveCard.get(
+          cardId,
+          tweetId,
+          interactive_card.media_type,
+          interactive_card.media_url
+        );
+
+        const cardOptions = [];
+        interactive_card.options.forEach((option, index) => {
+          const optionId = Bun.randomUUIDv7();
+          const savedOption = createCardOption.get(
+            optionId,
+            cardId,
+            option.description.trim(),
+            option.tweet_text.trim(),
+            index
+          );
+          cardOptions.push(savedOption);
+        });
+
+        cardData = {
+          ...card,
+          options: cardOptions,
+        };
+      }
+
       return {
         success: true,
         tweet: {
@@ -790,6 +879,7 @@ export default new Elysia({ prefix: "/tweets" })
           poll: getPollDataForTweet(tweet.id, user.id),
           attachments: attachments,
           article_preview: articlePreview,
+          interactive_card: cardData,
         },
       };
     } catch (error) {
@@ -1074,6 +1164,7 @@ export default new Elysia({ prefix: "/tweets" })
       reaction_count: countReactionsForPost.get(post.id)?.total || 0,
       top_reactions: getTopReactionsForPost.all(post.id),
       fact_check: getFactCheckForPost.get(post.id) || null,
+      interactive_card: getCardDataForTweet(post.id),
     }));
 
     const processedReplies = replies.map((reply) => ({
@@ -1088,6 +1179,7 @@ export default new Elysia({ prefix: "/tweets" })
         ? articleMap.get(reply.article_id) || null
         : null,
       fact_check: getFactCheckForPost.get(reply.id) || null,
+      interactive_card: getCardDataForTweet(reply.id),
     }));
 
     const extendedStats = {
@@ -1114,6 +1206,7 @@ export default new Elysia({ prefix: "/tweets" })
         reaction_count: tweetReactionCount,
         top_reactions: tweetTopReactions,
         fact_check: getFactCheckForPost.get(tweet.id) || null,
+        interactive_card: getCardDataForTweet(tweet.id),
       },
       threadPosts: processedThreadPosts,
       replies: processedReplies,

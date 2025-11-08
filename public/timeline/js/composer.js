@@ -43,12 +43,21 @@ export const useComposer = (
   const scheduleTimeInput = element.querySelector("#schedule-time");
   const confirmScheduleBtn = element.querySelector("#confirm-schedule-btn");
   const clearScheduleBtn = element.querySelector("#clear-schedule-btn");
+  const cardToggleBtn = element.querySelector("#card-toggle");
+  const cardModal = element.querySelector("#card-modal");
+  const cardModalClose = element.querySelector("#card-modal-close");
+  const cardMediaInput = element.querySelector("#card-media-input");
+  const cardMediaPreview = element.querySelector("#card-media-preview");
+  const cardMediaUploadBtn = element.querySelector("#card-media-upload-btn");
+  const confirmCardBtn = element.querySelector("#confirm-card-btn");
+  const clearCardBtn = element.querySelector("#clear-card-btn");
 
   let pollEnabled = false;
   let pendingFiles = [];
   let replyRestriction = "everyone";
   let selectedGif = null;
   let scheduledFor = null;
+  let interactiveCard = null;
 
   const updateCharacterCount = () => {
     const length = textarea.value.length;
@@ -63,6 +72,7 @@ export const useComposer = (
         (pendingFiles && pendingFiles.length > 0) ||
         !!selectedGif ||
         pollEnabled ||
+        !!interactiveCard ||
         !!article;
       tweetButton.disabled = !hasExtras && length === 0;
     }
@@ -1183,6 +1193,14 @@ export const createComposer = async ({
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>
                 </button>
                 <button type="button" id="poll-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-bar-big-icon lucide-chart-bar-big"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><rect x="7" y="13" width="9" height="4" rx="1"></rect><rect x="7" y="5" width="12" height="4" rx="1"></rect></svg></button>
+                <button type="button" id="card-toggle" title="Create interactive card" style="display: none;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2"/>
+                    <path d="M7 7h10"/>
+                    <path d="M7 12h10"/>
+                    <path d="M7 17h10"/>
+                  </svg>
+                </button>
                 <button type="button" id="schedule-btn" title="Schedule tweet">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
@@ -1239,6 +1257,30 @@ export const createComposer = async ({
                   <div style="display: flex; gap: 12px; margin-top: 8px;">
                     <button type="button" id="clear-schedule-btn" style="flex: 1; padding: 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 500;">Clear</button>
                     <button type="button" id="confirm-schedule-btn" style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--primary); color: white; cursor: pointer; font-weight: 500;">Schedule</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="card-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+              <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                  <h3 style="margin: 0; font-size: 20px;">Create Interactive Card</h3>
+                  <button type="button" id="card-modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">×</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Card Media (Image, Video, or GIF)</label>
+                    <button type="button" id="card-media-upload-btn" style="width: 100%; padding: 12px; border: 2px dashed var(--border-primary); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer;">Upload Media</button>
+                    <input type="file" id="card-media-input" accept="image/*,video/mp4" style="display: none;" />
+                    <div id="card-media-preview" style="margin-top: 12px;"></div>
+                  </div>
+                  <div id="card-options-container">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Options (2-4)</label>
+                  </div>
+                  <button type="button" id="add-card-option" style="width: 100%; padding: 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer;">+ Add Option</button>
+                  <div style="display: flex; gap: 12px; margin-top: 8px;">
+                    <button type="button" id="clear-card-btn" style="flex: 1; padding: 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 500;">Clear</button>
+                    <button type="button" id="confirm-card-btn" style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--primary); color: white; cursor: pointer; font-weight: 500;">Save Card</button>
                   </div>
                 </div>
               </div>

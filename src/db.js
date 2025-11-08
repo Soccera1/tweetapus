@@ -560,4 +560,29 @@ CREATE TABLE IF NOT EXISTS report_bans (
 CREATE INDEX IF NOT EXISTS idx_report_bans_user_id ON report_bans(user_id);
 `);
 
+db.exec(`
+CREATE TABLE IF NOT EXISTS interactive_cards (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL,
+  media_type TEXT NOT NULL,
+  media_url TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_interactive_cards_post_id ON interactive_cards(post_id);
+
+CREATE TABLE IF NOT EXISTS interactive_card_options (
+  id TEXT PRIMARY KEY,
+  card_id TEXT NOT NULL,
+  description TEXT NOT NULL,
+  tweet_text TEXT NOT NULL,
+  option_order INTEGER NOT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (card_id) REFERENCES interactive_cards(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_interactive_card_options_card_id ON interactive_card_options(card_id);
+`);
+
 export default db;

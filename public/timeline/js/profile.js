@@ -519,7 +519,7 @@ const renderProfile = (data) => {
       bannerElement.style.height = "200px";
     } else {
       bannerElement.style.backgroundImage = "none";
-      bannerElement.style.height = "200px";
+      bannerElement.style.height = "70px";
     }
   }
 

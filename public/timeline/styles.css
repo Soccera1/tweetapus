@@ -30,19 +30,11 @@ body {
 }
 
 #profileContainer.suspended .profile-banner {
-  background-image: none !important;
-  background-color: #ffffff1a !important;
-  height: 200px !important;
+  display: none;
 }
 
 #profileContainer.suspended #profileAvatar[data-suspended="true"] {
-  background-color: var(--suspended-avatar-bg, #bdbdbd) !important;
-  background-image: none !important;
-  object-fit: cover !important;
-  pointer-events: none !important;
-  filter: none !important;
-  box-shadow: none !important;
-  border-radius: 50% !important;
+  display: none;
 }
 
 #profileContainer.suspended .profile-tab-nav {
