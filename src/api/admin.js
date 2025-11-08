@@ -1827,7 +1827,10 @@ export default new Elysia({ prefix: "/admin" })
       return { error: "User not found" };
     }
 
-    if (targetUser.admin && !(process.env.SUPERADMIN_ID && user.id === process.env.SUPERADMIN_ID)) {
+    if (
+      targetUser.admin &&
+      !(process.env.SUPERADMIN_ID && user.id === process.env.SUPERADMIN_ID)
+    ) {
       return { error: "Cannot impersonate admin users" };
     }
 
@@ -2267,6 +2270,191 @@ export default new Elysia({ prefix: "/admin" })
 
     return { success: true };
   })
+
+  .get("/reports", async ({ query }) => {
+    const limit = Number.parseInt(query.limit) || 50;
+    const offset = Number.parseInt(query.offset) || 0;
+
+    const reports = db
+      .query(
+        `
+      SELECT * FROM reports
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `
+      )
+      .all(limit, offset);
+
+    const getUser = db.query(
+      "SELECT id, username, name, avatar FROM users WHERE id = ?"
+    );
+    const getPost = db.query(
+      "SELECT id, user_id, content FROM posts WHERE id = ?"
+    );
+
+    const enrichedReports = reports.map((report) => {
+      const reporter = getUser.get(report.reporter_id);
+      let reported = null;
+
+      if (report.reported_type === "user") {
+        reported = getUser.get(report.reported_id);
+      } else if (report.reported_type === "post") {
+        reported = getPost.get(report.reported_id);
+      }
+
+      return {
+        ...report,
+        reporter: reporter
+          ? {
+              id: reporter.id,
+              username: reporter.username,
+              name: reporter.name,
+              avatar: reporter.avatar,
+            }
+          : null,
+        reported,
+      };
+    });
+
+    return { reports: enrichedReports };
+  })
+
+  .post(
+    "/reports/:id/resolve",
+    async ({ params, body, user }) => {
+      const { action, duration, severity, note } = body;
+      const report = db
+        .query("SELECT * FROM reports WHERE id = ?")
+        .get(params.id);
+
+      if (!report) return { error: "Report not found" };
+
+      let resolutionAction = action;
+
+      if (action === "ban_user" && report.reported_type === "user") {
+        const suspensionId = Bun.randomUUIDv7();
+        const expiresAt = duration
+          ? new Date(Date.now() + duration * 60 * 60 * 1000).toISOString()
+          : null;
+
+        db.query(
+          `
+          INSERT INTO suspensions (id, user_id, suspended_by, reason, severity, expires_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `
+        ).run(
+          suspensionId,
+          report.reported_id,
+          user.id,
+          report.reason,
+          severity || 3,
+          expiresAt
+        );
+
+        db.query("UPDATE users SET suspended = TRUE WHERE id = ?").run(
+          report.reported_id
+        );
+
+        logModerationAction(
+          user.id,
+          "suspend_user",
+          "user",
+          report.reported_id,
+          {
+            reportId: params.id,
+            duration,
+            severity,
+          }
+        );
+
+        addNotification(
+          report.reported_id,
+          "suspension",
+          expiresAt
+            ? `Your account has been suspended until ${new Date(
+                expiresAt
+              ).toLocaleString()}`
+            : "Your account has been permanently suspended",
+          suspensionId,
+          user.id,
+          undefined,
+          undefined
+        );
+      } else if (action === "delete_post" && report.reported_type === "post") {
+        db.query("DELETE FROM posts WHERE id = ?").run(report.reported_id);
+
+        logModerationAction(
+          user.id,
+          "delete_post",
+          "post",
+          report.reported_id,
+          {
+            reportId: params.id,
+          }
+        );
+      } else if (
+        action === "fact_check" &&
+        report.reported_type === "post" &&
+        note
+      ) {
+        const factCheckId = Bun.randomUUIDv7();
+        db.query(
+          `INSERT INTO fact_checks (id, post_id, created_by, note, severity) VALUES (?, ?, ?, ?, ?)`
+        ).run(
+          factCheckId,
+          report.reported_id,
+          user.id,
+          note,
+          severity || "warning"
+        );
+
+        logModerationAction(user.id, "fact_check", "post", report.reported_id, {
+          reportId: params.id,
+          note,
+          severity,
+        });
+      } else if (action === "ban_reporter") {
+        const banId = Bun.randomUUIDv7();
+        db.query(
+          `INSERT INTO report_bans (id, user_id, banned_by, reason) VALUES (?, ?, ?, ?)`
+        ).run(banId, report.reporter_id, user.id, "Abusing report system");
+
+        logModerationAction(
+          user.id,
+          "ban_reporter",
+          "user",
+          report.reporter_id,
+          {
+            reportId: params.id,
+          }
+        );
+
+        resolutionAction = "banned_reporter";
+      } else if (action === "ignore") {
+        resolutionAction = "ignored";
+      } else {
+        return { error: "Invalid action or missing required fields" };
+      }
+
+      db.query(
+        `
+        UPDATE reports
+        SET status = ?, resolved_by = ?, resolved_at = datetime('now', 'utc'), resolution_action = ?
+        WHERE id = ?
+      `
+      ).run("resolved", user.id, resolutionAction, params.id);
+
+      return { success: true };
+    },
+    {
+      body: t.Object({
+        action: t.String(),
+        duration: t.Optional(t.Number()),
+        severity: t.Optional(t.Number()),
+        note: t.Optional(t.String()),
+      }),
+    }
+  )
 
   .get("/fact-check/:postId", async ({ params }) => {
     const factCheck = adminQueries.getFactCheck.get(params.postId);

@@ -3674,7 +3674,7 @@ class AdminPanel {
 
     try {
       const response = await fetch(
-        `/api/reports/list?limit=${limit}&offset=${offset}`,
+        `/api/admin/reports?limit=${limit}&offset=${offset}`,
         {
           headers: {
             Authorization: `Bearer ${this.token}`,
@@ -3764,7 +3764,7 @@ class AdminPanel {
     html += `</div>`;
     tableContainer.innerHTML = html;
 
-    this.renderPagination("reportsPagination", pagination, (page) =>
+    this.renderPagination("reports", pagination, (page) =>
       this.loadReports(page)
     );
   }
@@ -3891,7 +3891,7 @@ class AdminPanel {
 
   async showReportActionModal(reportId) {
     try {
-      const response = await fetch(`/api/reports/list?limit=200`, {
+      const response = await fetch(`/api/admin/reports?limit=200`, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
@@ -4031,7 +4031,7 @@ class AdminPanel {
     }
 
     try {
-      const response = await fetch(`/api/reports/resolve/${reportId}`, {
+      const response = await fetch(`/api/admin/reports/${reportId}/resolve`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

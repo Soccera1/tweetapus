@@ -1,8 +1,3 @@
-// Read authToken from localStorage at request time to avoid stale module-level values
-
-// this is mostly a foundation to build upon
-// for easier further optimizations
-
 function hash(str) {
   let h = 2166136261n;
   for (let i = 0; i < str.length; i++) {
@@ -27,7 +22,6 @@ export default async (url, options = {}) => {
       },
     });
 
-    // Try to parse JSON; if parsing fails, fall back to text
     let parsed = null;
     try {
       parsed = await res.json();
@@ -38,13 +32,12 @@ export default async (url, options = {}) => {
 
     if (res.ok) return parsed;
 
-    // Non-2xx: normalize to an object with error
     if (parsed && typeof parsed === "object") {
       return parsed;
     }
 
     return { error: String(parsed) || "Request failed" };
-  } catch (err) {
-    return { error: "Network error" };
+  } catch (error) {
+    return { error: error?.message || error || "Network error" };
   }
 };

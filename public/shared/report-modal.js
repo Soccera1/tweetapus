@@ -194,11 +194,11 @@ export function showReportModal({ type, id, username }) {
     submitButton.textContent = "Submitting...";
 
     try {
-      const response = await fetch("/api/reports/create", {
+      const query = (await import("../timeline/js/api.js")).default;
+      const data = await query("/reports/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
           reported_type: type,
@@ -208,9 +208,7 @@ export function showReportModal({ type, id, username }) {
         }),
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data.success) {
         toastQueue.add(
           "<h1>Report submitted successfully</h1><p>Thank you for helping keep Tweetapus safe.</p>"
         );
