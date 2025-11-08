@@ -177,8 +177,6 @@ const createAffiliateRequest = db.query(
   `INSERT INTO affiliate_requests (id, requester_id, target_id) VALUES (?, ?, ?)`
 );
 
-// (replaced by updateUserAffiliateWith below)
-
 const updateUserAffiliateWith = db.query(
   `UPDATE users SET affiliate = ?, affiliate_with = ? WHERE id = ?`
 );
