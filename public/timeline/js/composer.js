@@ -48,7 +48,6 @@ export const useComposer = (
   const cardModal = element.querySelector("#card-modal");
   const cardModalClose = element.querySelector("#card-modal-close");
   const cardMediaInput = element.querySelector("#card-media-input");
-  const cardMediaPreview = element.querySelector("#card-media-preview");
   const cardMediaUploadBtn = element.querySelector("#card-media-upload-btn");
   const confirmCardBtn = element.querySelector("#confirm-card-btn");
   const clearCardBtn = element.querySelector("#clear-card-btn");
@@ -424,7 +423,7 @@ export const useComposer = (
       const div = document.createElement("button");
       div.type = "button";
       div.className =
-        "mention-suggestion" + (i === mentionIndex ? " selected" : "");
+        `mention-suggestion ${i === mentionIndex ? " selected" : ""}`;
       div.innerHTML = `
         <img class="mention-avatar" src="${
           user.avatar || "/public/shared/assets/default-avatar.png"

@@ -309,14 +309,12 @@ const getQuotedTweetData = (quoteTweetId, userId) => {
   const quotedTweet = getQuotedTweet.get(quoteTweetId);
   if (!quotedTweet) return null;
 
-  // Check whether the quoted tweet's author is suspended (either active suspension or users.suspended flag)
   const suspensionRow = isSuspendedQuery.get(quotedTweet.user_id);
   const userSuspendedFlag = getUserSuspendedFlag.get(quotedTweet.user_id);
   const authorSuspended =
-    !!suspensionRow || !!(userSuspendedFlag && userSuspendedFlag.suspended);
+    !!suspensionRow || !!userSuspendedFlag?.suspended;
 
   if (authorSuspended) {
-    // Return a placeholder object indicating the quoted tweet exists but the author is suspended.
     return {
       id: quotedTweet.id,
       unavailable_reason: "suspended",
@@ -398,8 +396,6 @@ export default new Elysia({ prefix: "/profile" })
         return { error: "User not found" };
       }
 
-      // Gather follow/post counts early so we can surface minimal profile
-      // information even when an account is suspended.
       const counts = getFollowCounts.get(
         user.id,
         user.id,
@@ -411,11 +407,9 @@ export default new Elysia({ prefix: "/profile" })
       const suspensionRow = isSuspendedQuery.get(user.id);
       const userSuspendedFlag = getUserSuspendedFlag.get(user.id);
       const isSuspended =
-        !!suspensionRow || !!(userSuspendedFlag && userSuspendedFlag.suspended);
+        !!suspensionRow || !!userSuspendedFlag?.suspended;
 
       if (isSuspended) {
-        // Return an error but include minimal public profile fields so the
-        // frontend can render the display name / avatar for suspended users.
         const minimalProfile = {
           username: user.username,
           name: user.name,

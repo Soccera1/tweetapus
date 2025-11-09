@@ -25,7 +25,7 @@ export default async (url, options = {}) => {
     let parsed = null;
     try {
       parsed = await res.json();
-    } catch (err) {
+    } catch {
       const text = await res.text();
       parsed = text;
     }

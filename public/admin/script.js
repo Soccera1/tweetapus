@@ -1096,10 +1096,10 @@ class AdminPanel {
                             post.article_title
                           )}`
                         : post.content.length > 100
-                        ? post.content
+                        ? `${post.content
                             .replaceAll("<", "&lt;")
                             .replaceAll(">", "&gt;")
-                            .substring(0, 100) + "..."
+                            .substring(0, 100)}…`
                         : post.content
                             .replaceAll("<", "&lt;")
                             .replaceAll(">", "&gt;")
@@ -2616,7 +2616,7 @@ class AdminPanel {
       );
       modal.show();
     } catch (error) {
-      this.showError("Failed to load fact-check data: " + error.message);
+      this.showError(`Failed to load fact-check data: ${error.message}`);
     }
   }
 
@@ -5016,7 +5016,7 @@ class AdminPanel {
       this.loadCommunities(1);
     } catch (error) {
       console.error("Error creating community:", error);
-      alert("Failed to create community: " + error.message);
+      alert(`Failed to create community: ${error.message}`);
     }
   }
 
@@ -5127,7 +5127,7 @@ class AdminPanel {
       this.loadCommunities(this.currentPage.communities || 1);
     } catch (error) {
       console.error("Error updating community:", error);
-      alert("Failed to update community: " + error.message);
+      alert(`Failed to update community: ${error.message}`);
     }
   }
 
