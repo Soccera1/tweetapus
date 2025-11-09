@@ -14,9 +14,6 @@ export default async function openTweet(
   if (!tweet?.author) {
     const apiOutput = await query(`/tweets/${tweet.id}`);
 
-    // If the API didn't return a tweet (for example: the tweet was deleted
-    // or the author is suspended and the server returns not-found), bail out
-    // early and show the standard "not found" UI.
     if (!apiOutput || !apiOutput.tweet) {
       switchPage("timeline");
       toastQueue.add(

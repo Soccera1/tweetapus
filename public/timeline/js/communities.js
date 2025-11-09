@@ -515,7 +515,6 @@ export async function loadCommunityDetail(communityId) {
 
   showAboutTab();
 }
-// Use root scrolling — ensure user is at top of community view after navigation
 setTimeout(() => window.scrollTo({ top: 0, behavior: "auto" }), 0);
 
 function showAboutTab() {
