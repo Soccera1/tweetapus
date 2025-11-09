@@ -78,11 +78,6 @@ export async function compressVideo(inputPath, outputPath, options = {}) {
 	}
 }
 
-/**
- * Gets video metadata (duration, dimensions, bitrate, etc.)
- * @param {string} videoPath - Path to the video file
- * @returns {Promise<Object>} Video metadata
- */
 export function getVideoMetadata(videoPath) {
 	return new Promise((resolve, reject) => {
 		ffmpeg.ffprobe(videoPath, (err, metadata) => {

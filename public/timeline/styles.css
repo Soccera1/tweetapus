@@ -12,6 +12,7 @@
     width: 100%;
   }
 }
+
 body {
   display: flex;
   gap: 18px;
