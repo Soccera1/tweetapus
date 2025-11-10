@@ -669,7 +669,7 @@ const renderProfile = (data) => {
               : 0;
             imgMain.style.setProperty(
               "border-radius",
-              `${safeRadius}%`,
+              `${safeRadius}px`,
               "important"
             );
           } else if (aff.gold) {
