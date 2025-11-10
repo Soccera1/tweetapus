@@ -141,10 +141,10 @@ export default new Elysia({ prefix: "/auth" })
       return { error: "Username must be less than 40 characters" };
     }
 
-    if (!/^[^a-zA-Z0-9._-]+$/.test(username)) {
+    if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
       return {
         error:
-          "Username can only contain lowercase letters, numbers, and underscores",
+          "Username can only contain lowercase letters, numbers, periods, and hyphens",
       };
     }
 
@@ -593,10 +593,10 @@ export default new Elysia({ prefix: "/auth" })
         return { error: "Username must be between 3 and 20 characters" };
       }
 
-      if (!/^[^a-zA-Z0-9._-]+$/.test(username)) {
+      if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
         return {
           error:
-            "Username can only contain lowercase letters, numbers, and underscores",
+            "Username can only contain lowercase letters, numbers, periods, and hyphens",
         };
       }
 

@@ -102,6 +102,12 @@ const displayResults = (users, posts) => {
     tweetsSection.style.display = "block";
   }
 
+  const escapeHtml = (str) => {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  };
+
   usersResults.innerHTML = users
     .map((user) => {
       const radius =
@@ -110,20 +116,14 @@ const displayResults = (users, posts) => {
           : user.gold
           ? "4px"
           : "50px";
-      const escapeHtml = (text) => {
-        const div = document.createElement("div");
-        div.textContent = text || "";
-        return div.innerHTML;
-      };
-      const escapedName = escapeHtml(user.name);
-      const escapedUsername = escapeHtml(user.username);
-      const escapedAvatar = escapeHtml(user.avatar || "/default-avatar.png");
       return `
-			<a href="/@${escapedUsername}" class="search-user">
-				<img src="${escapedAvatar}" alt="${escapedName}" style="border-radius: ${radius};">
+			<a href="/@${escapeHtml(user.username)}" class="search-user">
+				<img src="${escapeHtml(
+          user.avatar || "/default-avatar.png"
+        )}" alt="${escapeHtml(user.name)}" style="border-radius: ${radius};">
 				<div class="user-info">
-					<h4>${escapedName}</h4>
-					<p>@${escapedUsername}</p>
+					<h4>${escapeHtml(user.name)}</h4>
+					<p>@${escapeHtml(user.username)}</p>
 				</div>
 			</a>
 		`;
