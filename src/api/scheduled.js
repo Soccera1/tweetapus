@@ -165,7 +165,7 @@ export default new Elysia({ prefix: "/scheduled" })
     }
   });
 
-export const processScheduledPosts = async () => {
+const processScheduledPosts = async () => {
   const pendingPosts = getPendingScheduledPosts.all();
 
   for (const scheduledPost of pendingPosts) {
@@ -258,3 +258,9 @@ export const processScheduledPosts = async () => {
     }
   }
 };
+
+setInterval(() => {
+  processScheduledPosts().catch((error) => {
+    console.error("Error processing scheduled posts:", error);
+  });
+}, 60000);
