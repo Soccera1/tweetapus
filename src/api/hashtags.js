@@ -6,7 +6,7 @@ import ratelimit from "../helpers/ratelimit.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
+const getUserByUsername = db.query("SELECT * FROM users WHERE LOWER(username) = LOWER(?)");
 
 const getTrendingHashtags = db.query(`
   SELECT * FROM hashtags

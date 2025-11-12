@@ -25,7 +25,7 @@ const getFollowing = db.prepare(`
   LIMIT 50
 `);
 
-const getUserByUsername = db.prepare("SELECT * FROM users WHERE username = ?");
+const getUserByUsername = db.prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?)");
 
 const updateProfile = db.prepare(`
   UPDATE users

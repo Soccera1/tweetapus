@@ -17,7 +17,7 @@ try {
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const getUserByUsername = db.query(
-  "SELECT id, username, name, avatar, verified FROM users WHERE username = ?"
+  "SELECT id, username, name, avatar, verified FROM users WHERE LOWER(username) = LOWER(?)"
 );
 
 const createConversation = db.query(`

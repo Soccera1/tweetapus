@@ -78,7 +78,7 @@ const getFollowingTimelinePostsBefore = db.query(`
 // Helper to lookup a post's created_at for composite cursor pagination
 const getPostCreatedAt = db.query(`SELECT created_at FROM posts WHERE id = ?`);
 
-const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
+const getUserByUsername = db.query("SELECT * FROM users WHERE LOWER(username) = LOWER(?)");
 
 const getSeenTweets = db.query(`
   SELECT tweet_id, seen_at FROM seen_tweets 

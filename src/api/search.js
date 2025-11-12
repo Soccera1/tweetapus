@@ -23,7 +23,7 @@ const searchPostsQuery = db.query(`
   LIMIT 20
 `);
 
-const getUserByUsername = db.query("SELECT * FROM users WHERE username = ?");
+const getUserByUsername = db.query("SELECT * FROM users WHERE LOWER(username) = LOWER(?)");
 
 const getPollByPostId = db.query(`
   SELECT * FROM polls WHERE post_id = ?

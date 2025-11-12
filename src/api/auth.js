@@ -15,7 +15,7 @@ const rpName = process.env.AUTH_RPNAME;
 const origin = process.env.AUTH_ORIGIN;
 
 function getUserByUsername(username) {
-  return db.query("SELECT * FROM users WHERE username = ?").get(username);
+  return db.query("SELECT * FROM users WHERE LOWER(username) = LOWER(?)").get(username);
 }
 
 function savePasskey(credentialData) {
@@ -131,7 +131,7 @@ export default new Elysia({ prefix: "/auth" })
     }
   })
   .post("/generate-registration-options", async ({ body, jwt, headers }) => {
-    const username = body.username?.trim()?.toLowerCase();
+    const username = body.username?.trim();
 
     if (!username) {
       return { error: "Username is required" };
@@ -582,7 +582,7 @@ export default new Elysia({ prefix: "/auth" })
   })
   .post("/register-with-password", async ({ body, jwt }) => {
     try {
-      const username = body.username?.trim()?.toLowerCase();
+      const username = body.username?.trim();
       const { password } = body;
 
       if (!username || !password) {

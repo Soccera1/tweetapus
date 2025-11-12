@@ -6,7 +6,7 @@ import ratelimit from "../helpers/ratelimit.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const getUserByUsername = db.prepare("SELECT * FROM users WHERE username = ?");
+const getUserByUsername = db.prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?)");
 const getTweetById = db.prepare("SELECT * FROM posts WHERE id = ?");
 
 const checkBookmarkExists = db.prepare(`

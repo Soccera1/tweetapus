@@ -9,7 +9,7 @@ try {
   sendUnreadCounts = () => {};
 }
 
-const getUserByUsername = db.query("SELECT id FROM users WHERE username = ?");
+const getUserByUsername = db.query("SELECT id FROM users WHERE LOWER(username) = LOWER(?)");
 
 const getNotifications = db.prepare(`
   SELECT 

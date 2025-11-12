@@ -28,7 +28,7 @@ const logModerationAction = (
 
 const adminQueries = {
   findUserById: db.prepare("SELECT * FROM users WHERE id = ?"),
-  findUserByUsername: db.prepare("SELECT * FROM users WHERE username = ?"),
+  findUserByUsername: db.prepare("SELECT * FROM users WHERE LOWER(username) = LOWER(?)"),
   getUsersWithCounts: db.prepare(`
     SELECT u.*, 
            (SELECT COUNT(*) FROM posts WHERE user_id = u.id) as actual_post_count,
@@ -1564,7 +1564,7 @@ export default new Elysia({ prefix: "/admin" })
 
       if (newAffiliateFlag && affiliateUsername) {
         const affiliateUser = db
-          .query("SELECT id FROM users WHERE username = ?")
+          .query("SELECT id FROM users WHERE LOWER(username) = LOWER(?)")
           .get(affiliateUsername);
         if (affiliateUser) {
           affiliateWith = affiliateUser.id;
@@ -1685,7 +1685,7 @@ export default new Elysia({ prefix: "/admin" })
           if (!username) continue;
 
           const targetUser = db
-            .query("SELECT id FROM users WHERE username = ?")
+            .query("SELECT id FROM users WHERE LOWER(username) = LOWER(?)")
             .get(username);
 
           if (!targetUser) {
