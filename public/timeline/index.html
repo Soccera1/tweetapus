@@ -1,1387 +1,892 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tweetapus</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="icon"
-      href="/public/shared/assets/favicon.svg"
-      type="image/svg+xml"
-    />
 
-    <link rel="stylesheet" href="/public/timeline/styles.css" />
-    <link rel="stylesheet" href="/public/shared/base.css" />
-    <meta name="color-scheme" content="light dark" />
-  </head>
-  <body>
-    <nav>
-      <svg
-        class="icon logo"
-        width="48"
-        height="48"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tweetapus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="icon" href="/public/shared/assets/favicon.svg" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="/public/timeline/styles.css" />
+  <link rel="stylesheet" href="/public/shared/base.css" />
+  <meta name="color-scheme" content="light dark" />
+</head>
+
+<body>
+  <nav>
+    <svg class="icon logo" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2">
+      <path
+        d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
+    </svg>
+
+    <button class="home-btn" id="homeBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="lucide lucide-house-icon lucide-house">
         <path
-          d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"
-        />
+          d="M5 21a2 2 0 0 1-2-2v-9a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2h-3a1 1 0 0 1-1-1v-7a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v7a1 1 0 0 1-1 1z" />
       </svg>
 
-      <button class="home-btn" id="homeBtn">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="25"
-          height="25"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-house-icon lucide-house"
-        >
-          <path d="M5 21a2 2 0 0 1-2-2v-9a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2h-3a1 1 0 0 1-1-1v-7a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v7a1 1 0 0 1-1 1z"
-          />
-        </svg>
-
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="25"
-          height="25"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-house-icon lucide-house filled"
-        >
-          <path d="M5 21a2 2 0 0 1-2-2v-9a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2h-3a1 1 0 0 1-1-1v-7a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v7a1 1 0 0 1-1 1z" fill="currentColor"
-          />
-        </svg>
-        <span class="nav-label">Home</span>
-      </button>
-      <button class="search-btn" id="searchBtn">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="25"
-          height="25"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-search-icon lucide-search"
-        >
-          <path d="m21 21-4.34-4.34" />
-          <circle cx="11" cy="11" r="8" />
-        </svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="lucide lucide-house-icon lucide-house filled">
+        <path
+          d="M5 21a2 2 0 0 1-2-2v-9a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2h-3a1 1 0 0 1-1-1v-7a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v7a1 1 0 0 1-1 1z"
+          fill="currentColor" />
+      </svg>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="search-btn" id="searchBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="lucide lucide-search-icon lucide-search">
+        <path d="m21 21-4.34-4.34" />
+        <circle cx="11" cy="11" r="8" />
+      </svg>
 
 
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="25"
-          height="25"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="3"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-search-icon lucide-search filled"
-        >
-          <path d="m21 21-4.34-4.34" />
-          <circle cx="11" cy="11" r="8" />
-        </svg>
-        <span class="nav-label">Search</span>
-      </button>
-      <button class="notifications-btn" id="notificationsBtn">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="26"
-          height="26"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-bell-icon lucide-bell"
-        >
-          <path d="M10.268 21a2 2 0 0 0 3.464 0" />
-          <path
-            d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"
-          />
-        </svg>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="26"
-          height="26"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-bell-icon lucide-bell filled"
-        >
-          <path d="M10.268 21a2 2 0 0 0 3.464 0" />
-          <path
-            d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" fill="currentColor"
-          />
-        </svg>
-        <span
-          class="notification-count"
-          id="notificationCount"
-          style="display: none"
-        >
-          0
-        </span>
-        <span class="nav-label">Notifications</span>
-      </button>
-      <button class="dm-btn" id="dmBtn">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="25"
-          height="25"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-message-circle-more-icon lucide-message-circle-more"
-        >
-          <path
-            d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"
-          />
-          <path d="M8 12h.01" />
-          <path d="M12 12h.01" />
-          <path d="M16 12h.01" />
-        </svg>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="25"
-          height="25"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-message-circle-more-icon lucide-message-circle-more filled"
-        >
-          <path
-            d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"
-            fill="currentColor"
-          />
-          <path d="M8 12h.01" stroke="var(--bg-primary)" />
-          <path d="M12 12h.01" stroke="var(--bg-primary)" />
-          <path d="M16 12h.01" stroke="var(--bg-primary)" />
-        </svg>
-        <span class="dm-count" id="dmCount" style="display: none">0</span>
-        <span class="nav-label">DMs</span>
-      </button>
-      <button class="communities-btn" id="communitiesBtn">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="25"
-          height="25"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-users-round-icon lucide-users-round"
-        >
-          <path d="M18 21a8 8 0 0 0-16 0" />
-          <circle cx="10" cy="8" r="5" />
-          <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
-        </svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+        class="lucide lucide-search-icon lucide-search filled">
+        <path d="m21 21-4.34-4.34" />
+        <circle cx="11" cy="11" r="8" />
+      </svg>
+      <span class="nav-label">Search</span>
+    </button>
+    <button class="notifications-btn" id="notificationsBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="lucide lucide-bell-icon lucide-bell">
+        <path d="M10.268 21a2 2 0 0 0 3.464 0" />
+        <path
+          d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
+      </svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="lucide lucide-bell-icon lucide-bell filled">
+        <path d="M10.268 21a2 2 0 0 0 3.464 0" />
+        <path
+          d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"
+          fill="currentColor" />
+      </svg>
+      <span class="notification-count" id="notificationCount" style="display: none">
+        0
+      </span>
+      <span class="nav-label">Notifications</span>
+    </button>
+    <button class="dm-btn" id="dmBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="lucide lucide-message-circle-more-icon lucide-message-circle-more">
+        <path
+          d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
+        <path d="M8 12h.01" />
+        <path d="M12 12h.01" />
+        <path d="M16 12h.01" />
+      </svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="lucide lucide-message-circle-more-icon lucide-message-circle-more filled">
+        <path
+          d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"
+          fill="currentColor" />
+        <path d="M8 12h.01" stroke="var(--bg-primary)" />
+        <path d="M12 12h.01" stroke="var(--bg-primary)" />
+        <path d="M16 12h.01" stroke="var(--bg-primary)" />
+      </svg>
+      <span class="dm-count" id="dmCount" style="display: none">0</span>
+      <span class="nav-label">DMs</span>
+    </button>
+    <button class="communities-btn" id="communitiesBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="lucide lucide-users-round-icon lucide-users-round">
+        <path d="M18 21a8 8 0 0 0-16 0" />
+        <circle cx="10" cy="8" r="5" />
+        <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
+      </svg>
 
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="25"
-          height="25"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-users-round-icon lucide-users-round filled"
-        >
-          <path d="M18 21a8 8 0 0 0-16 0" fill="currentColor" stroke="currentColor"  />
-          <circle cx="10" cy="8" r="5" fill="currentColor" />
-          <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
+      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        class="lucide lucide-users-round-icon lucide-users-round filled">
+        <path d="M18 21a8 8 0 0 0-16 0" fill="currentColor" stroke="currentColor" />
+        <circle cx="10" cy="8" r="5" fill="currentColor" />
+        <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
 
-            <line x1="3.3" y1="21" x2="18.5" y2="21" stroke="currentColor" stroke-width="2"></line>
-        </svg>
-        <span class="nav-label">Communities</span>
-      </button>
-      <button class="account">
-        <img src="" alt="User avatar" id="user-avatar" />
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 18 18"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M4.5 6.75L9 11.25L13.5 6.75"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
-    </nav>
+        <line x1="3.3" y1="21" x2="18.5" y2="21" stroke="currentColor" stroke-width="2"></line>
+      </svg>
+      <span class="nav-label">Communities</span>
+    </button>
+    <button class="account">
+      <img src="" alt="User avatar" id="user-avatar" />
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4.5 6.75L9 11.25L13.5 6.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </svg>
+    </button>
+  </nav>
 
-    <div class="main-content">
-      <div class="timeline">
-        <h1>
-          <a href="javascript:" class="active" data-tab="home">Your feed</a>
-          <a href="javascript:" data-tab="following">Following</a>
-          <a href="javascript:" data-tab="articles">Articles</a>
-        </h1>
+  <div class="main-content">
+    <div class="timeline">
+      <h1>
+        <a href="javascript:" class="active" data-tab="home">Your feed</a>
+        <a href="javascript:" data-tab="following">Following</a>
+        <a href="javascript:" data-tab="articles">Articles</a>
+      </h1>
 
-        <div id="composer-container"></div>
+      <div id="composer-container"></div>
 
-        <div id="articles-container" class="articles-container hidden">
-          <div id="article-composer"></div>
-          <div id="articles-empty" class="articles-empty hidden"></div>
-          <div id="articles-list" class="articles-list"></div>
-          <button
-            type="button"
-            id="articles-load-more"
-            class="articles-load-more hidden"
-          >
-            Load more articles
+      <div id="articles-container" class="articles-container hidden">
+        <div id="article-composer"></div>
+        <div id="articles-empty" class="articles-empty hidden"></div>
+        <div id="articles-list" class="articles-list"></div>
+        <button type="button" id="articles-load-more" class="articles-load-more hidden">
+          Load more articles
+        </button>
+      </div>
+
+      <div class="tweets"></div>
+    </div>
+
+    <div class="tweetPage"></div>
+
+    <div class="search-page">
+      <div class="search-header">
+        <div class="search-input-container">
+          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input type="text" id="searchPageInput" placeholder="Search users and tweets" autofocus />
+        </div>
+      </div>
+
+      <div class="search-filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="users">Users</button>
+        <button class="filter-btn" data-filter="tweets">Tweets</button>
+      </div>
+
+      <div class="search-results-page">
+        <div class="search-empty" id="searchEmpty">
+          <svg class="search-empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <h3>Search for people and tweets</h3>
+          <p>Start typing to find what you're looking for</p>
+        </div>
+
+        <div class="users-section" id="usersSection" style="display: none">
+          <h4>Users</h4>
+          <div class="users-results-page"></div>
+        </div>
+
+        <div class="tweets-section" id="tweetsSection" style="display: none">
+          <h4>Tweets</h4>
+          <div class="tweets-results-page"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bookmarks-page">
+      <div class="bookmarks-header">
+        <button class="back-button" onclick="history.back()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+          </svg>
+        </button>
+        <div class="bookmarks-header-info">
+          <h1>Bookmarks</h1>
+          <p>Tweets you've saved for later</p>
+        </div>
+      </div>
+
+      <div class="bookmarks-content">
+        <div class="bookmarks-empty" id="bookmarksEmpty" style="display: none">
+          <svg width="48" height="48" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M3.95833 16.625L9.5 12.2917L15.0417 16.625V4.75C15.0417 4.33008 14.8749 3.92735 14.5779 3.63041C14.281 3.33348 13.8783 3.16667 13.4583 3.16667H5.54167C5.12174 3.16667 4.71901 3.33348 4.42208 3.63041C4.12514 3.92735 3.95833 4.33008 3.95833 4.75V16.625Z"
+              stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <h3>Save Tweets for later</h3>
+          <p>When you bookmark Tweets, they'll show up here.</p>
+        </div>
+
+        <div class="bookmarks-list" id="bookmarksList"></div>
+      </div>
+    </div>
+
+    <div class="notifications">
+      <div class="notifications-header">
+        <div class="notifications-header-info">
+          <h1>Notifications</h1>
+          <button class="mark-all-read-btn" id="markAllReadBtn">
+            Mark all as read
+          </button>
+        </div>
+      </div>
+
+      <div class="notifications-list" id="notificationsList"></div>
+    </div>
+
+    <div class="communities-page">
+      <div class="communities-header">
+        <div class="communities-header-info">
+          <h1>Communities</h1>
+          <button class="create-community-btn" id="createCommunityBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Create
+          </button>
+        </div>
+      </div>
+
+      <div class="communities-tabs">
+        <button class="communities-tab active" data-tab="all">Explore</button>
+        <button class="communities-tab" data-tab="my">
+          Your communities
+        </button>
+      </div>
+
+      <div class="communities-content">
+        <div class="communities-list" id="communitiesList"></div>
+        <div class="communities-list hidden" id="myCommunitiesList"></div>
+      </div>
+    </div>
+
+    <div class="community-detail-page">
+      <div class="community-detail-header">
+        <button class="back-button" onclick="history.back()" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+          </svg>
+        </button>
+        <div class="community-detail-header-info">
+          <h1 id="communityDetailTitle"></h1>
+        </div>
+      </div>
+
+      <div class="community-detail-banner" id="communityDetailBanner"></div>
+
+      <div class="community-detail-content">
+        <div class="community-detail-tabs">
+          <button class="community-detail-tab active" data-tab="about">
+            About
+          </button>
+          <button class="community-detail-tab" data-tab="tweets">
+            Tweets
+          </button>
+          <button class="community-detail-tab" data-tab="members">
+            Members
+          </button>
+          <button class="community-detail-tab hidden" data-tab="requests" id="requestsTab">
+            Requests
+          </button>
+          <button class="community-detail-tab hidden" data-tab="settings" id="settingsTab">
+            Settings
           </button>
         </div>
 
-        <div class="tweets"></div>
-      </div>
-
-      <div class="tweetPage"></div>
-
-      <div class="search-page">
-        <div class="search-header">
-          <div class="search-input-container">
-            <svg
-              class="search-icon"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-            <input
-              type="text"
-              id="searchPageInput"
-              placeholder="Search users and tweets"
-              autofocus
-            />
-          </div>
-        </div>
-
-        <div class="search-filters">
-          <button class="filter-btn active" data-filter="all">All</button>
-          <button class="filter-btn" data-filter="users">Users</button>
-          <button class="filter-btn" data-filter="tweets">Tweets</button>
-        </div>
-
-        <div class="search-results-page">
-          <div class="search-empty" id="searchEmpty">
-            <svg
-              class="search-empty-icon"
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-            <h3>Search for people and tweets</h3>
-            <p>Start typing to find what you're looking for</p>
-          </div>
-
-          <div class="users-section" id="usersSection" style="display: none">
-            <h4>Users</h4>
-            <div class="users-results-page"></div>
-          </div>
-
-          <div class="tweets-section" id="tweetsSection" style="display: none">
-            <h4>Tweets</h4>
-            <div class="tweets-results-page"></div>
-          </div>
+        <div class="community-detail-tab-content">
+          <div id="aboutContent"></div>
+          <div id="tweetsContent" class="hidden"></div>
+          <div id="membersContent" class="hidden"></div>
+          <div id="requestsContent" class="hidden"></div>
+          <div id="settingsContent" class="hidden"></div>
         </div>
       </div>
+    </div>
 
-      <div class="bookmarks-page">
-        <div class="bookmarks-header">
-          <button class="back-button" onclick="history.back()">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m12 19-7-7 7-7" />
-              <path d="M19 12H5" />
+    <div class="direct-messages">
+      <div class="dm-header">
+        <div class="dm-header-info">
+          <h1>Messages</h1>
+          <button class="new-message-btn" id="newMessageBtn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34" />
+              <polygon points="18,2 22,6 12,16 8,16 8,12 18,2" />
             </svg>
           </button>
-          <div class="bookmarks-header-info">
-            <h1>Bookmarks</h1>
-            <p>Tweets you've saved for later</p>
-          </div>
-        </div>
-
-        <div class="bookmarks-content">
-          <div
-            class="bookmarks-empty"
-            id="bookmarksEmpty"
-            style="display: none"
-          >
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 20 20"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                d="M3.95833 16.625L9.5 12.2917L15.0417 16.625V4.75C15.0417 4.33008 14.8749 3.92735 14.5779 3.63041C14.281 3.33348 13.8783 3.16667 13.4583 3.16667H5.54167C5.12174 3.16667 4.71901 3.33348 4.42208 3.63041C4.12514 3.92735 3.95833 4.33008 3.95833 4.75V16.625Z"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            <h3>Save Tweets for later</h3>
-            <p>When you bookmark Tweets, they'll show up here.</p>
-          </div>
-
-          <div class="bookmarks-list" id="bookmarksList"></div>
         </div>
       </div>
+      <div class="dm-conversations-list" id="dmConversationsList"></div>
+    </div>
 
-      <div class="notifications">
-        <div class="notifications-header">
-          <div class="notifications-header-info">
-            <h1>Notifications</h1>
-            <button class="mark-all-read-btn" id="markAllReadBtn">
-              Mark all as read
-            </button>
+    <div class="dm-conversation">
+      <div class="dm-conversation-header">
+        <button class="back-button" onclick="goBackToDMList()" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+          </svg>
+        </button>
+        <div class="dm-conversation-info">
+          <div class="dm-participant-avatars" id="dmParticipantAvatars"></div>
+          <div class="dm-conversation-names">
+            <h2 id="dmConversationTitle">Conversation</h2>
+            <span id="dmParticipantCount">2 participants</span>
           </div>
         </div>
-
-        <div class="notifications-list" id="notificationsList"></div>
+        <div class="dm-conversation-actions" id="dmConversationActions"></div>
       </div>
-
-      <div class="communities-page">
-        <div class="communities-header">
-          <div class="communities-header-info">
-            <h1>Communities</h1>
-            <button class="create-community-btn" id="createCommunityBtn">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Create
-            </button>
-          </div>
-        </div>
-
-        <div class="communities-tabs">
-          <button class="communities-tab active" data-tab="all">Explore</button>
-          <button class="communities-tab" data-tab="my">
-            Your communities
-          </button>
-        </div>
-
-        <div class="communities-content">
-          <div class="communities-list" id="communitiesList"></div>
-          <div class="communities-list hidden" id="myCommunitiesList"></div>
-        </div>
-      </div>
-
-      <div class="community-detail-page">
-        <div class="community-detail-header">
-          <button class="back-button" onclick="history.back()" type="button">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m12 19-7-7 7-7" />
-              <path d="M19 12H5" />
+      <div class="dm-messages" id="dmMessages"></div>
+      <div class="dm-composer">
+        <div class="dm-composer-attachments" id="dmComposerAttachments"></div>
+        <div class="dm-composer-input">
+          <button class="dm-attachment-btn" id="dmAttachmentBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+              <circle cx="9" cy="9" r="2" />
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
             </svg>
           </button>
-          <div class="community-detail-header-info">
-            <h1 id="communityDetailTitle"></h1>
-          </div>
-        </div>
-
-        <div class="community-detail-banner" id="communityDetailBanner"></div>
-
-        <div class="community-detail-content">
-          <div class="community-detail-tabs">
-            <button class="community-detail-tab active" data-tab="about">
-              About
-            </button>
-            <button class="community-detail-tab" data-tab="tweets">
-              Tweets
-            </button>
-            <button class="community-detail-tab" data-tab="members">
-              Members
-            </button>
-            <button
-              class="community-detail-tab hidden"
-              data-tab="requests"
-              id="requestsTab"
-            >
-              Requests
-            </button>
-            <button
-              class="community-detail-tab hidden"
-              data-tab="settings"
-              id="settingsTab"
-            >
-              Settings
-            </button>
-          </div>
-
-          <div class="community-detail-tab-content">
-            <div id="aboutContent"></div>
-            <div id="tweetsContent" class="hidden"></div>
-            <div id="membersContent" class="hidden"></div>
-            <div id="requestsContent" class="hidden"></div>
-            <div id="settingsContent" class="hidden"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="direct-messages">
-        <div class="dm-header">
-          <div class="dm-header-info">
-            <h1>Messages</h1>
-            <button class="new-message-btn" id="newMessageBtn">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"
-                />
-                <polygon points="18,2 22,6 12,16 8,16 8,12 18,2" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div class="dm-conversations-list" id="dmConversationsList"></div>
-      </div>
-
-      <div class="dm-conversation">
-        <div class="dm-conversation-header">
-          <button class="back-button" onclick="goBackToDMList()" type="button">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m12 19-7-7 7-7" />
-              <path d="M19 12H5" />
+          <input type="file" id="dmFileInput" accept="image/webp,image/*" multiple style="display: none" />
+          <textarea id="dmMessageInput" placeholder="Type a message..." rows="1"></textarea>
+          <button class="dm-send-btn" id="dmSendBtn" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="lucide lucide-arrow-up-icon lucide-arrow-up">
+              <path d="m5 12 7-7 7 7" />
+              <path d="M12 19V5" />
             </svg>
           </button>
-          <div class="dm-conversation-info">
-            <div class="dm-participant-avatars" id="dmParticipantAvatars"></div>
-            <div class="dm-conversation-names">
-              <h2 id="dmConversationTitle">Conversation</h2>
-              <span id="dmParticipantCount">2 participants</span>
-            </div>
-          </div>
-          <div class="dm-conversation-actions" id="dmConversationActions"></div>
-        </div>
-        <div class="dm-messages" id="dmMessages"></div>
-        <div class="dm-composer">
-          <div class="dm-composer-attachments" id="dmComposerAttachments"></div>
-          <div class="dm-composer-input">
-            <button class="dm-attachment-btn" id="dmAttachmentBtn">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                <circle cx="9" cy="9" r="2" />
-                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-              </svg>
-            </button>
-            <input
-              type="file"
-              id="dmFileInput"
-              accept="image/webp,image/*"
-              multiple
-              style="display: none"
-            />
-            <textarea
-              id="dmMessageInput"
-              placeholder="Type a message..."
-              rows="1"
-            ></textarea>
-            <button class="dm-send-btn" id="dmSendBtn" disabled>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="lucide lucide-arrow-up-icon lucide-arrow-up"
-              >
-                <path d="m5 12 7-7 7 7" />
-                <path d="M12 19V5" />
-              </svg>
-            </button>
-          </div>
         </div>
       </div>
+    </div>
 
-      <div class="new-message-modal" id="newMessageModal" style="display: none">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>New Message</h3>
-            <button class="modal-close" id="newMessageModalClose">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label for="newMessageTo">To:</label>
-              <input
-                type="text"
-                id="newMessageTo"
-                placeholder="Enter username..."
-                autocomplete="off"
-              />
-              <div class="search-suggestions" id="userSuggestions"></div>
-            </div>
-            <div class="selected-users" id="selectedUsers"></div>
-
-            <div class="group-chat-options">
-              <label class="checkbox-label">
-                <input type="checkbox" id="groupChatToggle" />
-                <span>Create group chat</span>
-              </label>
-              <input
-                type="text"
-                id="groupTitleInput"
-                placeholder="Group name (optional)"
-                style="display: none"
-              />
-            </div>
-          </div>
-          <div class="modal-actions">
-            <button type="button" class="btn-secondary" id="cancelNewMessage">
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="btn-primary"
-              id="startConversation"
-              disabled
-            >
-              Start
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div
-        class="group-settings-modal"
-        id="groupSettingsModal"
-        style="display: none"
-      >
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>Group Settings</h3>
-            <button class="modal-close" id="groupSettingsModalClose">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label for="groupNameInput">Group Name:</label>
-              <input
-                type="text"
-                id="groupNameInput"
-                placeholder="Enter group name..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label>Participants:</label>
-              <div class="participants-list" id="participantsList"></div>
-              <button class="btn-secondary" id="addParticipantBtn">
-                Add Participant
-              </button>
-            </div>
-          </div>
-          <div class="modal-actions">
-            <button
-              type="button"
-              class="btn-secondary"
-              id="cancelGroupSettings"
-            >
-              Cancel
-            </button>
-            <button type="button" class="btn-primary" id="saveGroupSettings">
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Add Participant Modal -->
-      <div
-        class="add-participant-modal"
-        id="addParticipantModal"
-        style="display: none"
-      >
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>Add Participants</h3>
-            <button class="modal-close" id="addParticipantModalClose">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label for="addParticipantTo">Search users:</label>
-              <input
-                type="text"
-                id="addParticipantTo"
-                placeholder="Enter username..."
-                autocomplete="off"
-              />
-              <div
-                class="search-suggestions"
-                id="addParticipantSuggestions"
-              ></div>
-            </div>
-            <div class="selected-users" id="addParticipantSelectedUsers"></div>
-          </div>
-          <div class="modal-actions">
-            <button
-              type="button"
-              class="btn-secondary"
-              id="cancelAddParticipant"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="btn-primary"
-              id="confirmAddParticipant"
-              disabled
-            >
-              Add to Group
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="profile">
-        <div class="profile-header">
-          <button class="back-button" onclick="history.back()">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="lucide lucide-arrow-left-icon lucide-arrow-left"
-            >
-              <path d="m12 19-7-7 7-7" />
-              <path d="M19 12H5" />
+    <div class="new-message-modal" id="newMessageModal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>New Message</h3>
+          <button class="modal-close" id="newMessageModalClose">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
             </svg>
           </button>
-          <div class="profile-header-info">
-            <h1 id="profileHeaderName">Profile</h1>
-            <p class="post-count" id="profileHeaderPostCount">0 posts</p>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="newMessageTo">To:</label>
+            <input type="text" id="newMessageTo" placeholder="Enter username..." autocomplete="off" />
+            <div class="search-suggestions" id="userSuggestions"></div>
+          </div>
+          <div class="selected-users" id="selectedUsers"></div>
+
+          <div class="group-chat-options">
+            <label class="checkbox-label">
+              <input type="checkbox" id="groupChatToggle" />
+              <span>Create group chat</span>
+            </label>
+            <input type="text" id="groupTitleInput" placeholder="Group name (optional)" style="display: none" />
           </div>
         </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelNewMessage">
+            Cancel
+          </button>
+          <button type="button" class="btn-primary" id="startConversation" disabled>
+            Start
+          </button>
+        </div>
+      </div>
+    </div>
 
-        <div id="profileContainer" style="display: none">
-          <div class="profile-banner"></div>
+    <div class="group-settings-modal" id="groupSettingsModal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Group Settings</h3>
+          <button class="modal-close" id="groupSettingsModalClose">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="groupNameInput">Group Name:</label>
+            <input type="text" id="groupNameInput" placeholder="Enter group name..." />
+          </div>
 
-          <div class="profile-card">
-            <img class="profile-avatar" id="profileAvatar" />
+          <div class="form-group">
+            <label>Participants:</label>
+            <div class="participants-list" id="participantsList"></div>
+            <button class="btn-secondary" id="addParticipantBtn">
+              Add Participant
+            </button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelGroupSettings">
+            Cancel
+          </button>
+          <button type="button" class="btn-primary" id="saveGroupSettings">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
 
-            <div class="profile-actions">
-              <button
-                class="profile-btn"
-                id="editProfileBtn"
-                style="display: none"
-              >
-                Edit profile
-              </button>
-              <div
-                class="profile-dropdown"
-                id="profileDropdown"
-                style="display: none"
-              >
-                <button
-                  class="profile-btn profile-btn-secondary profile-dropdown-btn"
-                  id="profileDropdownBtn"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fill="currentColor"
-                      d="M10.001 7.8a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 10 7.8zm-7 0a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 3 7.8zm14 0a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 17 7.8z"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-              <button
-                class="profile-btn profile-btn-secondary"
-                id="profileDmBtn"
-                style="display: none"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M1.998 5.5c0-1.381 1.119-2.5 2.5-2.5h15c1.381 0 2.5 1.119 2.5 2.5v13c0 1.381-1.119 2.5-2.5 2.5h-15c-1.381 0-2.5-1.119-2.5-2.5v-13zm2.5-.5c-.276 0-.5.224-.5.5v2.764l8 3.638 8-3.636V5.5c0-.276-.224-.5-.5-.5h-15zm15.5 5.463l-8 3.636-8-3.638V18.5c0 .276.224.5.5.5h15c.276 0 .5-.224.5-.5v-8.037z"
-                    fill="currentColor"
-                  ></path>
+    <!-- Add Participant Modal -->
+    <div class="add-participant-modal" id="addParticipantModal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add Participants</h3>
+          <button class="modal-close" id="addParticipantModalClose">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="addParticipantTo">Search users:</label>
+            <input type="text" id="addParticipantTo" placeholder="Enter username..." autocomplete="off" />
+            <div class="search-suggestions" id="addParticipantSuggestions"></div>
+          </div>
+          <div class="selected-users" id="addParticipantSelectedUsers"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelAddParticipant">
+            Cancel
+          </button>
+          <button type="button" class="btn-primary" id="confirmAddParticipant" disabled>
+            Add to Group
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile">
+      <div class="profile-header">
+        <button class="back-button" onclick="history.back()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
+            class="lucide lucide-arrow-left-icon lucide-arrow-left">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+          </svg>
+        </button>
+        <div class="profile-header-info">
+          <h1 id="profileHeaderName">Profile</h1>
+          <p class="post-count" id="profileHeaderPostCount">0 posts</p>
+        </div>
+      </div>
+
+      <div id="profileContainer" style="display: none">
+        <div class="profile-banner"></div>
+
+        <div class="profile-card">
+          <img class="profile-avatar" id="profileAvatar" />
+
+          <div class="profile-actions">
+            <button class="profile-btn" id="editProfileBtn" style="display: none">
+              Edit profile
+            </button>
+            <div class="profile-dropdown" id="profileDropdown" style="display: none">
+              <button class="profile-btn profile-btn-secondary profile-dropdown-btn" id="profileDropdownBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20">
+                  <path fill="currentColor"
+                    d="M10.001 7.8a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 10 7.8zm-7 0a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 3 7.8zm14 0a2.2 2.2 0 1 0 0 4.402A2.2 2.2 0 0 0 17 7.8z">
+                  </path>
                 </svg>
               </button>
-              <div class="profile-notification-dropdown" id="profileNotificationDropdown" style="display: none">
-                <button
-                  class="profile-btn profile-btn-secondary"
-                  id="profileNotificationBtn"
-                  title="Notification settings"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-                  </svg>
-                </button>
-              </div>
-              <button
-                class="profile-btn profile-btn-primary"
-                id="followBtn"
-                style="display: none"
-              >
-                Follow
+            </div>
+            <button class="profile-btn profile-btn-secondary" id="profileDmBtn" style="display: none">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M1.998 5.5c0-1.381 1.119-2.5 2.5-2.5h15c1.381 0 2.5 1.119 2.5 2.5v13c0 1.381-1.119 2.5-2.5 2.5h-15c-1.381 0-2.5-1.119-2.5-2.5v-13zm2.5-.5c-.276 0-.5.224-.5.5v2.764l8 3.638 8-3.636V5.5c0-.276-.224-.5-.5-.5h-15zm15.5 5.463l-8 3.636-8-3.638V18.5c0 .276.224.5.5.5h15c.276 0 .5-.224.5-.5v-8.037z"
+                  fill="currentColor"></path>
+              </svg>
+            </button>
+            <div class="profile-notification-dropdown" id="profileNotificationDropdown" style="display: none">
+              <button class="profile-btn profile-btn-secondary" id="profileNotificationBtn"
+                title="Notification settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                </svg>
               </button>
             </div>
-
-            <div class="profile-info">
-              <h2 id="profileDisplayName"></h2>
-              <p class="username" id="profileUsername">@username</p>
-              <p class="profile-pronouns" id="profilePronouns"></p>
-              <p class="profile-bio" id="profileBio"></p>
-
-              <div class="profile-meta" id="profileMeta"></div>
-
-              <!-- Suspension notice: shown when an account is suspended -->
-              <div
-                id="profileSuspendedNotice"
-                class="profile-suspended"
-                style="display: none"
-              >
-                <strong>This account has been suspended</strong>
-                <div class="suspended-sub">
-                  This user is suspended and their content is not available.
-                </div>
-              </div>
-
-              <div class="profile-stats">
-                <a href="javascript:" id="profileFollowingLink">
-                  <span class="number" id="profileFollowingCount">0</span>
-                  <span class="label">Following</span>
-                </a>
-                <a href="javascript:" id="profileFollowersLink">
-                  <span class="number" id="profileFollowerCount">0</span>
-                  <span class="label">Followers</span>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div
-            id="profileBlockedBanner"
-            class="profile-block-banner"
-            role="alert"
-            aria-live="polite"
-            style="display: none"
-          >
-            <div class="banner-icon">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 14h-2v-2h2v2zm0-4h-2V6h2v6z"
-                  fill="#DC2626"
-                />
-              </svg>
-            </div>
-            <div class="banner-text">
-              <strong>You have been blocked</strong>
-              <div class="banner-sub">
-                This account has blocked you. You won't be able to follow or
-                interact with their posts.
-              </div>
-            </div>
-            <button
-              class="banner-dismiss"
-              id="profileBlockedBannerDismiss"
-              aria-label="Dismiss banner"
-            >
-              ✕
+            <button class="profile-btn profile-btn-primary" id="followBtn" style="display: none">
+              Follow
             </button>
           </div>
 
-          <div class="profile-tabs">
-            <div class="profile-tab-nav">
-              <button class="profile-tab-btn active" data-tab="posts">
-                Posts
-              </button>
-              <button class="profile-tab-btn" data-tab="replies">
-                Replies
-              </button>
-              <button class="profile-tab-btn" data-tab="media">Media</button>
-              <button
-                class="profile-tab-btn"
-                data-tab="affiliates"
-                style="display: none"
-              >
-                Affiliates
-              </button>
+          <div class="profile-info">
+            <h2 id="profileDisplayName"></h2>
+            <p class="username" id="profileUsername">@username</p>
+            <p class="profile-pronouns" id="profilePronouns"></p>
+            <p class="profile-bio" id="profileBio"></p>
+
+            <div class="profile-meta" id="profileMeta"></div>
+
+            <!-- Suspension notice: shown when an account is suspended -->
+            <div id="profileSuspendedNotice" class="profile-suspended" style="display: none">
+              <strong>This account has been suspended</strong>
+              <div class="suspended-sub">
+                This user is suspended and their content is not available.
+              </div>
             </div>
 
-            <div class="profile-tab-content">
-              <div id="profilePostsContainer"></div>
-              <div id="profileAffiliatesContainer" class="hidden"></div>
+            <div class="profile-stats">
+              <a href="javascript:" id="profileFollowingLink">
+                <span class="number" id="profileFollowingCount">0</span>
+                <span class="label">Following</span>
+              </a>
+              <a href="javascript:" id="profileFollowersLink">
+                <span class="number" id="profileFollowerCount">0</span>
+                <span class="label">Followers</span>
+              </a>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="edit-profile-modal" id="editProfileModal">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>Edit Profile</h3>
-            <button class="modal-close" id="closeEditModalBtn">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
+        <div id="profileBlockedBanner" class="profile-block-banner" role="alert" aria-live="polite"
+          style="display: none">
+          <div class="banner-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 14h-2v-2h2v2zm0-4h-2V6h2v6z" fill="#DC2626" />
+            </svg>
+          </div>
+          <div class="banner-text">
+            <strong>You have been blocked</strong>
+            <div class="banner-sub">
+              This account has blocked you. You won't be able to follow or
+              interact with their posts.
+            </div>
+          </div>
+          <button class="banner-dismiss" id="profileBlockedBannerDismiss" aria-label="Dismiss banner">
+            ✕
+          </button>
+        </div>
+
+        <div class="profile-tabs">
+          <div class="profile-tab-nav">
+            <button class="profile-tab-btn active" data-tab="posts">
+              Posts
+            </button>
+            <button class="profile-tab-btn" data-tab="replies">
+              Replies
+            </button>
+            <button class="profile-tab-btn" data-tab="media">Media</button>
+            <button class="profile-tab-btn" data-tab="affiliates" style="display: none">
+              Affiliates
             </button>
           </div>
 
-          <div class="modal-body">
-            <form id="editProfileForm">
-              <div class="avatar-section">
-                <label>Profile Picture</label>
-                <div class="avatar-preview">
-                  <img id="edit-current-avatar" src="" alt="Your avatar" />
-                  <div class="avatar-overlay">
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
-                      />
-                      <circle cx="12" cy="13" r="4" />
-                    </svg>
-                  </div>
+          <div class="profile-tab-content">
+            <div id="profilePostsContainer"></div>
+            <div id="profileAffiliatesContainer" class="hidden"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="edit-profile-modal" id="editProfileModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Edit Profile</h3>
+          <button class="modal-close" id="closeEditModalBtn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <form id="editProfileForm">
+            <div class="avatar-section">
+              <label>Profile Picture</label>
+              <div class="avatar-preview">
+                <img id="edit-current-avatar" src="" alt="Your avatar" />
+                <div class="avatar-overlay">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
                 </div>
-                <div class="avatar-controls">
-                  <input
-                    type="file"
-                    id="edit-avatar-upload"
-                    accept="image/*"
-                    style="display: none"
-                  />
-                  <button
-                    type="button"
-                    class="profile-btn profile-btn-secondary"
-                    id="edit-change-avatar"
-                  >
-                    Change Avatar
-                  </button>
-                  <button
-                    type="button"
-                    class="profile-btn profile-btn-secondary"
-                    id="edit-remove-avatar"
-                    style="display: none"
-                  >
-                    Remove Avatar
-                  </button>
-                  <div
-                    id="avatarRadiusControls"
-                    style="display: none; margin-top: 12px"
-                  >
-                    <label>Profile corner radius</label>
-                    <div
-                      style="
+              </div>
+              <div class="avatar-controls">
+                <input type="file" id="edit-avatar-upload" accept="image/*" style="display: none" />
+                <button type="button" class="profile-btn profile-btn-secondary" id="edit-change-avatar">
+                  Change Avatar
+                </button>
+                <button type="button" class="profile-btn profile-btn-secondary" id="edit-remove-avatar"
+                  style="display: none">
+                  Remove Avatar
+                </button>
+                <div id="avatarRadiusControls" style="display: none; margin-top: 12px">
+                  <label>Profile corner radius</label>
+                  <div style="
                         display: flex;
                         gap: 8px;
                         align-items: center;
                         margin-top: 6px;
-                      "
-                    >
-                      <button
-                        type="button"
-                        class="profile-btn"
-                        id="radius-preset-square"
-                      >
-                        Square
-                      </button>
-                      <button
-                        type="button"
-                        class="profile-btn"
-                        id="radius-preset-default"
-                      >
-                        Default
-                      </button>
-                      <input
-                        id="radius-input"
-                        type="number"
-                        min="0"
-                        max="1000"
-                        value="4"
-                        style="width: 80px; padding: 6px"
-                      />
-                      <span style="font-size: 12px; color: var(--muted)">
-                        px
-                      </span>
-                    </div>
+                      ">
+                    <button type="button" class="profile-btn" id="radius-preset-square">
+                      Square
+                    </button>
+                    <button type="button" class="profile-btn" id="radius-preset-default">
+                      Default
+                    </button>
+                    <input id="radius-input" type="number" min="0" max="1000" value="4"
+                      style="width: 80px; padding: 6px" />
+                    <span style="font-size: 12px; color: var(--muted)">
+                      px
+                    </span>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div class="banner-section">
-                <label>Profile Banner</label>
-                <div class="banner-preview">
-                  <div id="edit-current-banner" class="banner-image">
-                    <div class="banner-overlay">
-                      <svg
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <path
-                          d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
-                        />
-                        <circle cx="12" cy="13" r="4" />
-                      </svg>
-                    </div>
+            <div class="banner-section">
+              <label>Profile Banner</label>
+              <div class="banner-preview">
+                <div id="edit-current-banner" class="banner-image">
+                  <div class="banner-overlay">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
                   </div>
                 </div>
-                <div class="banner-controls">
-                  <input
-                    type="file"
-                    id="edit-banner-upload"
-                    accept="image/*"
-                    style="display: none"
-                  />
-                  <button
-                    type="button"
-                    class="profile-btn profile-btn-secondary"
-                    id="edit-change-banner"
-                  >
-                    Change Banner
-                  </button>
-                  <button
-                    type="button"
-                    class="profile-btn profile-btn-secondary"
-                    id="edit-remove-banner"
-                    style="display: none"
-                  >
-                    Remove Banner
-                  </button>
-                </div>
               </div>
-
-              <div class="form-group">
-                <label for="editDisplayName">Display Name</label>
-                <input type="text" id="editDisplayName" maxlength="50" />
-                <div class="char-count">
-                  <span id="displayNameCount">0</span>
-                  /50
-                </div>
+              <div class="banner-controls">
+                <input type="file" id="edit-banner-upload" accept="image/*" style="display: none" />
+                <button type="button" class="profile-btn profile-btn-secondary" id="edit-change-banner">
+                  Change Banner
+                </button>
+                <button type="button" class="profile-btn profile-btn-secondary" id="edit-remove-banner"
+                  style="display: none">
+                  Remove Banner
+                </button>
               </div>
+            </div>
 
-              <div class="form-group">
-                <label for="editBio">Bio</label>
-                <textarea
-                  id="editBio"
-                  maxlength="160"
-                  placeholder="Tell us about yourself"
-                ></textarea>
-                <div class="char-count">
-                  <span id="bioCount">0</span>
-                  /160
-                </div>
+            <div class="form-group">
+              <label for="editDisplayName">Display Name</label>
+              <input type="text" id="editDisplayName" maxlength="50" />
+              <div class="char-count">
+                <span id="displayNameCount">0</span>
+                /50
               </div>
+            </div>
 
-              <div class="form-group">
-                <label for="editPronouns">Pronouns</label>
-                <input
-                  type="text"
-                  id="editPronouns"
-                  maxlength="30"
-                  placeholder="e.g., she/her, he/him, they/them"
-                />
-                <div class="char-count">
-                  <span id="pronounsCount">0</span>
-                  /30
-                </div>
+            <div class="form-group">
+              <label for="editBio">Bio</label>
+              <textarea id="editBio" maxlength="160" placeholder="Tell us about yourself"></textarea>
+              <div class="char-count">
+                <span id="bioCount">0</span>
+                /160
               </div>
+            </div>
 
-              <div class="form-group">
-                <label for="editLocation">Location</label>
-                <input
-                  type="text"
-                  id="editLocation"
-                  maxlength="30"
-                  placeholder="Where are you?"
-                />
-                <div class="char-count">
-                  <span id="locationCount">0</span>
-                  /30
-                </div>
+            <div class="form-group">
+              <label for="editPronouns">Pronouns</label>
+              <input type="text" id="editPronouns" maxlength="30" placeholder="e.g., she/her, he/him, they/them" />
+              <div class="char-count">
+                <span id="pronounsCount">0</span>
+                /30
               </div>
+            </div>
 
-              <div class="form-group">
-                <label for="editWebsite">Website</label>
-                <input
-                  type="url"
-                  id="editWebsite"
-                  maxlength="100"
-                  placeholder="https://example.com"
-                />
-                <div class="char-count">
-                  <span id="websiteCount">0</span>
-                  /100
-                </div>
+            <div class="form-group">
+              <label for="editLocation">Location</label>
+              <input type="text" id="editLocation" maxlength="30" placeholder="Where are you?" />
+              <div class="char-count">
+                <span id="locationCount">0</span>
+                /30
               </div>
+            </div>
 
-              <div class="form-group">
-                <label for="editLabelType">Account Label</label>
-                <select id="editLabelType">
-                  <option value="">None</option>
-                  <option value="parody">Parody Account</option>
-                  <option value="fan">Fan Account</option>
-                  <option value="commentary">Commentary Account</option>
-                </select>
+            <div class="form-group">
+              <label for="editWebsite">Website</label>
+              <input type="url" id="editWebsite" maxlength="100" placeholder="https://example.com" />
+              <div class="char-count">
+                <span id="websiteCount">0</span>
+                /100
               </div>
+            </div>
 
-              <div class="form-group">
-                <label class="checkbox-label">
-                  <input type="checkbox" id="editLabelAutomated" />
-                  <span>Automated Account</span>
-                </label>
-              </div>
+            <div class="form-group">
+              <label for="editLabelType">Account Label</label>
+              <select id="editLabelType">
+                <option value="">None</option>
+                <option value="parody">Parody Account</option>
+                <option value="fan">Fan Account</option>
+                <option value="commentary">Commentary Account</option>
+              </select>
+            </div>
 
-              <div
-                class="form-group"
-                id="affiliateRemoveSection"
-                style="display: none"
-              >
-                <label>Affiliate Badge</label>
-                <p
-                  style="
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="editLabelAutomated" />
+                <span>Automated Account</span>
+              </label>
+            </div>
+
+            <div class="form-group" id="affiliateRemoveSection" style="display: none">
+              <label>Affiliate Badge</label>
+              <p style="
                     font-size: 14px;
                     color: var(--muted);
                     margin-bottom: 8px;
-                  "
-                >
-                  You are currently affiliated with another account.
-                </p>
-                <button
-                  type="button"
-                  class="profile-btn profile-btn-secondary"
-                  id="removeAffiliateBtn"
-                >
-                  Remove affiliate badge
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" class="profile-btn" id="cancelEditBtn">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="profile-btn profile-btn-primary"
-              form="editProfileForm"
-            >
-              Save
-            </button>
-          </div>
+                  ">
+                You are currently affiliated with another account.
+              </p>
+              <button type="button" class="profile-btn profile-btn-secondary" id="removeAffiliateBtn">
+                Remove affiliate badge
+              </button>
+            </div>
+          </form>
         </div>
-      </div>
 
-      <div class="modal hidden" id="createCommunityModal">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h2>Create Community</h2>
-            <button class="modal-close" id="closeCreateModal">&times;</button>
-          </div>
-          <div class="modal-body">
-            <form id="createCommunityForm">
-              <div class="form-group">
-                <label for="communityName">Community Name *</label>
-                <input type="text" id="communityName" maxlength="50" required />
-              </div>
-              <div class="form-group">
-                <label for="communityDescription">Description</label>
-                <textarea id="communityDescription" rows="4"></textarea>
-              </div>
-              <div class="form-group">
-                <label for="communityRules">Rules</label>
-                <textarea id="communityRules" rows="4"></textarea>
-              </div>
-              <div class="form-group">
-                <label for="accessMode">Access Mode</label>
-                <select id="accessMode">
-                  <option value="open">Open - Anyone can join instantly</option>
-                  <option value="locked">
-                    Locked - Requires approval to join
-                  </option>
-                </select>
-              </div>
-              <div class="modal-actions">
-                <button type="button" class="profile-btn" id="cancelCreateBtn">
-                  Cancel
-                </button>
-                <button type="submit" class="profile-btn profile-btn-primary">
-                  Create
-                </button>
-              </div>
-            </form>
-          </div>
+        <div class="modal-actions">
+          <button type="button" class="profile-btn" id="cancelEditBtn">
+            Cancel
+          </button>
+          <button type="submit" class="profile-btn profile-btn-primary" form="editProfileForm">
+            Save
+          </button>
         </div>
-      </div>
-
-      <div class="modal hidden" id="editCommunityModal">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h2>Edit Community</h2>
-            <button class="modal-close" id="closeEditModal">&times;</button>
-          </div>
-          <div class="modal-body">
-            <form id="editCommunityForm">
-              <div class="form-group">
-                <label for="editCommunityName">Community Name *</label>
-                <input
-                  type="text"
-                  id="editCommunityName"
-                  maxlength="50"
-                  required
-                />
-              </div>
-              <div class="form-group">
-                <label for="editCommunityDescription">Description</label>
-                <textarea id="editCommunityDescription" rows="4"></textarea>
-              </div>
-              <div class="form-group">
-                <label for="editCommunityRules">Rules</label>
-                <textarea id="editCommunityRules" rows="4"></textarea>
-              </div>
-              <div class="form-group">
-                <label>Community Icon</label>
-                <input
-                  type="file"
-                  id="iconUpload"
-                  accept="image/webp,image/png,image/jpeg,image/jpg"
-                />
-                <div class="icon-preview" id="iconPreview"></div>
-              </div>
-              <div class="form-group">
-                <label>Community Banner</label>
-                <input
-                  type="file"
-                  id="bannerUpload"
-                  accept="image/webp,image/png,image/jpeg,image/jpg"
-                />
-                <div class="banner-preview" id="bannerPreview"></div>
-              </div>
-              <div class="modal-actions">
-                <button type="button" class="profile-btn" id="cancelEditBtn">
-                  Cancel
-                </button>
-                <button type="submit" class="profile-btn profile-btn-primary">
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <script src="/public/shared/darkmode.js" defer></script>
-      <script src="/public/shared/extensions.js" type="module" defer></script>
-      <script src="https://unpkg.com/@simplewebauthn/browser@13.1.2/dist/bundle/index.es5.umd.min.js" defer></script>
-      <script src="/public/timeline/js/index.js" defer type="module"></script>
-
-      <div class="loader">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <style>
-            .spinner_z9k8 {
-              transform-origin: center;
-              animation: spinner_StKS 0.75s infinite linear;
-            }
-            @keyframes spinner_StKS {
-              100% {
-                transform: rotate(360deg);
-              }
-            }
-          </style>
-          <path
-            d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z"
-            opacity=".25"
-            fill="currentColor"
-          />
-          <path
-            d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z"
-            class="spinner_z9k8"
-            fill="currentColor"
-          />
-        </svg>
       </div>
     </div>
-  </body>
+
+    <div class="modal hidden" id="createCommunityModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Create Community</h2>
+          <button class="modal-close" id="closeCreateModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="createCommunityForm">
+            <div class="form-group">
+              <label for="communityName">Community Name *</label>
+              <input type="text" id="communityName" maxlength="50" required />
+            </div>
+            <div class="form-group">
+              <label for="communityDescription">Description</label>
+              <textarea id="communityDescription" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="communityRules">Rules</label>
+              <textarea id="communityRules" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="accessMode">Access Mode</label>
+              <select id="accessMode">
+                <option value="open">Open - Anyone can join instantly</option>
+                <option value="locked">
+                  Locked - Requires approval to join
+                </option>
+              </select>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="profile-btn" id="cancelCreateBtn">
+                Cancel
+              </button>
+              <button type="submit" class="profile-btn profile-btn-primary">
+                Create
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="editCommunityModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Edit Community</h2>
+          <button class="modal-close" id="closeEditModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="editCommunityForm">
+            <div class="form-group">
+              <label for="editCommunityName">Community Name *</label>
+              <input type="text" id="editCommunityName" maxlength="50" required />
+            </div>
+            <div class="form-group">
+              <label for="editCommunityDescription">Description</label>
+              <textarea id="editCommunityDescription" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="editCommunityRules">Rules</label>
+              <textarea id="editCommunityRules" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Community Icon</label>
+              <input type="file" id="iconUpload" accept="image/webp,image/png,image/jpeg,image/jpg" />
+              <div class="icon-preview" id="iconPreview"></div>
+            </div>
+            <div class="form-group">
+              <label>Community Banner</label>
+              <input type="file" id="bannerUpload" accept="image/webp,image/png,image/jpeg,image/jpg" />
+              <div class="banner-preview" id="bannerPreview"></div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="profile-btn" id="cancelEditBtn">
+                Cancel
+              </button>
+              <button type="submit" class="profile-btn profile-btn-primary">
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="/public/shared/darkmode.js" defer></script>
+    <script src="/public/shared/extensions.js" type="module" defer></script>
+    <script src="https://unpkg.com/@simplewebauthn/browser@13.1.2/dist/bundle/index.es5.umd.min.js" defer></script>
+    <script src="/public/timeline/js/index.js" defer type="module"></script>
+
+    <div class="loader">
+      <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <style>
+          .spinner_z9k8 {
+            transform-origin: center;
+            animation: spinner_StKS 0.75s infinite linear;
+          }
+
+          @keyframes spinner_StKS {
+            100% {
+              transform: rotate(360deg);
+            }
+          }
+        </style>
+        <path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"
+          fill="currentColor" />
+        <path
+          d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z"
+          class="spinner_z9k8" fill="currentColor" />
+      </svg>
+    </div>
+  </div>
+</body>
+
 </html>

@@ -263,16 +263,21 @@ document.querySelector(".log-in").addEventListener("click", async (e) => {
 				return;
 			}
 
-			const response = await fetch("/api/auth/generate-authentication-options", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({}),
-			});
+			const response = await fetch(
+				"/api/auth/generate-authentication-options",
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({}),
+				},
+			);
 
 			const data = await response.json();
 
 			if (!data.options) {
-				throw new Error(data.error || "Failed to generate authentication options");
+				throw new Error(
+					data.error || "Failed to generate authentication options",
+				);
 			}
 
 			const credential = await window.SimpleWebAuthnBrowser.startAuthentication(
