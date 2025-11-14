@@ -1,12 +1,21 @@
 {
+  "id": "019a8458-cceb-7000-86e0-ade1e0259f69",
+  "install_dir": "happy",
   "name": "Happy Admin Tab",
   "version": "1.0.0",
   "author": "Tweetapus",
   "summary": "Adds a secret Happies tab to the admin dashboard.",
   "description": "A playful gratitude board for administrators to log small wins.",
+  "changelog_url": null,
+  "website": null,
   "root_file": "src/main.js",
   "entry_type": "module",
   "styles": [],
-  "capabilities": ["ui", "admin"],
-  "targets": ["admin"]
+  "capabilities": [
+    "ui",
+    "admin"
+  ],
+  "targets": [
+    "admin"
+  ]
 }

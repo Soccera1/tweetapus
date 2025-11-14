@@ -852,11 +852,16 @@ const renderProfile = (data) => {
     const followBtn = document.getElementById("followBtn");
     const dmBtn = document.getElementById("profileDmBtn");
     const dropdown = document.getElementById("profileDropdown");
+    const notificationDropdown = document.getElementById("profileNotificationDropdown");
     if (editBtn) editBtn.style.display = "none";
     if (followBtn) followBtn.style.display = "block";
     if (dmBtn) dmBtn.style.display = "flex";
     if (dropdown) dropdown.style.display = "block";
+    if (notificationDropdown) {
+      notificationDropdown.style.display = isFollowing ? "block" : "none";
+    }
     updateFollowButton(isFollowing);
+    setupNotificationButton(profile.username, profile.notifyTweets || false);
     setupDmButton(profile.username);
     try {
       const dmBtnCheck = document.getElementById("profileDmBtn");
@@ -939,9 +944,15 @@ const renderProfile = (data) => {
 
 function updateFollowButton(isFollowing) {
   const btn = document.getElementById("followBtn");
+  const notificationDropdown = document.getElementById("profileNotificationDropdown");
+  
   if (isFollowing) {
     btn.textContent = "Following";
     btn.className = "profile-btn profile-btn-following";
+    
+    if (notificationDropdown) {
+      notificationDropdown.style.display = "block";
+    }
 
     btn.onclick = async () => {
       if (!authToken) {
@@ -958,12 +969,20 @@ function updateFollowButton(isFollowing) {
       }
 
       updateFollowButton(false);
+      if (notificationDropdown) {
+        notificationDropdown.style.display = "none";
+      }
       const count = document.getElementById("profileFollowerCount");
       count.textContent = Math.max(0, parseInt(count.textContent) - 1);
     };
   } else {
     btn.textContent = "Follow";
     btn.className = "profile-btn profile-btn-primary profile-btn-follow";
+    
+    if (notificationDropdown) {
+      notificationDropdown.style.display = "none";
+    }
+    
     btn.onclick = async () => {
       if (!authToken) {
         toastQueue.add(`<h1>Log in to follow users</h1>`);
@@ -987,10 +1006,144 @@ function updateFollowButton(isFollowing) {
         return toastQueue.add(`<h1>Failed to follow user</h1>`);
       }
       updateFollowButton(true);
+      if (notificationDropdown) {
+        notificationDropdown.style.display = "block";
+      }
+      setupNotificationButton(currentUsername, false);
       const count = document.getElementById("profileFollowerCount");
       count.textContent = parseInt(count.textContent) + 1;
     };
   }
+}
+
+function setupNotificationButton(username, initialNotifyState) {
+  const btn = document.getElementById("profileNotificationBtn");
+  if (!btn) return;
+
+  let notifyTweets = initialNotifyState;
+
+  const updateBellIcon = (active) => {
+    if (active) {
+      btn.classList.add("notifications-active");
+      btn.title = "Turn off tweet notifications";
+    } else {
+      btn.classList.remove("notifications-active");
+      btn.title = "Turn on tweet notifications";
+    }
+  };
+
+  updateBellIcon(notifyTweets);
+
+  btn.onclick = async (e) => {
+    e.stopPropagation();
+    
+    const modal = createModal();
+    modal.classList.add("notification-settings-modal");
+    
+    const content = document.createElement("div");
+    content.style.cssText = `
+      padding: 1.5rem;
+      max-width: 400px;
+    `;
+    
+    const title = document.createElement("h3");
+    title.textContent = `Notifications for @${username}`;
+    title.style.cssText = `
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    `;
+    
+    const option1 = document.createElement("label");
+    option1.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      cursor: pointer;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      transition: background 0.2s;
+    `;
+option1.onmouseenter = () => { option1.style.background = "var(--btn-secondary-hover-bg, rgba(255, 255, 255, 0.05))"; };
+option1.onmouseleave = () => { option1.style.background = "transparent"; };
+    
+    const radio1 = document.createElement("input");
+    radio1.type = "radio";
+    radio1.name = "notifyType";
+    radio1.value = "all";
+    radio1.checked = notifyTweets;
+    
+    const label1Text = document.createElement("div");
+    label1Text.innerHTML = `
+      <div style="font-weight: 500;">All tweets</div>
+      <div style="font-size: 0.875rem; color: var(--text-muted);">Get notified for all tweets and replies</div>
+    `;
+    
+    option1.appendChild(radio1);
+    option1.appendChild(label1Text);
+    
+    const option2 = document.createElement("label");
+    option2.style.cssText = option1.style.cssText;
+option2.onmouseenter = () => { option2.style.background = "var(--btn-secondary-hover-bg, rgba(255, 255, 255, 0.05))"; };
+option2.onmouseleave = () => { option2.style.background = "transparent"; };
+    
+    const radio2 = document.createElement("input");
+    radio2.type = "radio";
+    radio2.name = "notifyType";
+    radio2.value = "none";
+    radio2.checked = !notifyTweets;
+    
+    const label2Text = document.createElement("div");
+    label2Text.innerHTML = `
+      <div style="font-weight: 500;">Off</div>
+      <div style="font-size: 0.875rem; color: var(--text-muted);">Don't get notified for tweets</div>
+    `;
+    
+    option2.appendChild(radio2);
+    option2.appendChild(label2Text);
+    
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "Save";
+    saveBtn.className = "profile-btn profile-btn-primary";
+    saveBtn.style.cssText = `
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 100px;
+    `;
+    
+    saveBtn.onclick = async () => {
+      const newNotifyState = radio1.checked;
+      
+      const result = await query(`/profile/${username}/notify-tweets`, {
+        method: "POST",
+        body: JSON.stringify({ notify: newNotifyState }),
+      });
+      
+      if (result.success) {
+        notifyTweets = newNotifyState;
+        updateBellIcon(notifyTweets);
+        toastQueue.add(`<h1>Notification settings updated</h1>`);
+        modal.remove();
+      } else {
+        toastQueue.add(`<h1>Failed to update settings</h1>`);
+      }
+    };
+    
+    content.appendChild(title);
+    content.appendChild(option1);
+    content.appendChild(option2);
+    content.appendChild(saveBtn);
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    };
+  };
 }
 
 document

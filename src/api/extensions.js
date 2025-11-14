@@ -197,14 +197,21 @@ const sanitizeDirSegment = (value) => {
 const enabledExtensionsQuery = db.prepare(
 	"SELECT * FROM extensions WHERE enabled = 1 ORDER BY created_at ASC",
 );
+const allExtensionsQuery = db.prepare(
+	"SELECT * FROM extensions ORDER BY created_at ASC",
+);
 const extensionByIdQuery = db.prepare("SELECT * FROM extensions WHERE id = ?");
 
 export default new Elysia({ prefix: "/extensions" })
 	.get("/", async () => {
-		const rows = enabledExtensionsQuery.all();
-		const manual = await discoverManualExtensions(rows);
-		const managed = rows.map(mapExtensionRecord);
-		return { extensions: [...managed, ...manual] };
+		const enabledRows = enabledExtensionsQuery.all();
+		const allRows = allExtensionsQuery.all();
+		// Only expose managed & enabled extensions on the public endpoint.
+		// Do NOT include manual/un-imported directories here — they should
+		// only be visible via the admin APIs. Returning manual entries here
+		// causes client-side loaders to inject un-imported extensions.
+		const managed = enabledRows.map(mapExtensionRecord);
+		return { extensions: [...managed] };
 	})
 	.get("/:id/file", async ({ params, query, set }) => {
 		const relativePath = normalizeRelativePath(query.path);
@@ -216,7 +223,12 @@ export default new Elysia({ prefix: "/extensions" })
 		let rootDir;
 		let cacheSeconds = 60;
 		const managedExtension = extensionByIdQuery.get(params.id);
-		if (managedExtension && managedExtension.enabled) {
+		if (managedExtension) {
+			// If an extension is recorded but disabled, do not serve it publicly
+			if (!managedExtension.enabled) {
+				set.status = 404;
+				return { error: "Extension not found" };
+			}
 			rootDir = resolveManagedRoot(managedExtension);
 		} else {
 			const dirName = sanitizeDirSegment(params.id);

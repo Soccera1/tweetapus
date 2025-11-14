@@ -1,17 +1,10 @@
 (() => {
-	const boot = () => {
-		const navHost = document.querySelector(".sidebar nav");
-		const contentHost = document.querySelector(".col-lg-10 .p-4");
-		if (!navHost || !contentHost) return false;
-		if (document.getElementById("happies-section")) return true;
-
-		const { section, addBtn, emptyState, list } = createHappiesSection();
-		contentHost.appendChild(section);
-		const navLink = createNavLink();
-		navHost.appendChild(navLink);
-		wireInteractions({ navLink, section, addBtn, emptyState, list });
-		return true;
-	};
+	const moods = ["radiant", "calm", "sparkly", "brave", "zen", "buoyant"];
+	const seeds = [
+		"Community uptime held steady all week.",
+		"Reports cleared before lunch every day.",
+		"New creators praised the welcoming vibe.",
+	];
 
 	const createNavLink = () => {
 		const link = document.createElement("a");
@@ -20,7 +13,7 @@
 		link.dataset.section = "happies";
 		link.title = "Secret Happies";
 		const icon = document.createElement("i");
-		icon.className = "bi bi-emoji-laughing";
+		icon.className = "bi bi-emoji-smile";
 		link.appendChild(icon);
 		link.appendChild(document.createTextNode(" Happies"));
 		return link;
@@ -51,7 +44,6 @@
 		const addBtn = document.createElement("button");
 		addBtn.type = "button";
 		addBtn.className = "btn btn-success";
-		addBtn.id = "happiesAddBtn";
 		addBtn.textContent = "Add Happy";
 		header.appendChild(addBtn);
 
@@ -61,26 +53,45 @@
 		emptyState.textContent = "No happies yet. Share the first one.";
 		section.appendChild(emptyState);
 
+		const addForm = document.createElement("div");
+		addForm.className =
+			"card bg-dark text-light border border-success mb-3 d-none";
+		addForm.innerHTML = `
+			<div class="card-body">
+				<label class="form-label fw-bold">Share a happy thought</label>
+				<textarea class="form-control mb-3" rows="3" placeholder="What made you smile today?"></textarea>
+				<div class="d-flex justify-content-end gap-2">
+					<button type="button" data-action="cancel" class="btn btn-outline-secondary btn-sm">Cancel</button>
+					<button type="button" data-action="confirm" class="btn btn-success btn-sm">Add it</button>
+				</div>
+			</div>
+		`;
+		section.appendChild(addForm);
+
 		const list = document.createElement("div");
 		list.id = "happiesList";
 		list.className = "row g-3";
 		section.appendChild(list);
 
-		return { section, addBtn, emptyState, list };
+		return { section, addBtn, emptyState, list, addForm };
 	};
 
-	const wireInteractions = ({ navLink, section, addBtn, emptyState, list }) => {
-		const happies = [];
-		const moods = ["radiant", "calm", "sparkly", "brave", "zen", "buoyant"];
-		const seeds = [
-			"Community uptime held steady all week.",
-			"Reports cleared before lunch every day.",
-			"New creators praised the welcoming vibe.",
-		];
+	const wireInteractions = ({
+		navLink,
+		section,
+		addBtn,
+		emptyState,
+		list,
+		addForm,
+	}) => {
 		const formatter = new Intl.DateTimeFormat(undefined, {
 			dateStyle: "medium",
 			timeStyle: "short",
 		});
+		const happies = [];
+		const addFormTextarea = addForm.querySelector("textarea");
+		const confirmButton = addForm.querySelector("[data-action=confirm]");
+		const cancelButton = addForm.querySelector("[data-action=cancel]");
 
 		const render = () => {
 			list.textContent = "";
@@ -127,7 +138,7 @@
 				id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
 				text: payload.text.trim(),
 				mood: payload.mood || moods[Math.floor(Math.random() * moods.length)],
-				score: payload.score || Math.floor(50 + Math.random() * 50),
+				score: payload.score || Math.floor(40 + Math.random() * 60),
 				timestamp: payload.timestamp || new Date(),
 				source: payload.source || "System",
 			});
@@ -139,30 +150,58 @@
 
 		const revealSection = (event) => {
 			event.preventDefault();
-			if (
-				window.adminPanel &&
-				typeof window.adminPanel.showSection === "function"
-			) {
-				window.adminPanel.showSection("happies");
-				if (typeof window.adminPanel.updateActiveNav === "function") {
-					window.adminPanel.updateActiveNav(navLink);
-				}
-			} else {
-				document
-					.querySelectorAll(".section")
-					.forEach((node) => node.classList.add("d-none"));
-				section.classList.remove("d-none");
-			}
+			document
+				.querySelectorAll(".section")
+				.forEach((node) => node.classList.add("d-none"));
+			section.classList.remove("d-none");
 			render();
+			hideAddForm();
+		};
+
+		const showAddForm = () => {
+			addForm.classList.remove("d-none");
+			if (addFormTextarea) {
+				addFormTextarea.value = "";
+				addFormTextarea.focus();
+			}
+		};
+
+		const hideAddForm = () => {
+			addForm.classList.add("d-none");
+			if (addFormTextarea) {
+				addFormTextarea.value = "";
+			}
+		};
+
+		const confirmAdd = () => {
+			const text = addFormTextarea?.value.trim();
+			if (!text) {
+				addFormTextarea?.focus();
+				return;
+			}
+			hideAddForm();
+			addHappy({ text, source: "You" });
 		};
 
 		navLink.addEventListener("click", revealSection);
-
 		addBtn.addEventListener("click", () => {
-			const value = window.prompt("What made you smile today?");
-			if (!value) return;
-			addHappy({ text: value, source: "You" });
+			showAddForm();
 		});
+
+		if (confirmButton) {
+			confirmButton.addEventListener("click", confirmAdd);
+		}
+		if (cancelButton) {
+			cancelButton.addEventListener("click", hideAddForm);
+		}
+		if (addFormTextarea) {
+			addFormTextarea.addEventListener("keydown", (event) => {
+				if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+					event.preventDefault();
+					confirmAdd();
+				}
+			});
+		}
 
 		seeds.forEach((seed, index) => {
 			addHappy({
@@ -171,6 +210,20 @@
 				timestamp: new Date(Date.now() - (index + 1) * 3600 * 1000),
 			});
 		});
+	};
+
+	const boot = () => {
+		const navHost = document.querySelector(".sidebar nav");
+		const contentHost = document.querySelector(".col-lg-10 .p-4");
+		if (!navHost || !contentHost) return false;
+		if (document.getElementById("happies-section")) return true;
+		const { section, addBtn, emptyState, list, addForm } =
+			createHappiesSection();
+		contentHost.appendChild(section);
+		const navLink = createNavLink();
+		navHost.appendChild(navLink);
+		wireInteractions({ navLink, section, addBtn, emptyState, list, addForm });
+		return true;
 	};
 
 	const init = () => {

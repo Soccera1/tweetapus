@@ -1,8 +1,8 @@
 import { existsSync, promises as fs, mkdirSync } from "node:fs";
-import { dirname, extname, join } from "node:path";
+import { dirname, extname, join, relative } from "node:path";
 import { jwt } from "@elysiajs/jwt";
 import { Elysia, t } from "elysia";
-import { unzipSync } from "fflate";
+import { unzipSync, zipSync } from "fflate";
 import db from "../db.js";
 import { addNotification } from "./notifications.js";
 
@@ -526,13 +526,18 @@ const buildManifestPayload = (raw) => {
 		source.website ?? source.homepage ?? source.url,
 	);
 	const entryCandidate =
-		source["root-file"] ?? source.rootFile ?? source.entry ?? source.main;
+		source["root-file"] ??
+		source.root_file ??
+		source.rootFile ??
+		source.entry ??
+		source.main;
 	manifest.root_file = sanitizeEntryPath(entryCandidate);
 	if (!manifest.root_file) {
-		throw new Error("root-file must point to a .js file inside src/");
+		throw new Error("root_file must point to a .js file inside src/");
 	}
 	const modeCandidate = (
 		source["entry-type"] ??
+		source.entry_type ??
 		source.entryType ??
 		source.mode ??
 		"module"
@@ -579,7 +584,8 @@ const formatExtensionRecord = (record) => ({
 	enabled: !!record.enabled,
 	created_at: record.created_at,
 	updated_at: record.updated_at,
-    managed: true,
+	managed: true,
+	install_dir: parseJsonField(record.manifest_json, {})?.install_dir || null,
 });
 
 const sanitizeSvgMarkup = (svgText) => {
@@ -2775,8 +2781,65 @@ export default new Elysia({ prefix: "/admin" })
 	)
 
 	.get("/extensions", async () => {
-		const extensions = extensionQueries.listAll.all();
-		return { extensions: extensions.map(formatExtensionRecord) };
+		const dbRows = extensionQueries.listAll.all();
+		const managed = dbRows.map(formatExtensionRecord);
+
+		// Discover manual ext/ folders and include them as un-managed entries
+		const manual = [];
+		try {
+			const dirents = await fs.readdir(extensionsInstallDir, {
+				withFileTypes: true,
+			});
+			const managedDirs = new Set(
+				managed.map((r) => r.install_dir).filter(Boolean),
+			);
+			for (const d of dirents) {
+				if (!d.isDirectory()) continue;
+				const name = d.name;
+				if (managedDirs.has(name)) continue;
+				const manifestPath = join(extensionsInstallDir, name, "ext.json");
+				let content;
+				try {
+					content = await fs.readFile(manifestPath, "utf8");
+				} catch {
+					continue;
+				}
+				let json;
+				try {
+					json = JSON.parse(content);
+				} catch {
+					continue;
+				}
+				try {
+					const payload = buildManifestPayload(json);
+					manual.push({
+						id: name,
+						name: payload.name || name,
+						version: payload.version || "0.0.0",
+						author: payload.author || null,
+						summary: payload.summary || null,
+						description: payload.description || null,
+						website: payload.website || null,
+						changelog_url: payload.changelog_url || null,
+						root_file: payload.root_file,
+						entry_type: payload.entry_type,
+						styles: payload.styles || [],
+						capabilities: payload.capabilities || [],
+						targets: payload.targets || [],
+						bundle_hash: null,
+						enabled: false,
+						managed: false,
+						install_dir: name,
+					});
+				} catch {
+					// skip invalid manifest
+				}
+			}
+		} catch {
+			// ignore discovery errors
+		}
+
+		return { extensions: [...managed, ...manual] };
 	})
 
 	.post("/extensions", async ({ body, user, set }) => {
@@ -2799,12 +2862,35 @@ export default new Elysia({ prefix: "/admin" })
 
 		const archiveBuffer = new Uint8Array(await packageFile.arrayBuffer());
 		let extractedEntries;
+		// Quick sanity-check for ZIP magic header (PK..)
+		if (!archiveBuffer || archiveBuffer.length < 4) {
+			set.status = 400;
+			return { error: "Invalid .tweeta archive (empty or too small)" };
+		}
 		try {
+			const hdr0 = archiveBuffer[0];
+			const hdr1 = archiveBuffer[1];
+			const hdr2 = archiveBuffer[2];
+			const hdr3 = archiveBuffer[3];
+			// PK\x03\x04 or PK\x05\x06 (empty archive) or PK\x07\x08 are common
+			if (hdr0 !== 0x50 || hdr1 !== 0x4b) {
+				console.error("Uploaded archive does not start with PK signature", {
+					firstBytes: [hdr0, hdr1, hdr2, hdr3],
+				});
+				set.status = 400;
+				return {
+					error:
+						"Invalid .tweeta archive: not a ZIP file. Make sure you uploaded a standard ZIP renamed to .tweeta",
+				};
+			}
 			extractedEntries = unzipSync(archiveBuffer);
 		} catch (error) {
 			console.error("Failed to unzip extension", error);
 			set.status = 400;
-			return { error: "Invalid or corrupted .tweeta archive" };
+			return {
+				error:
+					"Invalid or corrupted .tweeta archive (unzip failed). Ensure the file is a valid ZIP archive and not corrupted.",
+			};
 		}
 
 		const manifestEntryName = Object.keys(extractedEntries).find(
@@ -2875,7 +2961,7 @@ export default new Elysia({ prefix: "/admin" })
 			await Promise.all(writes);
 			const rootAbsolute = join(extensionDir, ...manifest.root_file.split("/"));
 			if (!(await Bun.file(rootAbsolute).exists())) {
-				throw new Error("root-file was not found in the archive");
+				throw new Error("root_file was not found in the archive");
 			}
 			manifest.install_dir = requestedDirName;
 			manifest.archive_name = packageFile.name || null;
@@ -2951,6 +3037,179 @@ export default new Elysia({ prefix: "/admin" })
 		return { success: true, extension: formatExtensionRecord(record) };
 	})
 
+	// Import a manual extension directory under ext/ into the DB so it can be managed
+	.post("/extensions/import", async ({ body, user, set }) => {
+		const dir = sanitizeDirectorySegment(body?.dir || "");
+		if (!dir) {
+			set.status = 400;
+			return { error: "Invalid directory name" };
+		}
+
+		const manifestPath = join(extensionsInstallDir, dir, "ext.json");
+		let content;
+		try {
+			content = await fs.readFile(manifestPath, "utf8");
+		} catch {
+			set.status = 404;
+			return { error: "Manifest not found for directory" };
+		}
+
+		let json;
+		try {
+			json = JSON.parse(content);
+		} catch {
+			set.status = 400;
+			return { error: "Invalid ext.json" };
+		}
+
+		let manifest;
+		try {
+			manifest = buildManifestPayload(json);
+		} catch (err) {
+			set.status = 400;
+			return { error: err.message };
+		}
+
+		const duplicate = extensionQueries.getByNameVersion.get(
+			manifest.name,
+			manifest.version,
+		);
+		if (duplicate) {
+			set.status = 400;
+			return { error: "Extension with this name and version already exists" };
+		}
+
+		const extensionId = Bun.randomUUIDv7();
+		// Ensure manifest stored in DB includes install_dir so managed records
+		// reference the actual ext/<dir> directory on disk.
+		manifest.install_dir = dir;
+		const manifestJson = JSON.stringify(manifest);
+
+		// Compute a stable bundle hash for imported manual directories
+		const bundleHasher = new Bun.CryptoHasher("sha256");
+		bundleHasher.update(dir);
+		bundleHasher.update(content);
+		const bundleHash = bundleHasher.digest("hex");
+		const stylesJson = manifest.styles.length
+			? JSON.stringify(manifest.styles)
+			: null;
+		const capabilitiesJson = manifest.capabilities.length
+			? JSON.stringify(manifest.capabilities)
+			: null;
+		const targetsJson = manifest.targets.length
+			? JSON.stringify(manifest.targets)
+			: null;
+
+		try {
+			extensionQueries.insert.run(
+				extensionId,
+				manifest.name,
+				manifest.version,
+				manifest.author,
+				manifest.summary,
+				manifest.description,
+				manifest.changelog_url,
+				manifest.website,
+				manifest.root_file,
+				manifest.entry_type,
+				stylesJson,
+				capabilitiesJson,
+				targetsJson,
+				bundleHash,
+				manifestJson,
+				0,
+				user.id || null,
+			);
+		} catch (err) {
+			console.error("Failed to record imported extension", err);
+			set.status = 500;
+			return { error: "Failed to import extension" };
+		}
+
+		// Optionally enrich the ext.json on disk with install metadata
+		try {
+			const enriched = { id: extensionId, install_dir: dir, ...manifest };
+			await fs.writeFile(
+				join(extensionsInstallDir, dir, "ext.json"),
+				JSON.stringify(enriched, null, 2),
+			);
+		} catch {}
+
+		const record = extensionQueries.getById.get(extensionId);
+		logModerationAction(user.id, "import_extension", "extension", extensionId, {
+			name: manifest.name,
+			version: manifest.version,
+			install_dir: dir,
+		});
+		return { success: true, extension: formatExtensionRecord(record) };
+	})
+
+	// Export an installed or manual extension directory as a .tweeta (zip) file
+	.get("/extensions/:id/export", async ({ params, set }) => {
+		// Locate directory: prefer DB manifest install_dir if present
+		let dirName = null;
+		const record = extensionQueries.getById.get(params.id);
+		if (record) {
+			dirName = parseJsonField(record.manifest_json, {})?.install_dir || null;
+			// If managed but disabled, disallow export
+			if (record && !record.enabled) {
+				set.status = 403;
+				return { error: "Extension is disabled" };
+			}
+		}
+
+		if (!dirName) {
+			// allow exporting manual ext/<dir>
+			const candidate = params.id;
+			if (!candidate || !/^[A-Za-z0-9._-]+$/.test(candidate)) {
+				set.status = 404;
+				return { error: "Extension not found" };
+			}
+			dirName = candidate;
+		}
+
+		const root = join(extensionsInstallDir, dirName);
+		try {
+			const exists = await fs
+				.stat(root)
+				.then(() => true)
+				.catch(() => false);
+			if (!exists) {
+				set.status = 404;
+				return { error: "Extension directory not found" };
+			}
+			// Read files recursively and populate zip entries
+			const entries = {};
+			const walk = async (base) => {
+				const items = await fs.readdir(base, { withFileTypes: true });
+				for (const it of items) {
+					const p = join(base, it.name);
+					if (it.isDirectory()) {
+						await walk(p);
+						continue;
+					}
+					const rel = relative(root, p).replace(/\\/g, "/");
+					const data = await fs.readFile(p);
+					entries[rel] = new Uint8Array(data);
+				}
+			};
+			await walk(root);
+			const zipped = zipSync(entries);
+			const filenameBase = record
+				? `${record.name.replace(/[^a-z0-9.-]+/gi, "_")}-${record.version}`
+				: `${dirName}`;
+			const headers = {
+				"Content-Type": "application/zip",
+				"Content-Disposition": `attachment; filename="${filenameBase}.tweeta"`,
+			};
+			return new Response(zipped, { headers });
+		} catch (err) {
+			console.error("Failed to export extension", err);
+			set.status = 500;
+			return { error: "Failed to export extension" };
+		}
+	})
+
 	.patch(
 		"/extensions/:id",
 		async ({ params, body, user, set }) => {
@@ -2981,7 +3240,7 @@ export default new Elysia({ prefix: "/admin" })
 		},
 	)
 
-	.delete("/extensions/:id", async ({ params, user, set }) => {
+	.delete("/extensions/:id", async ({ params, user, set, query }) => {
 		const record = extensionQueries.getById.get(params.id);
 		if (!record) {
 			set.status = 404;
@@ -2989,15 +3248,24 @@ export default new Elysia({ prefix: "/admin" })
 		}
 
 		extensionQueries.delete.run(params.id);
-		try {
-			const primaryDir = resolveInstallDirectory(record);
-			await fs.rm(primaryDir, { recursive: true, force: true });
-			const legacyDir = join(legacyExtensionsDir, params.id);
-			if (legacyDir !== primaryDir) {
-				await fs.rm(legacyDir, { recursive: true, force: true });
+		// By default do NOT remove files unless explicitly requested via query param
+		// This lets admins remove DB records but keep the ext/<dir> folder for
+		// re-importing later. To remove files too, call DELETE ?remove_files=1
+		const removeFiles =
+			(query &&
+				(query.remove_files === "1" || query.remove_files === "true")) ||
+			false;
+		if (removeFiles) {
+			try {
+				const primaryDir = resolveInstallDirectory(record);
+				await fs.rm(primaryDir, { recursive: true, force: true });
+				const legacyDir = join(legacyExtensionsDir, params.id);
+				if (legacyDir !== primaryDir) {
+					await fs.rm(legacyDir, { recursive: true, force: true });
+				}
+			} catch (error) {
+				console.error("Failed to remove extension directory", error);
 			}
-		} catch (error) {
-			console.error("Failed to remove extension directory", error);
 		}
 
 		logModerationAction(user.id, "delete_extension", "extension", params.id, {
