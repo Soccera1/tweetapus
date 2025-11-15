@@ -1153,14 +1153,16 @@ class AdminPanel {
 
 	async postBulkTweets() {
 		const content = document.getElementById("bulkTweetContent")?.value || "";
-		if (!content.trim()) {
+		const trimmedContent = content.trim();
+		if (!trimmedContent) {
 			this.showError("Content is required");
 			return;
 		}
 
-		const noCharLimit = !!document.getElementById("bulkTweetNoCharLimit")
-			?.checked;
-		const replyTo = document.getElementById("bulkTweetReplyTo")?.value || null;
+		const replyToInput = document
+			.getElementById("bulkTweetReplyTo")
+			?.value?.trim();
+		const replyTo = replyToInput ? replyToInput : undefined;
 		let createdAt = null;
 		const createdAtInput = document.getElementById("bulkTweetCreatedAt");
 		if (createdAtInput?.value) {
@@ -1183,15 +1185,16 @@ class AdminPanel {
 
 		for (const id of Array.from(this.selectedUsers)) {
 			try {
+				const payload = {
+					userId: id,
+					content: trimmedContent,
+					noCharLimit: true,
+				};
+				if (replyTo) payload.replyTo = replyTo;
+				if (createdAt) payload.created_at = createdAt;
 				await this.apiCall(`/api/admin/tweets`, {
 					method: "POST",
-					body: JSON.stringify({
-						userId: id,
-						content: content.trim(),
-						replyTo: replyTo || null,
-						noCharLimit,
-						created_at: createdAt || undefined,
-					}),
+					body: JSON.stringify(payload),
 				});
 				successCount++;
 				results.push({ id, ok: true });

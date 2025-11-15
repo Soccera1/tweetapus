@@ -2301,7 +2301,7 @@ export default new Elysia({ prefix: "/admin" })
 			return { error: "Username parameter required" };
 		}
 
-		const page = Math.max(1, Number.parseInt(query.page || "1", 10));
+		const page = Math.max(1, Number.parseInt(query.page || "1", 10)); // stuck cursor
 		const limit = Math.min(
 			50,
 			Math.max(1, Number.parseInt(query.limit || "20", 10)),

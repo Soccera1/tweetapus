@@ -631,6 +631,10 @@ function createMessageElement(message, currentUser) {
 		? ' <span style="color: var(--text-secondary); font-size: 11px; font-style: italic;">(edited)</span>'
 		: "";
 
+	const expiresIndicator = message.expires_at
+		? ` <span class="dm-expires-indicator" data-expires="${message.expires_at}" title="This message will disappear">⏱️</span>`
+		: "";
+
 	const attachmentsHtml =
 		message.attachments?.length > 0
 			? `
@@ -739,7 +743,7 @@ function createMessageElement(message, currentUser) {
 					</button>`
 							: ""
 					}
-					<span class="dm-message-time">${time}${editedIndicator}</span>
+					<span class="dm-message-time">${time}${editedIndicator}${expiresIndicator}</span>
 				</div>
 			</div>
 		</div>
@@ -1971,6 +1975,7 @@ async function openOrCreateConversation(username) {
 
 window.goBackToDMList = goBackToDMList;
 window.openGroupSettings = openGroupSettings;
+window.openDirectSettings = openDirectSettings;
 
 async function toggleReaction(messageId, emoji) {
 	try {
