@@ -35,8 +35,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 .data
 
-v3/**
-
 # C algorithm compiled files
 src/algo/*.o
 src/algo/*.so
@@ -44,3 +42,5 @@ src/algo/*.dylib
 src/algo/*.dll
 
 **/dist-js
+ext
+**/ext
