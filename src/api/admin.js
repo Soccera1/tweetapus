@@ -64,17 +64,20 @@ const adminQueries = {
     SELECT 
       COUNT(*) as total,
       SUM(CASE WHEN suspended = 1 THEN 1 ELSE 0 END) as suspended,
+	SUM(CASE WHEN restricted = 1 THEN 1 ELSE 0 END) as restricted,
       SUM(CASE WHEN verified = 1 THEN 1 ELSE 0 END) as verified,
       SUM(CASE WHEN gold = 1 THEN 1 ELSE 0 END) as gold
     FROM users
   `),
 	getPostStats: db.prepare("SELECT COUNT(*) as total FROM posts"),
-	getSuspensionStats: db.prepare(`
-    SELECT 
-      COUNT(*) as active
-    FROM suspensions s
-    WHERE s.status = 'active'
-  `),
+		getSuspensionStats: db.prepare(`
+		SELECT 
+			COUNT(*) as active,
+			SUM(CASE WHEN s.action = 'restrict' THEN 1 ELSE 0 END) as active_restricted,
+			SUM(CASE WHEN s.action = 'suspend' THEN 1 ELSE 0 END) as active_suspended
+		FROM suspensions s
+		WHERE s.status = 'active'
+	`),
 
 	createFactCheck: db.prepare(
 		`INSERT INTO fact_checks (id, post_id, created_by, note, severity) VALUES (?, ?, ?, ?, ?)`,
@@ -165,12 +168,15 @@ WHERE u.id = ?
   `),
 
 	createSuspension: db.prepare(`
-    INSERT INTO suspensions (id, user_id, suspended_by, reason, severity, expires_at, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO suspensions (id, user_id, suspended_by, reason, severity, action, expires_at, notes)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `),
 	updateUserSuspended: db.prepare(
 		"UPDATE users SET suspended = ? WHERE id = ?",
 	),
+    updateUserRestricted: db.prepare(
+        "UPDATE users SET restricted = ? WHERE id = ?",
+    ),
 	updateSuspensionStatus: db.prepare(
 		"UPDATE suspensions SET status = ? WHERE user_id = ? AND status = 'active'",
 	),
@@ -1033,7 +1039,7 @@ export default new Elysia({ prefix: "/admin" })
 	.post(
 		"/users/:id/suspend",
 		async ({ params, body, user }) => {
-			const { reason, severity, duration, notes } = body;
+			const { reason, duration, notes, action } = body; // severity deprecated
 			const suspensionId = Bun.randomUUIDv7();
 			const targetUser = adminQueries.findUserById.get(params.id);
 
@@ -1041,22 +1047,31 @@ export default new Elysia({ prefix: "/admin" })
 				? new Date(Date.now() + duration * 60 * 1000).toISOString()
 				: null;
 
+			// Insert suspension with action; severity no longer used
 			adminQueries.createSuspension.run(
 				suspensionId,
 				params.id,
 				user.id,
 				reason,
-				severity,
+				null,
+				action || 'suspend',
 				expiresAt,
 				notes,
 			);
 
-			adminQueries.updateUserSuspended.run(true, params.id);
+			if ((action || 'suspend') === 'suspend') {
+				adminQueries.updateUserSuspended.run(true, params.id);
+				adminQueries.updateUserRestricted.run(false, params.id);
+			} else if ((action || 'suspend') === 'restrict') {
+				adminQueries.updateUserRestricted.run(true, params.id);
+				adminQueries.updateUserSuspended.run(false, params.id);
+				adminQueries.updateUserRestricted.run(false, params.id);
+			}
 
 			logModerationAction(user.id, "suspend_user", "user", params.id, {
 				username: targetUser?.username,
 				reason,
-				severity,
+				action: action || 'suspend',
 				duration,
 				notes,
 			});
@@ -1066,7 +1081,7 @@ export default new Elysia({ prefix: "/admin" })
 		{
 			body: t.Object({
 				reason: t.String(),
-				severity: t.Number(),
+				action: t.Optional(t.Union([t.Literal('suspend'), t.Literal('restrict')])),
 				duration: t.Optional(t.Number()),
 				notes: t.Optional(t.String()),
 			}),
@@ -1077,14 +1092,13 @@ export default new Elysia({ prefix: "/admin" })
 		const targetUser = adminQueries.findUserById.get(params.id);
 		adminQueries.updateUserSuspended.run(false, params.id);
 		adminQueries.updateSuspensionStatus.run("lifted", params.id);
-		logModerationAction(user.id, "unsuspend_user", "user", params.id, {
-			username: targetUser?.username,
-		});
-		return { success: true };
-	})
-
-	.delete("/users/:id", async ({ params, user }) => {
-		const targetUser = adminQueries.findUserById.get(params.id);
+			logModerationAction(user.id, "suspend_user", "user", params.id, {
+				username: targetUser?.username,
+				reason,
+				action: action || 'suspend',
+				duration,
+				notes,
+			});
 		logModerationAction(user.id, "delete_user", "user", params.id, {
 			username: targetUser?.username,
 		});
@@ -2605,7 +2619,7 @@ export default new Elysia({ prefix: "/admin" })
 	.post(
 		"/reports/:id/resolve",
 		async ({ params, body, user }) => {
-			const { action, duration, severity, note, banAction } = body;
+				const { action, duration, note, banAction } = body; // severity deprecated
 			const report = db
 				.query("SELECT * FROM reports WHERE id = ?")
 				.get(params.id);
@@ -2630,7 +2644,7 @@ export default new Elysia({ prefix: "/admin" })
 					report.reported_id,
 					user.id,
 					report.reason,
-					severity || 3,
+					null,
 					banActionToUse,
 					expiresAt,
 				);
@@ -2650,25 +2664,11 @@ export default new Elysia({ prefix: "/admin" })
 					"suspend_user",
 					"user",
 					report.reported_id,
-					{
-						reportId: params.id,
-						duration,
-						severity,
-					},
-				);
-
-				addNotification(
-					report.reported_id,
-					"suspension",
-					expiresAt
-						? `Your account has been suspended until ${new Date(
-								expiresAt,
-							).toLocaleString()}`
-						: "Your account has been permanently suspended",
-					suspensionId,
-					user.id,
-					undefined,
-					undefined,
+						{
+							reportId: params.id,
+							duration,
+							action: banActionToUse,
+						},
 				);
 			} else if (action === "delete_post" && report.reported_type === "post") {
 				const post = db

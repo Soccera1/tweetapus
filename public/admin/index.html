@@ -701,7 +701,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Suspend User</h5>
+          <h5 class="modal-title">Suspend / Restrict User</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -719,20 +719,7 @@
                 <option value="restrict">Restrict (browse-only)</option>
               </select>
             </div>
-            <div class="mb-3">
-              <label for="suspensionSeverity" class="form-label">
-                Severity
-              </label>
-              <select class="form-select" id="suspensionSeverity">
-                <option value="1">1 - Minor (Warning)</option>
-                <option value="2">2 - Low (Temporary restrictions)</option>
-                <option value="3" selected>
-                  3 - Medium (Short suspension)
-                </option>
-                <option value="4">4 - High (Long suspension)</option>
-                <option value="5">5 - Critical (Permanent ban)</option>
-              </select>
-            </div>
+            <!-- Severity removed for suspensions; action is used instead -->
             <div class="mb-3">
               <label for="suspensionDuration" class="form-label">
                 Duration (minutes, leave empty for permanent)
@@ -828,18 +815,8 @@
               <div class="col-md-3">
                 <label for="editPostRetweets" class="form-label">
                   Retweets
-                </label>
-                <input type="number" class="form-control" id="editPostRetweets" min="0" />
-              </div>
-              <div class="col-md-3">
-                <label for="editPostReplies" class="form-label">
-                  Replies
-                </label>
-                <input type="number" class="form-control" id="editPostReplies" min="0" />
-              </div>
-              <div class="col-md-3">
-                <label for="editPostViews" class="form-label">Views</label>
-                <input type="number" class="form-control" id="editPostViews" min="0" />
+                  <label for="editPostViews" class="form-label">Views</label>
+                  <input type="number" class="form-control" id="editPostViews" min="0" />
               </div>
             </div>
           </form>

@@ -866,6 +866,15 @@ class AdminPanel {
           </div>
         </div>
       </div>
+			<div class="col-md-3">
+				<div class="card stat-card danger">
+					<div class="card-body text-center">
+						<i class="bi bi-shield-lock-fill fs-1"></i>
+						<h3>${stats.users.restricted || 0}</h3>
+						<p class="mb-0">Restricted users</p>
+					</div>
+				</div>
+			</div>
       <div class="col-md-3">
         <div class="card stat-card">
           <div class="card-body text-center">
@@ -1049,10 +1058,18 @@ class AdminPanel {
 												</button>
 											`
 																										: `
-												<button class="btn btn-outline-success btn-sm" onclick="adminPanel.unsuspendUser('${user.id}')">
-													<i class="bi bi-check-circle"></i> Unsuspend
-												</button>
-											`
+																<button class="btn btn-outline-success btn-sm" onclick="adminPanel.unsuspendUser('${user.id}')">
+																	<i class="bi bi-check-circle"></i> ${
+																		user.suspended && user.restricted
+																			? 'Unsuspend & Unrestrict'
+																			: user.suspended
+																			? 'Unsuspend'
+																			: user.restricted
+																			? 'Unrestrict'
+																			: 'Lift'
+																	}
+																</button>
+															`
 																						}
                   
                       <button class="btn btn-outline-info btn-sm" onclick="adminPanel.impersonateUser('${
@@ -1328,7 +1345,7 @@ class AdminPanel {
 											? '<span class="badge bg-warning">Restricted</span>'
 											: `<span class="badge bg-secondary">${this.escapeHtml(suspension.action || 'unknown')}</span>`
 									}
-									${suspension.severity ? `<small class="text-muted"> ${suspension.severity}/5</small>` : ""}
+									<!-- severity removed -->
 								</td>
                 <td>
                   <small>@${suspension.suspended_by_username}</small>
@@ -1511,9 +1528,11 @@ class AdminPanel {
             <p class="text-muted">@${user.username}</p>
             <div class="d-flex justify-content-center gap-2 mb-3">
               ${user.admin ? '<span class="badge bg-primary">Admin</span>' : ""}
-              ${
+			  ${
 								user.suspended
 									? '<span class="badge bg-danger">Suspended</span>'
+									: user.restricted
+									? '<span class="badge bg-warning">Restricted</span>'
 									: ""
 							}
             </div>
@@ -1690,7 +1709,6 @@ class AdminPanel {
                   <div class="border-bottom pb-2 mb-2">
                     <div class="d-flex justify-content-between">
 					  <strong>${this.escapeHtml(suspension.action === 'suspend' ? 'Suspended' : suspension.action === 'restrict' ? 'Restricted' : (suspension.action || 'Unknown'))}</strong>
-					  ${suspension.severity ? `<small class="text-muted">(${suspension.severity}/5)</small>` : ""}
                       <span class="badge ${
 												suspension.status === "active"
 													? "bg-danger"
@@ -1739,8 +1757,8 @@ class AdminPanel {
           <ul class="dropdown-menu dropdown-menu-end">
             ${
 							!user.suspended
-								? `<li><a class="dropdown-item" href="#" onclick="adminPanel.showSuspensionModal('${user.id}')">Suspend User</a></li>`
-								: `<li><a class="dropdown-item" href="#" onclick="adminPanel.unsuspendUser('${user.id}')">Unsuspend User</a></li>`
+								? `<li><a class="dropdown-item" href="#" onclick="adminPanel.showSuspensionModal('${user.id}')">Suspend/Restrict User</a></li>`
+								: `<li><a class="dropdown-item" href="#" onclick="adminPanel.unsuspendUser('${user.id}')">${user.suspended && user.restricted ? 'Unsuspend & Unrestrict' : user.suspended ? 'Unsuspend User' : 'Unrestrict User'}</a></li>`
 						}
             <li><a class="dropdown-item text-danger" href="#" onclick="adminPanel.deleteUser('${
 							user.id
@@ -2037,9 +2055,7 @@ class AdminPanel {
 	async submitSuspension() {
 		const userId = document.getElementById("suspendUserId").value;
 		let reason = document.getElementById("suspensionReason").value;
-		const severity = parseInt(
-			document.getElementById("suspensionSeverity").value,
-		);
+		// severity removed for suspensions; admin may choose an action only
 		const action = document.getElementById("suspensionAction")?.value || 'suspend';
 		const duration = document.getElementById("suspensionDuration").value;
 		const notes = document.getElementById("suspensionNotes").value;
@@ -2051,7 +2067,6 @@ class AdminPanel {
 
 		const payload = {
 			reason: reason.trim(),
-			severity,
 			action,
 		};
 
@@ -2079,7 +2094,7 @@ class AdminPanel {
 	}
 
 	async unsuspendUser(userId) {
-		if (!confirm("Are you sure you want to unsuspend this user?")) return;
+		if (!confirm("Are you sure you want to remove suspension/restriction on this user?")) return;
 
 		try {
 			await this.apiCall(`/api/admin/users/${userId}/unsuspend`, {
@@ -4197,6 +4212,9 @@ class AdminPanel {
 											details.author,
 										)}<br>`;
 									}
+									if (details.action) {
+										detailsHtml += `<strong>Action:</strong> ${details.action}<br>`;
+									}
 									if (details.severity) {
 										detailsHtml += `<strong>Severity:</strong> ${details.severity}<br>`;
 									}
@@ -4761,16 +4779,7 @@ class AdminPanel {
 								<option value="restrict">Restrict (browse-only)</option>
 							</select>
 						</div>
-            <div class="mb-3">
-              <label class="form-label">Severity</label>
-              <select id="banSeverity" class="form-select">
-                <option value="1">1 - Minor</option>
-                <option value="2">2 - Low</option>
-                <option value="3" selected>3 - Medium</option>
-                <option value="4">4 - High</option>
-                <option value="5">5 - Critical</option>
-              </select>
-            </div>
+						<!-- Severity removed for bans -->
           `;
 				} else if (action === "fact_check") {
 					fieldsContainer.innerHTML = `
@@ -4815,10 +4824,8 @@ class AdminPanel {
 
 		if (action === "ban_user") {
 			const duration = document.getElementById("banDuration")?.value;
-			const severity = document.getElementById("banSeverity")?.value;
 			const banAction = document.getElementById("banAction")?.value;
 			if (duration) body.duration = Number.parseInt(duration);
-			if (severity) body.severity = Number.parseInt(severity);
 			if (banAction) body.banAction = banAction;
 		} else if (action === "fact_check") {
 			const note = document.getElementById("factCheckNoteReport")?.value;

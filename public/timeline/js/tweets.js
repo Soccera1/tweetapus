@@ -2252,6 +2252,28 @@ export const createTweetElement = (tweet, config = {}) => {
     });
   }
 
+  // If currently authenticated user is restricted, disable interactions
+  (async () => {
+    try {
+      const getUser = (await import("./auth.js")).default;
+      const currentUser = await getUser();
+
+      if (currentUser && currentUser.restricted) {
+        [
+          tweetInteractionsLikeEl,
+          tweetInteractionsRetweetEl,
+          tweetInteractionsReplyEl,
+        ].forEach((btn) => {
+          try {
+            btn.disabled = true;
+            btn.setAttribute("aria-disabled", "true");
+            btn.classList.add("reply-restricted");
+          } catch (_) {}
+        });
+      }
+    } catch (_) {}
+  })();
+
   const replyRestriction = tweet.reply_restriction || "everyone";
   let restrictionEl = null;
 

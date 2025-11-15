@@ -331,6 +331,12 @@ const getQuotedTweetData = (quoteTweetId, userId) => {
     };
   }
 
+  const isUserRestrictedById = (userId) => {
+    const restrictionRow = isRestrictedQuery.get(userId);
+    const userRestrictedFlag = getUserRestrictedFlag.get(userId);
+    return !!restrictionRow || !!userRestrictedFlag?.restricted;
+  };
+
   const author = {
     username: quotedTweet.username,
     name: quotedTweet.name,
@@ -976,6 +982,11 @@ export default new Elysia({ prefix: "/profile" })
 
     const currentUser = getUserByUsername.get(payload.username);
     if (!currentUser) return { error: "User not found" };
+
+    // Restrict follow action for restricted accounts
+    if (isUserRestrictedById(currentUser.id)) {
+      return { error: "Action not allowed: account is restricted" };
+    }
 
     const { username } = params;
     const targetUser = getUserByUsername.get(username);

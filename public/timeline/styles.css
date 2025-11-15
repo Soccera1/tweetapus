@@ -42,6 +42,23 @@ body {
   display: none !important;
 }
 
+/* Visual treatment for restricted accounts */
+#profileContainer.restricted .profile-banner {
+  filter: grayscale(20%);
+}
+
+#profileContainer.restricted #profileAvatar {
+  opacity: 0.9;
+}
+
+#profileContainer.restricted #followBtn,
+#profileContainer.restricted #profileDmBtn,
+#profileContainer.restricted #editProfileBtn,
+#profileContainer.restricted #profileDropdown {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
 #profileContainer.suspended #profileFollowersLink,
 #profileContainer.suspended #profileFollowingLink {
   display: none !important;

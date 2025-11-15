@@ -133,7 +133,7 @@ export default new Elysia({
         await Bun.file("./src/assets/suspended.html").text()
       ).replace(
         "%%text%%",
-        `Reason: ${cached.suspension.reason}${
+        `${cached.suspension.reason}${
           cached.suspension.expires_at
             ? `<br>Expires ${formatExpiry(cached.suspension.expires_at)}`
             : ""

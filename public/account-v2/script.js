@@ -232,10 +232,8 @@ document.querySelector(".log-in").addEventListener("click", async (e) => {
 	passkeyLoginButton.type = "button";
 	passkeyLoginButton.className = "btn btn-primary";
 	passkeyLoginButton.textContent = "Log in with passkey";
+
 	passkeyLoginButton.addEventListener("click", async () => {
-		passwordModal.remove();
-
-
 		try {
 			if (!window.SimpleWebAuthnBrowser) {
 				alert("WebAuthn not available. Please try password login.");
@@ -302,8 +300,6 @@ document.querySelector(".log-in").addEventListener("click", async (e) => {
 		}
 
 	});
-	
-	passwordContent.appendChild(passkeyLoginButton);
 
 	const form = document.createElement("form");
 	form.className = "password-login-form";
@@ -389,6 +385,7 @@ document.querySelector(".log-in").addEventListener("click", async (e) => {
 	form.appendChild(passwordInput);
 	form.appendChild(formActions);
 	passwordContent.appendChild(passwordTitle);
+	passwordContent.appendChild(passkeyLoginButton);
 	passwordContent.appendChild(form);
 	passwordModal.appendChild(passwordContent);
 	document.body.appendChild(passwordModal);

@@ -497,6 +497,7 @@ const renderProfile = (data) => {
 	const { profile, posts, isFollowing, isOwnProfile } = data;
 
 	const suspended = !!profile.suspended;
+	const restricted = !!profile.restricted;
 
 	const headerNameEl = document.getElementById("profileHeaderName");
 	const headerCountEl = document.getElementById("profileHeaderPostCount");
@@ -510,6 +511,8 @@ const renderProfile = (data) => {
 	const profileContainerEl = document.getElementById("profileContainer");
 	if (profileContainerEl)
 		profileContainerEl.classList.toggle("suspended", suspended);
+	if (profileContainerEl)
+		profileContainerEl.classList.toggle("restricted", restricted);
 
 	const bannerElement = document.querySelector(".profile-banner");
 	if (bannerElement) {
@@ -588,9 +591,21 @@ const renderProfile = (data) => {
 				const pathEl = existingBadge.querySelector("path");
 				if (pathEl) pathEl.setAttribute("fill", badgeColor);
 			}
-		} else if (existingBadge) {
+				} else if (existingBadge) {
 			existingBadge.remove();
 		}
+				// restricted indicator
+				const existingRestrBadge = profileNameEl.querySelector('.restricted-badge');
+				if (restricted) {
+					if (!existingRestrBadge) {
+						const rBadge = document.createElement('span');
+						rBadge.className = 'restricted-badge text-warning ms-2 small';
+						rBadge.textContent = 'Restricted';
+						profileNameEl.appendChild(rBadge);
+					}
+				} else if (existingRestrBadge) {
+					existingRestrBadge.remove();
+				}
 	}
 
 	const mainDisplayNameEl = document.getElementById("profileDisplayName");

@@ -64,6 +64,13 @@ let _user;
   document.querySelector(".account img").src =
     user.avatar || `/public/shared/assets/default-avatar.svg`;
 
+  // Notify user if their account is restricted
+  if (user.restricted) {
+    toastQueue.add(
+      `<h1>Account restricted</h1><p>Your account has limited privileges — you can browse posts, but interactions such as tweeting, liking, retweeting, DMs, and following are disabled. If you believe this is an error, contact an administrator.</p>`
+    );
+  }
+
   const accountBtn = document.querySelector(".account");
   accountBtn.addEventListener("click", (e) => {
     e.stopPropagation();
