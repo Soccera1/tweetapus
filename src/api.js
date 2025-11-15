@@ -60,7 +60,7 @@ function formatExpiry(expiryStr) {
 }
 
 const isSuspendedQuery = db.prepare(`
-  SELECT * FROM suspensions WHERE user_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > datetime('now'))
+  SELECT * FROM suspensions WHERE user_id = ? AND status = 'active' AND action = 'suspend' AND (expires_at IS NULL OR expires_at > datetime('now'))
 `);
 
 const isRestrictedQuery = db.prepare(`
@@ -96,13 +96,25 @@ export default new Elysia({
     const token = headers.authorization?.split(" ")[1];
     if (!token) return;
 
-    const { userId } = JSON.parse(atob(token.split(".")[1]));
+    const parts = token.split(".");
+    if (parts.length !== 3) return;
+
+    let payload;
+    try {
+        payload = JSON.parse(atob(parts[1]));
+    } catch (e) {
+        return;
+    }
+    const { userId } = payload;
+    if (!userId) return;
 
     const now = Date.now();
     let cached = suspensionCache.get(userId);
+    let suspension = null;
+    let restriction = null;
 
     if (!cached || cached.expiry < now) {
-      let suspension = isSuspendedQuery.get(userId);
+      suspension = isSuspendedQuery.get(userId);
 
       if (suspension?.expires_at) {
         const expiresAt = new Date(suspension.expires_at).getTime();
@@ -113,7 +125,7 @@ export default new Elysia({
         }
       }
 
-      let restriction = isRestrictedQuery.get(userId);
+      restriction = isRestrictedQuery.get(userId);
       if (restriction?.expires_at) {
         const expiresAt = new Date(restriction.expires_at).getTime();
         if (Date.now() > expiresAt) {
@@ -121,27 +133,27 @@ export default new Elysia({
           updateUserRestricted.run(false, userId);
           restriction = null;
         }
-
-
-    if (restriction && ["GET", "OPTIONS"].includes(request.method)) {
-      return {
-        error: "Your account has been locked and you may not access this resource",
-      };
-    }
       }
 
-      cached = { suspension, expiry: now + CACHE_TTL };
+      cached = { 
+        suspension: suspension, 
+        restriction: restriction, 
+        expiry: now + CACHE_TTL 
+      };
       suspensionCache.set(userId, cached);
     }
+    
+    suspension = cached.suspension;
+    restriction = cached.restriction;
 
-    if (cached.suspension) {
+    if (suspension) {
       const suspensionHtml = (
         await Bun.file("./src/assets/suspended.html").text()
       ).replace(
         "%%text%%",
-        `${cached.suspension.reason}${
-          cached.suspension.expires_at
-            ? `<br>Expires ${formatExpiry(cached.suspension.expires_at)}`
+        `${suspension.reason}${
+          suspension.expires_at
+            ? `<br>Expires ${formatExpiry(suspension.expires_at)}`
             : ""
         }`
       );
@@ -149,6 +161,13 @@ export default new Elysia({
       return {
         error: "You are suspended",
         suspension: suspensionHtml,
+      };
+    }
+
+    if (restriction && !["GET", "OPTIONS"].includes(request.method)) {
+      return {
+        success: false,
+        error: "Your account is in a read-only state and is not allowed to perform this action",
       };
     }
   })

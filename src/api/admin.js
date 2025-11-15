@@ -1063,9 +1063,9 @@ export default new Elysia({ prefix: "/admin" })
 				adminQueries.updateUserSuspended.run(true, params.id);
 				adminQueries.updateUserRestricted.run(false, params.id);
 			} else if ((action || 'suspend') === 'restrict') {
+				// Mark the user as restricted and ensure they are not suspended
 				adminQueries.updateUserRestricted.run(true, params.id);
 				adminQueries.updateUserSuspended.run(false, params.id);
-				adminQueries.updateUserRestricted.run(false, params.id);
 			}
 
 			logModerationAction(user.id, "suspend_user", "user", params.id, {
@@ -1090,19 +1090,13 @@ export default new Elysia({ prefix: "/admin" })
 
 	.post("/users/:id/unsuspend", async ({ params, user }) => {
 		const targetUser = adminQueries.findUserById.get(params.id);
+		// Clear both suspended and restricted flags when unsuspending/unrestricting
 		adminQueries.updateUserSuspended.run(false, params.id);
+		adminQueries.updateUserRestricted.run(false, params.id);
 		adminQueries.updateSuspensionStatus.run("lifted", params.id);
-			logModerationAction(user.id, "suspend_user", "user", params.id, {
-				username: targetUser?.username,
-				reason,
-				action: action || 'suspend',
-				duration,
-				notes,
-			});
-		logModerationAction(user.id, "delete_user", "user", params.id, {
+		logModerationAction(user.id, "unsuspend_user", "user", params.id, {
 			username: targetUser?.username,
 		});
-		adminQueries.deleteUser.run(params.id);
 		return { success: true };
 	})
 
@@ -2650,13 +2644,9 @@ export default new Elysia({ prefix: "/admin" })
 				);
 
 				if (banActionToUse === 'restrict') {
-					db.query("UPDATE users SET restricted = TRUE WHERE id = ?").run(
-						report.reported_id,
-					);
+					adminQueries.updateUserRestricted.run(true, report.reported_id);
 				} else {
-					db.query("UPDATE users SET suspended = TRUE WHERE id = ?").run(
-						report.reported_id,
-					);
+					adminQueries.updateUserSuspended.run(true, report.reported_id);
 				}
 
 				logModerationAction(

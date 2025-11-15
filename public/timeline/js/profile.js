@@ -644,6 +644,25 @@ const renderProfile = (data) => {
 			existingMainBadge.remove();
 		}
 
+		// Add restricted badge to the main display name on profile page
+		const existingMainRestrBadge = mainDisplayNameEl.querySelector('.restricted-badge');
+		if (restricted) {
+			if (!existingMainRestrBadge) {
+				const rBadgeMain = document.createElement('span');
+				rBadgeMain.className = 'restricted-badge text-warning ms-2 small';
+				rBadgeMain.textContent = 'Restricted';
+				// Insert after the verification badge if it exists, otherwise append
+				const followsBadge = mainDisplayNameEl.querySelector('.follows-me-badge');
+				if (followsBadge) {
+					mainDisplayNameEl.insertBefore(rBadgeMain, followsBadge);
+				} else {
+					mainDisplayNameEl.appendChild(rBadgeMain);
+				}
+			}
+		} else if (existingMainRestrBadge) {
+			existingMainRestrBadge.remove();
+		}
+
 		const existingMainAffWith = mainDisplayNameEl.querySelector(
 			".role-badge.affiliate-with",
 		);

@@ -262,6 +262,8 @@ CREATE TABLE IF NOT EXISTS suspensions (
   FOREIGN KEY (suspended_by) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE INDEX IF NOT EXISTS idx_suspensions_action ON suspensions(action);
+
 CREATE TABLE IF NOT EXISTS conversations (
   id TEXT PRIMARY KEY,
   type TEXT DEFAULT 'direct',
