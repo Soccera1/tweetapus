@@ -2252,7 +2252,6 @@ export const createTweetElement = (tweet, config = {}) => {
     });
   }
 
-  // If currently authenticated user is restricted, disable interactions
   (async () => {
     try {
       const getUser = (await import("./auth.js")).default;

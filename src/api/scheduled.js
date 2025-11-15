@@ -60,10 +60,6 @@ export default new Elysia({ prefix: "/scheduled" })
       const user = getUserByUsername.get(payload.username);
       if (!user) return { error: "User not found" };
 
-      if (user.restricted) {
-        return { error: "Action not allowed: account is restricted" };
-      }
-
       const {
         content,
         scheduled_for,
@@ -187,7 +183,6 @@ const processScheduledPosts = async () => {
       }
 
       if (user.restricted) {
-        // Skip posting for restricted users
         updateScheduledPostStatus.run("failed", scheduledPost.id);
         continue;
       }

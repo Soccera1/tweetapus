@@ -55,15 +55,12 @@ export default new Elysia({ prefix: "/upload" })
       const user = getUserByUsername.get(payload.username);
       if (!user) return { error: "User not found" };
 
-      if (user.restricted) return { error: "Action not allowed: account is restricted" };
-
       if (!body.file) {
         return { error: "No file provided" };
       }
 
       const file = body.file;
 
-      // Validate file type
       if (!ALLOWED_TYPES[file.type]) {
         return {
           error:

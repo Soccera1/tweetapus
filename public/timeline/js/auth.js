@@ -28,7 +28,7 @@ let _user;
     return;
   }
 
-  const { user, error, suspension } = await query("/auth/me");
+  const { user, error, suspension, restricted } = await query("/auth/me");
 
   if (error && suspension) {
     document.documentElement.innerHTML = suspension;
@@ -64,11 +64,11 @@ let _user;
   document.querySelector(".account img").src =
     user.avatar || `/public/shared/assets/default-avatar.svg`;
 
-  // Notify user if their account is restricted
-  if (user.restricted) {
+  if (restricted) {
     toastQueue.add(
       `<h1>Account restricted</h1><p>Your account has limited privileges — you can browse posts, but interactions such as tweeting, liking, retweeting, DMs, and following are disabled. If you believe this is an error, contact an administrator.</p>`
     );
+    user.restricted = true;
   }
 
   const accountBtn = document.querySelector(".account");

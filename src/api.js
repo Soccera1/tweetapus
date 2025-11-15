@@ -92,7 +92,7 @@ export default new Elysia({
       generator: ratelimit,
     })
   )
-  .onBeforeHandle(async ({ headers, request }) => {
+  .onBeforeHandle(async ({ headers, request, set }) => {
     const token = headers.authorization?.split(" ")[1];
     if (!token) return;
 
@@ -169,6 +169,9 @@ export default new Elysia({
         success: false,
         error: "Your account is in a read-only state and is not allowed to perform this action",
       };
+    }
+    if (restriction && request.url.endsWith("/auth/me")) {
+      set.restricted = true;
     }
   })
   .get("/emojis", async () => {

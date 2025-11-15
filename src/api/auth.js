@@ -84,7 +84,7 @@ export default new Elysia({ prefix: "/auth" })
 		}
 		return await cap.redeemChallenge({ token, solutions });
 	})
-	.get("/me", async ({ jwt, headers, query }) => {
+	.get("/me", async ({ jwt, headers, query, set }) => {
 		const authorization = headers.authorization;
 		if (!authorization) {
 			return { error: "No authorization header" };
@@ -140,6 +140,7 @@ export default new Elysia({ prefix: "/auth" })
 					backupEligible: passkey.backup_eligible,
 					name: passkey.name || `Passkey ${passkey.cred_id.slice(0, 8)}...`,
 				})),
+				restricted: set.restricted
 			};
 		} catch (error) {
 			return { error: error.message };
