@@ -70,7 +70,7 @@ const adminQueries = {
     FROM users
   `),
 	getPostStats: db.prepare("SELECT COUNT(*) as total FROM posts"),
-		getSuspensionStats: db.prepare(`
+	getSuspensionStats: db.prepare(`
 		SELECT 
 			COUNT(*) as active,
 			SUM(CASE WHEN s.action = 'restrict' THEN 1 ELSE 0 END) as active_restricted,
@@ -174,9 +174,9 @@ WHERE u.id = ?
 	updateUserSuspended: db.prepare(
 		"UPDATE users SET suspended = ? WHERE id = ?",
 	),
-    updateUserRestricted: db.prepare(
-        "UPDATE users SET restricted = ? WHERE id = ?",
-    ),
+	updateUserRestricted: db.prepare(
+		"UPDATE users SET restricted = ? WHERE id = ?",
+	),
 	updateSuspensionStatus: db.prepare(
 		"UPDATE suspensions SET status = ? WHERE user_id = ? AND status = 'active'",
 	),
@@ -1039,9 +1039,19 @@ export default new Elysia({ prefix: "/admin" })
 	.post(
 		"/users/:id/suspend",
 		async ({ params, body, user }) => {
-			const { reason, duration, notes, action } = body; // severity deprecated
+			const { reason, duration, notes, action } = body;
 			const suspensionId = Bun.randomUUIDv7();
 			const targetUser = adminQueries.findUserById.get(params.id);
+
+			if (!targetUser) return { error: "User not found" };
+
+			// Validate state constraints: no suspended + restricted/shadowban
+			if (
+				targetUser.suspended &&
+				(action === "restrict" || action === "shadowban")
+			) {
+				return { error: "Cannot restrict or shadowban a suspended user" };
+			}
 
 			const expiresAt = duration
 				? new Date(Date.now() + duration * 60 * 1000).toISOString()
@@ -1054,25 +1064,41 @@ export default new Elysia({ prefix: "/admin" })
 				user.id,
 				reason,
 				null,
-				action || 'suspend',
+				action || "suspend",
 				expiresAt,
 				notes,
 			);
 
-			if ((action || 'suspend') === 'suspend') {
+			if ((action || "suspend") === "suspend") {
 				adminQueries.updateUserSuspended.run(true, params.id);
 				adminQueries.updateUserRestricted.run(false, params.id);
-			} else if ((action || 'suspend') === 'restrict') {
-				// Mark the user as restricted and ensure they are not suspended
+				db.query("UPDATE users SET shadowbanned = FALSE WHERE id = ?").run(
+					params.id,
+				);
+			} else if ((action || "suspend") === "restrict") {
 				adminQueries.updateUserRestricted.run(true, params.id);
 				adminQueries.updateUserSuspended.run(false, params.id);
+				db.query("UPDATE users SET shadowbanned = FALSE WHERE id = ?").run(
+					params.id,
+				);
+			} else if ((action || "suspend") === "shadowban") {
+				db.query("UPDATE users SET shadowbanned = TRUE WHERE id = ?").run(
+					params.id,
+				);
+				adminQueries.updateUserSuspended.run(false, params.id);
+				adminQueries.updateUserRestricted.run(false, params.id);
 			}
 
-			const moderationActionName = (action || 'suspend') === 'restrict' ? 'restrict_user' : 'suspend_user';
+			const moderationActionName =
+				(action || "suspend") === "restrict"
+					? "restrict_user"
+					: (action || "suspend") === "shadowban"
+						? "shadowban_user"
+						: "suspend_user";
 			logModerationAction(user.id, moderationActionName, "user", params.id, {
 				username: targetUser?.username,
 				reason,
-				action: action || 'suspend',
+				action: action || "suspend",
 				duration,
 				notes,
 			});
@@ -1082,7 +1108,13 @@ export default new Elysia({ prefix: "/admin" })
 		{
 			body: t.Object({
 				reason: t.String(),
-				action: t.Optional(t.Union([t.Literal('suspend'), t.Literal('restrict')])),
+				action: t.Optional(
+					t.Union([
+						t.Literal("suspend"),
+						t.Literal("restrict"),
+						t.Literal("shadowban"),
+					]),
+				),
 				duration: t.Optional(t.Number()),
 				notes: t.Optional(t.String()),
 			}),
@@ -1108,6 +1140,18 @@ export default new Elysia({ prefix: "/admin" })
 				username: targetUser?.username,
 			});
 		}
+		return { success: true };
+	})
+
+	.delete("/users/:id", async ({ params, user }) => {
+		const targetUser = adminQueries.findUserById.get(params.id);
+		if (!targetUser) return { error: "User not found" };
+
+		adminQueries.deleteUser.run(params.id);
+		logModerationAction(user.id, "delete_user", "user", params.id, {
+			username: targetUser.username,
+		});
+
 		return { success: true };
 	})
 
@@ -2624,7 +2668,7 @@ export default new Elysia({ prefix: "/admin" })
 	.post(
 		"/reports/:id/resolve",
 		async ({ params, body, user }) => {
-				const { action, duration, note, banAction } = body; // severity deprecated
+			const { action, duration, note, banAction } = body; // severity deprecated
 			const report = db
 				.query("SELECT * FROM reports WHERE id = ?")
 				.get(params.id);
@@ -2634,11 +2678,25 @@ export default new Elysia({ prefix: "/admin" })
 			let resolutionAction = action;
 
 			if (action === "ban_user" && report.reported_type === "user") {
+				const reportedUser = db
+					.query("SELECT * FROM users WHERE id = ?")
+					.get(report.reported_id);
+
+				if (!reportedUser) return { error: "Reported user not found" };
+
+				// Validate state constraints
+				if (
+					reportedUser.suspended &&
+					(banAction === "restrict" || banAction === "shadowban")
+				) {
+					return { error: "Cannot restrict or shadowban a suspended user" };
+				}
+
 				const suspensionId = Bun.randomUUIDv7();
 				const expiresAt = duration
 					? new Date(Date.now() + duration * 60 * 60 * 1000).toISOString()
 					: null;
-				const banActionToUse = banAction || 'suspend';
+				const banActionToUse = banAction || "suspend";
 				db.query(
 					`
 					INSERT INTO suspensions (id, user_id, suspended_by, reason, severity, action, expires_at)
@@ -2654,23 +2712,27 @@ export default new Elysia({ prefix: "/admin" })
 					expiresAt,
 				);
 
-				if (banActionToUse === 'restrict') {
+				if (banActionToUse === "restrict") {
 					adminQueries.updateUserRestricted.run(true, report.reported_id);
+				} else if (banActionToUse === "shadowban") {
+					db.query("UPDATE users SET shadowbanned = TRUE WHERE id = ?").run(
+						report.reported_id,
+					);
 				} else {
 					adminQueries.updateUserSuspended.run(true, report.reported_id);
 				}
 
-				logModerationAction(
-					user.id,
-					banActionToUse === 'restrict' ? 'restrict_user' : 'suspend_user',
-					"user",
-					report.reported_id,
-					{
-						reportId: params.id,
-						duration,
-						action: banActionToUse,
-					},
-				);
+				const logAction =
+					banActionToUse === "restrict"
+						? "restrict_user"
+						: banActionToUse === "shadowban"
+							? "shadowban_user"
+							: "suspend_user";
+				logModerationAction(user.id, logAction, "user", report.reported_id, {
+					reportId: params.id,
+					duration,
+					action: banActionToUse,
+				});
 			} else if (action === "delete_post" && report.reported_type === "post") {
 				const post = db
 					.query("SELECT user_id FROM posts WHERE id = ?")

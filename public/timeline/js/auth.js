@@ -66,7 +66,7 @@ let _user;
 
   if (restricted) {
     toastQueue.add(
-      `<h1>Account restricted</h1><p>Your account has limited privileges — you can browse posts, but interactions such as tweeting, liking, retweeting, DMs, and following are disabled. If you believe this is an error, contact an administrator.</p>`
+      `<h1>Account restricted</h1><p>Your account has limited privileges — you can browse posts, but interactions such as tweeting, liking, retweeting, DMs, and following are disabled.</p>`
     );
     user.restricted = true;
   }

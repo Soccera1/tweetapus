@@ -1502,6 +1502,12 @@ export const createComposer = async ({
 
   try {
     const user = await getUser();
+
+    if (user?.restricted) {
+      el.style.display = "none";
+      return el;
+    }
+
     const maxChars =
       user?.character_limit !== null && user?.character_limit !== undefined
         ? user.character_limit

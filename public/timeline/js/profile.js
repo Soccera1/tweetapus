@@ -514,6 +514,35 @@ const renderProfile = (data) => {
 	if (profileContainerEl)
 		profileContainerEl.classList.toggle("restricted", restricted);
 
+	// Add restricted account banner
+	const existingBanner = profileContainerEl?.querySelector(
+		".restricted-account-banner",
+	);
+	if (restricted && !suspended) {
+		if (!existingBanner) {
+			const banner = document.createElement("div");
+			banner.className = "restricted-account-banner alert alert-warning mb-3";
+			banner.innerHTML = `
+				<div class="d-flex align-items-center gap-2">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<circle cx="12" cy="12" r="10"/>
+						<line x1="12" y1="8" x2="12" y2="12"/>
+						<line x1="12" y1="16" x2="12.01" y2="16"/>
+					</svg>
+					<div>
+						<strong>Account Restricted</strong>
+						<p class="mb-0 small">This account has limited privileges. You can browse content, but interactions are disabled.</p>
+					</div>
+				</div>
+			`;
+			if (profileContainerEl) {
+				profileContainerEl.insertBefore(banner, profileContainerEl.firstChild);
+			}
+		}
+	} else if (existingBanner) {
+		existingBanner.remove();
+	}
+
 	const bannerElement = document.querySelector(".profile-banner");
 	if (bannerElement) {
 		bannerElement.style.display = "block";
@@ -591,21 +620,21 @@ const renderProfile = (data) => {
 				const pathEl = existingBadge.querySelector("path");
 				if (pathEl) pathEl.setAttribute("fill", badgeColor);
 			}
-				} else if (existingBadge) {
+		} else if (existingBadge) {
 			existingBadge.remove();
 		}
-				// restricted indicator
-				const existingRestrBadge = profileNameEl.querySelector('.restricted-badge');
-				if (restricted) {
-					if (!existingRestrBadge) {
-						const rBadge = document.createElement('span');
-						rBadge.className = 'restricted-badge text-warning ms-2 small';
-						rBadge.textContent = 'Restricted';
-						profileNameEl.appendChild(rBadge);
-					}
-				} else if (existingRestrBadge) {
-					existingRestrBadge.remove();
-				}
+		// restricted indicator
+		const existingRestrBadge = profileNameEl.querySelector(".restricted-badge");
+		if (restricted) {
+			if (!existingRestrBadge) {
+				const rBadge = document.createElement("span");
+				rBadge.className = "restricted-badge text-warning ms-2 small";
+				rBadge.textContent = "Restricted";
+				profileNameEl.appendChild(rBadge);
+			}
+		} else if (existingRestrBadge) {
+			existingRestrBadge.remove();
+		}
 	}
 
 	const mainDisplayNameEl = document.getElementById("profileDisplayName");
@@ -645,14 +674,16 @@ const renderProfile = (data) => {
 		}
 
 		// Add restricted badge to the main display name on profile page
-		const existingMainRestrBadge = mainDisplayNameEl.querySelector('.restricted-badge');
+		const existingMainRestrBadge =
+			mainDisplayNameEl.querySelector(".restricted-badge");
 		if (restricted) {
 			if (!existingMainRestrBadge) {
-				const rBadgeMain = document.createElement('span');
-				rBadgeMain.className = 'restricted-badge text-warning ms-2 small';
-				rBadgeMain.textContent = 'Restricted';
+				const rBadgeMain = document.createElement("span");
+				rBadgeMain.className = "restricted-badge text-warning ms-2 small";
+				rBadgeMain.textContent = "Restricted";
 				// Insert after the verification badge if it exists, otherwise append
-				const followsBadge = mainDisplayNameEl.querySelector('.follows-me-badge');
+				const followsBadge =
+					mainDisplayNameEl.querySelector(".follows-me-badge");
 				if (followsBadge) {
 					mainDisplayNameEl.insertBefore(rBadgeMain, followsBadge);
 				} else {

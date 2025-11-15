@@ -170,7 +170,8 @@ class AdminPanel {
 
 	showExtensionDeleteConfirm({ title, message }) {
 		this.ensureExtensionConfirmModal();
-		if (this.extensionConfirmTitle) this.extensionConfirmTitle.textContent = title;
+		if (this.extensionConfirmTitle)
+			this.extensionConfirmTitle.textContent = title;
 		if (this.extensionConfirmMessage)
 			this.extensionConfirmMessage.textContent =
 				message ||
@@ -1023,12 +1024,12 @@ class AdminPanel {
 												: ""
 										}
 					${
-											user.suspended
-												? '<span class="badge bg-danger">Suspended</span>'
-												: user.restricted
-												? '<span class="badge bg-warning">Restricted</span>'
-												: ""
-										}
+						user.suspended
+							? '<span class="badge bg-danger">Suspended</span>'
+							: user.restricted
+								? '<span class="badge bg-warning">Restricted</span>'
+								: ""
+					}
                   </div>
                 </td>
                 <td>
@@ -1051,26 +1052,26 @@ class AdminPanel {
                       <i class="bi bi-chat-text"></i> Tweet As
                     </button>
 											${
-																								!(user.suspended || user.restricted)
-																										? `
+												!(user.suspended || user.restricted)
+													? `
 												<button class="btn btn-outline-danger btn-sm" onclick="adminPanel.showSuspensionModal('${user.id}')">
 													<i class="bi bi-exclamation-triangle"></i> Suspend/Restrict
 												</button>
 											`
-																										: `
+													: `
 																<button class="btn btn-outline-success btn-sm" onclick="adminPanel.unsuspendUser('${user.id}')">
 																	<i class="bi bi-check-circle"></i> ${
 																		user.suspended && user.restricted
-																			? 'Unsuspend & Unrestrict'
+																			? "Unsuspend & Unrestrict"
 																			: user.suspended
-																			? 'Unsuspend'
-																			: user.restricted
-																			? 'Unrestrict'
-																			: 'Lift'
+																				? "Unsuspend"
+																				: user.restricted
+																					? "Unrestrict"
+																					: "Lift"
 																	}
 																</button>
 															`
-																						}
+											}
                   
                       <button class="btn btn-outline-info btn-sm" onclick="adminPanel.impersonateUser('${
 												user.id
@@ -1339,11 +1340,11 @@ class AdminPanel {
                 </td>
 								<td>
 									${
-										suspension.action === 'suspend'
+										suspension.action === "suspend"
 											? '<span class="badge bg-danger">Suspended</span>'
-											: suspension.action === 'restrict'
-											? '<span class="badge bg-warning">Restricted</span>'
-											: `<span class="badge bg-secondary">${this.escapeHtml(suspension.action || 'unknown')}</span>`
+											: suspension.action === "restrict"
+												? '<span class="badge bg-warning">Restricted</span>'
+												: `<span class="badge bg-secondary">${this.escapeHtml(suspension.action || "unknown")}</span>`
 									}
 									<!-- severity removed -->
 								</td>
@@ -1529,12 +1530,12 @@ class AdminPanel {
             <div class="d-flex justify-content-center gap-2 mb-3">
               ${user.admin ? '<span class="badge bg-primary">Admin</span>' : ""}
 			  ${
-								user.suspended
-									? '<span class="badge bg-danger">Suspended</span>'
-									: user.restricted
-									? '<span class="badge bg-warning">Restricted</span>'
-									: ""
-							}
+					user.suspended
+						? '<span class="badge bg-danger">Suspended</span>'
+						: user.restricted
+							? '<span class="badge bg-warning">Restricted</span>'
+							: ""
+				}
             </div>
           </div>
           <div class="col-md-8">
@@ -1708,7 +1709,7 @@ class AdminPanel {
 										(suspension) => `
                   <div class="border-bottom pb-2 mb-2">
                     <div class="d-flex justify-content-between">
-					  <strong>${this.escapeHtml(suspension.action === 'suspend' ? 'Suspended' : suspension.action === 'restrict' ? 'Restricted' : (suspension.action || 'Unknown'))}</strong>
+					  <strong>${this.escapeHtml(suspension.action === "suspend" ? "Suspended" : suspension.action === "restrict" ? "Restricted" : suspension.action || "Unknown")}</strong>
                       <span class="badge ${
 												suspension.status === "active"
 													? "bg-danger"
@@ -1758,7 +1759,7 @@ class AdminPanel {
             ${
 							!user.suspended
 								? `<li><a class="dropdown-item" href="#" onclick="adminPanel.showSuspensionModal('${user.id}')">Suspend/Restrict User</a></li>`
-								: `<li><a class="dropdown-item" href="#" onclick="adminPanel.unsuspendUser('${user.id}')">${user.suspended && user.restricted ? 'Unsuspend & Unrestrict' : user.suspended ? 'Unsuspend User' : 'Unrestrict User'}</a></li>`
+								: `<li><a class="dropdown-item" href="#" onclick="adminPanel.unsuspendUser('${user.id}')">${user.suspended && user.restricted ? "Unsuspend & Unrestrict" : user.suspended ? "Unsuspend User" : "Unrestrict User"}</a></li>`
 						}
             <li><a class="dropdown-item text-danger" href="#" onclick="adminPanel.deleteUser('${
 							user.id
@@ -2056,7 +2057,8 @@ class AdminPanel {
 		const userId = document.getElementById("suspendUserId").value;
 		let reason = document.getElementById("suspensionReason").value;
 		// severity removed for suspensions; admin may choose an action only
-		const action = document.getElementById("suspensionAction")?.value || 'suspend';
+		const action =
+			document.getElementById("suspensionAction")?.value || "suspend";
 		const duration = document.getElementById("suspensionDuration").value;
 		const notes = document.getElementById("suspensionNotes").value;
 
@@ -2094,7 +2096,12 @@ class AdminPanel {
 	}
 
 	async unsuspendUser(userId) {
-		if (!confirm("Are you sure you want to remove suspension/restriction on this user?")) return;
+		if (
+			!confirm(
+				"Are you sure you want to remove suspension/restriction on this user?",
+			)
+		)
+			return;
 
 		try {
 			await this.apiCall(`/api/admin/users/${userId}/unsuspend`, {
@@ -4106,6 +4113,7 @@ class AdminPanel {
 			unverify_user: "✗",
 			suspend_user: "🚫",
 			restrict_user: "⚠️",
+			shadowban_user: "👻",
 			unsuspend_user: "✓",
 			unrestrict_user: "✓",
 			delete_user: "🗑️",
@@ -4125,6 +4133,7 @@ class AdminPanel {
 			unverify_user: "warning",
 			suspend_user: "danger",
 			restrict_user: "warning",
+			shadowban_user: "secondary",
 			unsuspend_user: "success",
 			unrestrict_user: "success",
 			delete_user: "danger",
@@ -4144,6 +4153,7 @@ class AdminPanel {
 			unverify_user: "Unverified User",
 			suspend_user: "Suspended User",
 			restrict_user: "Restricted User",
+			shadowban_user: "Shadowbanned User",
 			unsuspend_user: "Unsuspended User",
 			unrestrict_user: "Unrestricted User",
 			delete_user: "Deleted User",
@@ -4773,7 +4783,7 @@ class AdminPanel {
 				const fieldsContainer = document.getElementById("reportActionFields");
 
 				if (action === "ban_user") {
-						fieldsContainer.innerHTML = `
+					fieldsContainer.innerHTML = `
             <div class="mb-3">
               <label class="form-label">Duration (hours, leave empty for permanent)</label>
               <input type="number" id="banDuration" class="form-control" min="1" placeholder="e.g., 24">
@@ -5612,8 +5622,7 @@ class AdminPanel {
 			: "";
 		const choice = await this.showExtensionDeleteConfirm({
 			title: `Delete extension${targetLabel}?`,
-			message:
-				`Delete extension${targetLabel}? Choose De-Import to keep files for future import or Delete to remove everything.`,
+			message: `Delete extension${targetLabel}? Choose De-Import to keep files for future import or Delete to remove everything.`,
 		});
 		if (!choice || choice === "cancel") return;
 		const removeFilesFlag = choice === "delete";
@@ -5622,7 +5631,9 @@ class AdminPanel {
 				extensionId,
 			)}${removeFilesFlag ? "?remove_files=1" : ""}`;
 			await this.apiCall(url, { method: "DELETE" });
-			this.showSuccess(removeFilesFlag ? "Extension deleted" : "Extension de-imported");
+			this.showSuccess(
+				removeFilesFlag ? "Extension deleted" : "Extension de-imported",
+			);
 			this.loadExtensionsManager();
 		} catch (error) {
 			console.error("Failed to delete extension", error);

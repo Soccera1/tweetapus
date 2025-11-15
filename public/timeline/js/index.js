@@ -123,7 +123,7 @@ window.onunhandledrejection = (event) => {
     link.addEventListener("click", async (e) => {
       e.preventDefault();
 
-      feedLinks.forEach((l) => l.classList.remove("active"));
+      feedLinks.forEach((l) => { l.classList.remove("active") });
       link.classList.add("active");
 
       const tab = link.dataset.tab || "home";

@@ -10,277 +10,277 @@ import { searchQuery } from "./search.js";
 import openTweet from "./tweet.js";
 
 const DOMPURIFY_CONFIG = {
-  ALLOWED_TAGS: [
-    "b",
-    "i",
-    "u",
-    "s",
-    "a",
-    "p",
-    "br",
-    "marquee",
-    "strong",
-    "em",
-    "code",
-    "pre",
-    "blockquote",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "ul",
-    "ol",
-    "li",
-    "span",
-    "big",
-    "sub",
-    "sup",
-  ],
-  ALLOWED_ATTR: ["href", "target", "rel", "class"],
+	ALLOWED_TAGS: [
+		"b",
+		"i",
+		"u",
+		"s",
+		"a",
+		"p",
+		"br",
+		"marquee",
+		"strong",
+		"em",
+		"code",
+		"pre",
+		"blockquote",
+		"h1",
+		"h2",
+		"h3",
+		"h4",
+		"h5",
+		"h6",
+		"ul",
+		"ol",
+		"li",
+		"span",
+		"big",
+		"sub",
+		"sup",
+	],
+	ALLOWED_ATTR: ["href", "target", "rel", "class"],
 };
 
 const createFactCheck = (fact_check) => {
-  const factCheckEl = document.createElement("div");
-  factCheckEl.className = "fact-check-banner";
-  factCheckEl.dataset.severity = fact_check.severity || "warning";
+	const factCheckEl = document.createElement("div");
+	factCheckEl.className = "fact-check-banner";
+	factCheckEl.dataset.severity = fact_check.severity || "warning";
 
-  const icon = document.createElement("span");
-  icon.className = "fact-check-icon";
-  icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`;
+	const icon = document.createElement("span");
+	icon.className = "fact-check-icon";
+	icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`;
 
-  const content = document.createElement("div");
-  content.className = "fact-check-content";
+	const content = document.createElement("div");
+	content.className = "fact-check-content";
 
-  const title = document.createElement("strong");
-  title.textContent =
-    fact_check.severity === "danger"
-      ? "Misleading or misinformation"
-      : fact_check.severity === "warning"
-      ? "Potentially misleading post"
-      : "Additional context";
+	const title = document.createElement("strong");
+	title.textContent =
+		fact_check.severity === "danger"
+			? "Misleading or misinformation"
+			: fact_check.severity === "warning"
+				? "Potentially misleading post"
+				: "Additional context";
 
-  const note = document.createElement("p");
+	const note = document.createElement("p");
 
-  const linkRegex = /https?:\/\/[^\s<>"']+/g;
-  const htmlString = fact_check.note
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\n", "<br>")
-    .replace(
-      linkRegex,
-      (url) =>
-        `<a href="${
-          url.startsWith("http") ? url : `https://${url}`
-        }" target="_blank" rel="noopener noreferrer">${
-          url.length > 60 ? `${url.slice(0, 50)}…` : url
-        }</a>`
-    );
-  note.innerHTML = DOMPurify.sanitize(htmlString, DOMPURIFY_CONFIG);
+	const linkRegex = /https?:\/\/[^\s<>"']+/g;
+	const htmlString = fact_check.note
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll("\n", "<br>")
+		.replace(
+			linkRegex,
+			(url) =>
+				`<a href="${
+					url.startsWith("http") ? url : `https://${url}`
+				}" target="_blank" rel="noopener noreferrer">${
+					url.length > 60 ? `${url.slice(0, 50)}…` : url
+				}</a>`,
+		);
+	note.innerHTML = DOMPurify.sanitize(htmlString, DOMPURIFY_CONFIG);
 
-  const footer = document.createElement("p");
-  footer.className = "fact-check-footer";
-  footer.innerText = `This note has been added by a trusted Tweetapus admin`;
+	const footer = document.createElement("p");
+	footer.className = "fact-check-footer";
+	footer.innerText = `This note has been added by a trusted Tweetapus admin`;
 
-  content.appendChild(title);
-  content.appendChild(note);
-  content.appendChild(footer);
+	content.appendChild(title);
+	content.appendChild(note);
+	content.appendChild(footer);
 
-  factCheckEl.appendChild(icon);
-  factCheckEl.appendChild(content);
+	factCheckEl.appendChild(icon);
+	factCheckEl.appendChild(content);
 
-  return factCheckEl;
+	return factCheckEl;
 };
 
 const emojiMapPromise = (async () => {
-  try {
-    const resp = await fetch("/api/emojis");
-    if (!resp.ok) return {};
-    const data = await resp.json();
-    const map = {};
-    for (const e of data.emojis || []) map[e.name] = e.file_url;
-    return map;
-  } catch (_err) {
-    return {};
-  }
+	try {
+		const resp = await fetch("/api/emojis");
+		if (!resp.ok) return {};
+		const data = await resp.json();
+		const map = {};
+		for (const e of data.emojis || []) map[e.name] = e.file_url;
+		return map;
+	} catch (_err) {
+		return {};
+	}
 })();
 
 async function replaceEmojiShortcodesInElement(container) {
-  try {
-    const map = await emojiMapPromise;
-    if (!map || Object.keys(map).length === 0) return;
+	try {
+		const map = await emojiMapPromise;
+		if (!map || Object.keys(map).length === 0) return;
 
-    const regex = /:([a-zA-Z0-9_+-]+):/g;
+		const regex = /:([a-zA-Z0-9_+-]+):/g;
 
-    const walker = document.createTreeWalker(
-      container,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode(node) {
-          if (!node.nodeValue || !node.nodeValue.includes(":"))
-            return NodeFilter.FILTER_REJECT;
-          const parentTag = node.parentNode?.nodeName?.toLowerCase();
-          if (
-            ["code", "pre", "a", "textarea", "script", "style"].includes(
-              parentTag
-            )
-          )
-            return NodeFilter.FILTER_REJECT;
-          return NodeFilter.FILTER_ACCEPT;
-        },
-      },
-      false
-    );
+		const walker = document.createTreeWalker(
+			container,
+			NodeFilter.SHOW_TEXT,
+			{
+				acceptNode(node) {
+					if (!node.nodeValue || !node.nodeValue.includes(":"))
+						return NodeFilter.FILTER_REJECT;
+					const parentTag = node.parentNode?.nodeName?.toLowerCase();
+					if (
+						["code", "pre", "a", "textarea", "script", "style"].includes(
+							parentTag,
+						)
+					)
+						return NodeFilter.FILTER_REJECT;
+					return NodeFilter.FILTER_ACCEPT;
+				},
+			},
+			false,
+		);
 
-    const nodes = [];
-    while (walker.nextNode()) nodes.push(walker.currentNode);
+		const nodes = [];
+		while (walker.nextNode()) nodes.push(walker.currentNode);
 
-    for (const textNode of nodes) {
-      const text = textNode.nodeValue;
-      regex.lastIndex = 0;
-      if (!regex.test(text)) continue;
+		for (const textNode of nodes) {
+			const text = textNode.nodeValue;
+			regex.lastIndex = 0;
+			if (!regex.test(text)) continue;
 
-      regex.lastIndex = 0;
-      const frag = document.createDocumentFragment();
-      let lastIndex = 0;
-      for (;;) {
-        const m = regex.exec(text);
-        if (!m) break;
-        const [full, name] = m;
-        const idx = m.index;
-        if (idx > lastIndex) {
-          frag.appendChild(document.createTextNode(text.slice(lastIndex, idx)));
-        }
-        const url = map[name];
-        if (url) {
-          const img = document.createElement("img");
-          img.src = url;
-          img.alt = `:${name}:`;
-          img.className = "inline-emoji";
-          img.width = 20;
-          img.height = 20;
-          img.loading = "lazy";
-          img.style.verticalAlign = "middle";
-          img.style.margin = "0 2px";
-          frag.appendChild(img);
-        } else {
-          frag.appendChild(document.createTextNode(full));
-        }
-        lastIndex = idx + full.length;
-      }
-      if (lastIndex < text.length) {
-        frag.appendChild(document.createTextNode(text.slice(lastIndex)));
-      }
+			regex.lastIndex = 0;
+			const frag = document.createDocumentFragment();
+			let lastIndex = 0;
+			for (;;) {
+				const m = regex.exec(text);
+				if (!m) break;
+				const [full, name] = m;
+				const idx = m.index;
+				if (idx > lastIndex) {
+					frag.appendChild(document.createTextNode(text.slice(lastIndex, idx)));
+				}
+				const url = map[name];
+				if (url) {
+					const img = document.createElement("img");
+					img.src = url;
+					img.alt = `:${name}:`;
+					img.className = "inline-emoji";
+					img.width = 20;
+					img.height = 20;
+					img.loading = "lazy";
+					img.style.verticalAlign = "middle";
+					img.style.margin = "0 2px";
+					frag.appendChild(img);
+				} else {
+					frag.appendChild(document.createTextNode(full));
+				}
+				lastIndex = idx + full.length;
+			}
+			if (lastIndex < text.length) {
+				frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+			}
 
-      textNode.parentNode.replaceChild(frag, textNode);
-    }
-  } catch {}
+			textNode.parentNode.replaceChild(frag, textNode);
+		}
+	} catch {}
 }
 
 const PROFILE_AVATAR_PX = 100;
 function avatarPxToPercent(px) {
-  const n = Number(px) || 0;
-  const pct = (n / PROFILE_AVATAR_PX) * 100;
+	const n = Number(px) || 0;
+	const pct = (n / PROFILE_AVATAR_PX) * 100;
 
-  const clamped = Math.max(0, Math.min(100, pct));
-  return `${clamped}%`;
+	const clamped = Math.max(0, Math.min(100, pct));
+	return `${clamped}%`;
 }
 
 async function checkReplyPermissions(tweet, replyRestriction) {
-  try {
-    const data = await query(`/tweets/can-reply/${tweet.id}`);
+	try {
+		const data = await query(`/tweets/can-reply/${tweet.id}`);
 
-    if (data.error) {
-      return {
-        canReply: false,
-        restrictionText: "Unable to check reply permissions",
-      };
-    }
+		if (data.error) {
+			return {
+				canReply: false,
+				restrictionText: "Unable to check reply permissions",
+			};
+		}
 
-    let restrictionText = "";
-    switch (replyRestriction) {
-      case "following":
-        restrictionText = `Only people @${tweet.author.username} follows can reply`;
-        break;
-      case "followers":
-        restrictionText = `Only people who follow @${tweet.author.username} can reply`;
-        break;
-      case "verified":
-        restrictionText = "Only verified users can reply";
-        break;
-      default:
-        restrictionText = data.canReply
-          ? "You can reply"
-          : "You cannot reply to this tweet";
-    }
+		let restrictionText = "";
+		switch (replyRestriction) {
+			case "following":
+				restrictionText = `Only people @${tweet.author.username} follows can reply`;
+				break;
+			case "followers":
+				restrictionText = `Only people who follow @${tweet.author.username} can reply`;
+				break;
+			case "verified":
+				restrictionText = "Only verified users can reply";
+				break;
+			default:
+				restrictionText = data.canReply
+					? "You can reply"
+					: "You cannot reply to this tweet";
+		}
 
-    return { canReply: data.canReply, restrictionText };
-  } catch (error) {
-    console.error("Error checking reply permissions:", error);
-    return {
-      canReply: false,
-      restrictionText: "Error checking reply permissions",
-    };
-  }
+		return { canReply: data.canReply, restrictionText };
+	} catch (error) {
+		console.error("Error checking reply permissions:", error);
+		return {
+			canReply: false,
+			restrictionText: "Error checking reply permissions",
+		};
+	}
 }
 
 async function showInteractionUsers(tweetId, interaction, title) {
-  try {
-    const data = await query(`/tweets/${tweetId}/${interaction}`);
+	try {
+		const data = await query(`/tweets/${tweetId}/${interaction}`);
 
-    if (data.error) {
-      toastQueue.add(`<h1>Error</h1><p>${data.error}</p>`);
-      return;
-    }
+		if (data.error) {
+			toastQueue.add(`<h1>Error</h1><p>${data.error}</p>`);
+			return;
+		}
 
-    const contentContainer = document.createElement("div");
+		const contentContainer = document.createElement("div");
 
-    if (interaction === "quotes") {
-      if (!data.tweets || data.tweets.length === 0) {
-        toastQueue.add(
-          `<h1>No ${title.toLowerCase()}</h1><p>This tweet hasn't been quoted by anyone yet.</p>`
-        );
-        return;
-      }
+		if (interaction === "quotes") {
+			if (!data.tweets || data.tweets.length === 0) {
+				toastQueue.add(
+					`<h1>No ${title.toLowerCase()}</h1><p>This tweet hasn't been quoted by anyone yet.</p>`,
+				);
+				return;
+			}
 
-      contentContainer.className = "quotes-list";
+			contentContainer.className = "quotes-list";
 
-      data.tweets.forEach((tweet) => {
-        const tweetEl = createTweetElement(tweet, {
-          clickToOpen: true,
-          showTopReply: false,
-          isTopReply: false,
-          size: "normal",
-        });
-        contentContainer.appendChild(tweetEl);
-      });
-    } else {
-      if (!data.users || data.users.length === 0) {
-        toastQueue.add(
-          `<h1>No ${title.toLowerCase()}</h1><p>This tweet hasn't been ${interaction.slice(
-            0,
-            -1
-          )}ed by anyone yet.</p>`
-        );
-        return;
-      }
-      contentContainer.className = "users-list";
+			data.tweets.forEach((tweet) => {
+				const tweetEl = createTweetElement(tweet, {
+					clickToOpen: true,
+					showTopReply: false,
+					isTopReply: false,
+					size: "normal",
+				});
+				contentContainer.appendChild(tweetEl);
+			});
+		} else {
+			if (!data.users || data.users.length === 0) {
+				toastQueue.add(
+					`<h1>No ${title.toLowerCase()}</h1><p>This tweet hasn't been ${interaction.slice(
+						0,
+						-1,
+					)}ed by anyone yet.</p>`,
+				);
+				return;
+			}
+			contentContainer.className = "users-list";
 
-      data.users.forEach((user) => {
-        const userItem = document.createElement("div");
-        userItem.className = "user-item";
+			data.users.forEach((user) => {
+				const userItem = document.createElement("div");
+				userItem.className = "user-item";
 
-        const timeText =
-          interaction === "likes"
-            ? `liked ${formatInteractionTime(new Date(user.liked_at))}`
-            : `retweeted ${formatInteractionTime(new Date(user.retweeted_at))}`;
+				const timeText =
+					interaction === "likes"
+						? `liked ${formatInteractionTime(new Date(user.liked_at))}`
+						: `retweeted ${formatInteractionTime(new Date(user.retweeted_at))}`;
 
-        userItem.innerHTML = `
+				userItem.innerHTML = `
           <div class="user-avatar">
             <img src="${
-              user.avatar || "/public/shared/assets/default-avatar.svg"
-            }" alt="${user.name || user.username}" />
+							user.avatar || "/public/shared/assets/default-avatar.svg"
+						}" alt="${user.name || user.username}" />
           </div>
           <div class="user-info">
             <div class="user-name">${user.name || user.username}</div>
@@ -289,471 +289,471 @@ async function showInteractionUsers(tweetId, interaction, title) {
           </div>
         `;
 
-        userItem.addEventListener("click", async () => {
-          modal.close();
-          const { default: openProfile } = await import("./profile.js");
-          openProfile(user.username);
-        });
+				userItem.addEventListener("click", async () => {
+					modal.close();
+					const { default: openProfile } = await import("./profile.js");
+					openProfile(user.username);
+				});
 
-        contentContainer.appendChild(userItem);
-      });
-    }
+				contentContainer.appendChild(userItem);
+			});
+		}
 
-    const modal = createModal({
-      title,
-      content: contentContainer,
-      className: "interactions-modal",
-    });
-  } catch (error) {
-    console.error("Error querying interaction users:", error);
-    toastQueue.add(
-      `<h1>Network Error</h1><p>Failed to load ${title.toLowerCase()}.</p>`
-    );
-  }
+		const modal = createModal({
+			title,
+			content: contentContainer,
+			className: "interactions-modal",
+		});
+	} catch (error) {
+		console.error("Error querying interaction users:", error);
+		toastQueue.add(
+			`<h1>Network Error</h1><p>Failed to load ${title.toLowerCase()}.</p>`,
+		);
+	}
 }
 
 function formatInteractionTime(date) {
-  const now = new Date();
-  const diff = now - date;
-  const daysDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
+	const now = new Date();
+	const diff = now - date;
+	const daysDiff = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-  if (daysDiff === 0) {
-    const hoursDiff = Math.floor(diff / (1000 * 60 * 60));
-    if (hoursDiff === 0) {
-      const minutesDiff = Math.floor(diff / (1000 * 60));
-      return minutesDiff <= 1 ? "now" : `${minutesDiff}m ago`;
-    }
-    return `${hoursDiff}h ago`;
-  } else if (daysDiff === 1) {
-    return "yesterday";
-  } else if (daysDiff < 7) {
-    return `${daysDiff}d ago`;
-  } else {
-    return date.toLocaleDateString([], { month: "short", day: "numeric" });
-  }
+	if (daysDiff === 0) {
+		const hoursDiff = Math.floor(diff / (1000 * 60 * 60));
+		if (hoursDiff === 0) {
+			const minutesDiff = Math.floor(diff / (1000 * 60));
+			return minutesDiff <= 1 ? "now" : `${minutesDiff}m ago`;
+		}
+		return `${hoursDiff}h ago`;
+	} else if (daysDiff === 1) {
+		return "yesterday";
+	} else if (daysDiff < 7) {
+		return `${daysDiff}d ago`;
+	} else {
+		return date.toLocaleDateString([], { month: "short", day: "numeric" });
+	}
 }
 
 DOMPurify.addHook("uponSanitizeElement", (node, data) => {
-  if (!data.allowedTags || data.allowedTags[data.tagName]) {
-    return;
-  }
+	if (!data.allowedTags || data.allowedTags[data.tagName]) {
+		return;
+	}
 
-  const textNode = document.createTextNode(node.outerHTML);
-  node.parentNode.replaceChild(textNode, node);
+	const textNode = document.createTextNode(node.outerHTML);
+	node.parentNode.replaceChild(textNode, node);
 });
 
 const linkifyText = (text) => {
-  const normalizeListMarkers = (md) => {
-    const lines = md.split("\n");
-    let inFence = false;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (/^```/.test(line)) {
-        inFence = !inFence;
-        continue;
-      }
-      if (inFence) continue;
-      if (/^[ \t]{4,}/.test(line)) continue;
-      const mDash = line.match(/^([ \t]{0,3})(-)(\s+)(.*)$/);
-      if (mDash) {
-        lines[i] = `${mDash[1]}\\-${mDash[3]}${mDash[4]}`;
-      }
-      const mPlus = line.match(/^([ \t]{0,3})([+])(\s+)(.*)$/);
-      if (mPlus) {
-        lines[i] = `${mPlus[1]}*${mPlus[3]}${mPlus[4]}`;
-      }
-    }
-    return lines.join("\n");
-  };
+	const normalizeListMarkers = (md) => {
+		const lines = md.split("\n");
+		let inFence = false;
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+			if (/^```/.test(line)) {
+				inFence = !inFence;
+				continue;
+			}
+			if (inFence) continue;
+			if (/^[ \t]{4,}/.test(line)) continue;
+			const mDash = line.match(/^([ \t]{0,3})(-)(\s+)(.*)$/);
+			if (mDash) {
+				lines[i] = `${mDash[1]}\\-${mDash[3]}${mDash[4]}`;
+			}
+			const mPlus = line.match(/^([ \t]{0,3})([+])(\s+)(.*)$/);
+			if (mPlus) {
+				lines[i] = `${mPlus[1]}*${mPlus[3]}${mPlus[4]}`;
+			}
+		}
+		return lines.join("\n");
+	};
 
-  const processCustomMarkdown = (text) => {
-    return text
-      .replace(/~([^~\n]+)~/g, "<sub>$1</sub>")
-      .replace(/\^([^^\n]+)\^/g, "<sup>$1</sup>");
-  };
+	const processCustomMarkdown = (text) => {
+		return text
+			.replace(/~([^~\n]+)~/g, "<sub>$1</sub>")
+			.replace(/\^([^^\n]+)\^/g, "<sup>$1</sup>");
+	};
 
-  let processedText = text.replace(
-    /(^|[\s])@([a-zA-Z0-9_]+)/g,
-    '$1<span data-mention="$2">@$2</span>'
-  );
-  processedText = processedText.replace(
-    /(^|[\s])#([a-zA-Z0-9_]+)/g,
-    '$1<span data-hashtag="$2">#$2</span>'
-  );
+	let processedText = text.replace(
+		/(^|[\s])@([a-zA-Z0-9_]+)/g,
+		'$1<span data-mention="$2">@$2</span>',
+	);
+	processedText = processedText.replace(
+		/(^|[\s])#([a-zA-Z0-9_]+)/g,
+		'$1<span data-hashtag="$2">#$2</span>',
+	);
 
-  const html = marked.parse(normalizeListMarkers(processedText.trim()), {
-    breaks: true,
-    gfm: true,
-    html: true,
-    headerIds: false,
-    mangle: false,
-  });
+	const html = marked.parse(normalizeListMarkers(processedText.trim()), {
+		breaks: true,
+		gfm: true,
+		html: true,
+		headerIds: false,
+		mangle: false,
+	});
 
-  let processedHtml = html.replace(
-    /<span data-mention="([^"]+)">@\1<\/span>/g,
-    '<a href="javascript:" class="tweet-mention" data-username="$1">@$1</a>'
-  );
-  processedHtml = processedHtml.replace(
-    /<span data-hashtag="([^"]+)">#\1<\/span>/g,
-    '<a href="javascript:" class="tweet-hashtag" data-hashtag="$1">#$1</a>'
-  );
+	let processedHtml = html.replace(
+		/<span data-mention="([^"]+)">@\1<\/span>/g,
+		'<a href="javascript:" class="tweet-mention" data-username="$1">@$1</a>',
+	);
+	processedHtml = processedHtml.replace(
+		/<span data-hashtag="([^"]+)">#\1<\/span>/g,
+		'<a href="javascript:" class="tweet-hashtag" data-hashtag="$1">#$1</a>',
+	);
 
-  processedHtml = processCustomMarkdown(processedHtml);
+	processedHtml = processCustomMarkdown(processedHtml);
 
-  const el = document.createElement("div");
-  el.innerHTML = DOMPurify.sanitize(processedHtml, DOMPURIFY_CONFIG);
+	const el = document.createElement("div");
+	el.innerHTML = DOMPurify.sanitize(processedHtml, DOMPURIFY_CONFIG);
 
-  el.querySelectorAll("a").forEach((a) => {
-    a.setAttribute("target", "_blank");
-    a.setAttribute("rel", "noopener noreferrer");
-    if (a.innerText.length > 60) {
-      a.innerText = `${a.innerText.slice(0, 60)}…`;
-    }
-    if (a.href.startsWith("javascript:") || a.href.startsWith("data:")) {
-      a.removeAttribute("href");
-    }
-    if (a.href.startsWith("http://") || a.href.startsWith("https://")) {
-      a.innerText = a.href.startsWith("http://")
-        ? a.innerText.replace("http://", "")
-        : a.innerText.replace("https://", "");
-    }
-  });
+	el.querySelectorAll("a").forEach((a) => {
+		a.setAttribute("target", "_blank");
+		a.setAttribute("rel", "noopener noreferrer");
+		if (a.innerText.length > 60) {
+			a.innerText = `${a.innerText.slice(0, 60)}…`;
+		}
+		if (a.href.startsWith("javascript:") || a.href.startsWith("data:")) {
+			a.removeAttribute("href");
+		}
+		if (a.href.startsWith("http://") || a.href.startsWith("https://")) {
+			a.innerText = a.href.startsWith("http://")
+				? a.innerText.replace("http://", "")
+				: a.innerText.replace("https://", "");
+		}
+	});
 
-  return el.innerHTML;
+	return el.innerHTML;
 };
 
 const timeAgo = (date) => {
-  const now = new Date();
-  let dateObj;
+	const now = new Date();
+	let dateObj;
 
-  if (typeof date === "string" && !date.endsWith("Z") && !date.includes("+")) {
-    dateObj = new Date(`${date}Z`);
-  } else {
-    dateObj = new Date(date);
-  }
+	if (typeof date === "string" && !date.endsWith("Z") && !date.includes("+")) {
+		dateObj = new Date(`${date}Z`);
+	} else {
+		dateObj = new Date(date);
+	}
 
-  const seconds = Math.floor((now - dateObj) / 1000);
+	const seconds = Math.floor((now - dateObj) / 1000);
 
-  if (seconds < 60) return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
-  if (seconds < 3600) {
-    const mins = Math.floor(seconds / 60);
-    return `${mins} minute${mins !== 1 ? "s" : ""} ago`;
-  }
-  if (seconds < 86400) {
-    const hours = Math.floor(seconds / 3600);
-    return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
-  }
-  if (seconds < 604800) {
-    const days = Math.floor(seconds / 86400);
-    return `${days} day${days !== 1 ? "s" : ""} ago`;
-  }
+	if (seconds < 60) return `${seconds} second${seconds !== 1 ? "s" : ""} ago`;
+	if (seconds < 3600) {
+		const mins = Math.floor(seconds / 60);
+		return `${mins} minute${mins !== 1 ? "s" : ""} ago`;
+	}
+	if (seconds < 86400) {
+		const hours = Math.floor(seconds / 3600);
+		return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+	}
+	if (seconds < 604800) {
+		const days = Math.floor(seconds / 86400);
+		return `${days} day${days !== 1 ? "s" : ""} ago`;
+	}
 
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  const day = dateObj.getDate();
-  const year = dateObj.getFullYear();
-  const month = monthNames[dateObj.getMonth()];
+	const monthNames = [
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December",
+	];
+	const day = dateObj.getDate();
+	const year = dateObj.getFullYear();
+	const month = monthNames[dateObj.getMonth()];
 
-  const daySuffix = (d) => {
-    if (d >= 11 && d <= 13) return "th";
-    switch (d % 10) {
-      case 1:
-        return "st";
-      case 2:
-        return "nd";
-      case 3:
-        return "rd";
-      default:
-        return "th";
-    }
-  };
+	const daySuffix = (d) => {
+		if (d >= 11 && d <= 13) return "th";
+		switch (d % 10) {
+			case 1:
+				return "st";
+			case 2:
+				return "nd";
+			case 3:
+				return "rd";
+			default:
+				return "th";
+		}
+	};
 
-  if (year === now.getFullYear()) return `${month} ${day}${daySuffix(day)}`;
-  return `${month} ${day}${daySuffix(day)} ${year}`;
+	if (year === now.getFullYear()) return `${month} ${day}${daySuffix(day)}`;
+	return `${month} ${day}${daySuffix(day)} ${year}`;
 };
 
 const formatTimeRemaining = (expiresAt) => {
-  const now = new Date();
-  const expires = new Date(expiresAt);
-  const diff = expires - now;
+	const now = new Date();
+	const expires = new Date(expiresAt);
+	const diff = expires - now;
 
-  if (diff <= 0) return "Ended";
+	if (diff <= 0) return "Ended";
 
-  const minutes = Math.floor(diff / (1000 * 60));
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+	const minutes = Math.floor(diff / (1000 * 60));
+	const hours = Math.floor(diff / (1000 * 60 * 60));
+	const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-  if (days > 0) return `${days}d left`;
-  if (hours > 0) return `${hours}h left`;
-  return `${minutes}m left`;
+	if (days > 0) return `${days}d left`;
+	if (hours > 0) return `${hours}h left`;
+	return `${minutes}m left`;
 };
 
 const createPollElement = (poll, tweet) => {
-  if (!poll) return null;
+	if (!poll) return null;
 
-  const pollEl = document.createElement("div");
-  pollEl.className = "tweet-poll";
+	const pollEl = document.createElement("div");
+	pollEl.className = "tweet-poll";
 
-  const pollOptionsEl = document.createElement("div");
-  pollOptionsEl.className = "poll-options";
+	const pollOptionsEl = document.createElement("div");
+	pollOptionsEl.className = "poll-options";
 
-  poll.options.forEach((option) => {
-    const optionEl = document.createElement("div");
-    optionEl.className = `poll-option ${
-      poll.userVote === option.id ? "voted" : ""
-    } ${poll.isExpired ? "expired" : ""}`;
+	poll.options.forEach((option) => {
+		const optionEl = document.createElement("div");
+		optionEl.className = `poll-option ${
+			poll.userVote === option.id ? "voted" : ""
+		} ${poll.isExpired ? "expired" : ""}`;
 
-    if (poll.isExpired || poll.userVote) {
-      optionEl.innerHTML = `
+		if (poll.isExpired || poll.userVote) {
+			optionEl.innerHTML = `
 				<div class="poll-option-bar" style="width: ${option.percentage}%"></div>
 				<div class="poll-option-content">
 					<span class="poll-option-text">${option.option_text
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")}</span>
+						.replaceAll("<", "&lt;")
+						.replaceAll(">", "&gt;")}</span>
 					<span class="poll-option-percentage">${option.percentage}%</span>
 				</div>
 			`;
-    } else {
-      optionEl.classList.add("poll-option-clickable");
-      optionEl.innerHTML = `
+		} else {
+			optionEl.classList.add("poll-option-clickable");
+			optionEl.innerHTML = `
 				<div class="poll-option-content">
 					<span class="poll-option-text">${option.option_text
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")}</span>
+						.replaceAll("<", "&lt;")
+						.replaceAll(">", "&gt;")}</span>
 				</div>
 			`;
-      optionEl.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        votePoll(tweet.id, option.id, pollEl);
-      });
-    }
+			optionEl.addEventListener("click", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				votePoll(tweet.id, option.id, pollEl);
+			});
+		}
 
-    pollOptionsEl.appendChild(optionEl);
-  });
+		pollOptionsEl.appendChild(optionEl);
+	});
 
-  const pollMetaEl = document.createElement("div");
-  pollMetaEl.className = "poll-meta";
+	const pollMetaEl = document.createElement("div");
+	pollMetaEl.className = "poll-meta";
 
-  const pollVotesEl = document.createElement("div");
-  pollVotesEl.className = "poll-votes-container";
+	const pollVotesEl = document.createElement("div");
+	pollVotesEl.className = "poll-votes-container";
 
-  if (poll.voters && poll.voters.length > 0) {
-    const voterAvatarsEl = document.createElement("div");
-    voterAvatarsEl.className = "voter-avatars";
+	if (poll.voters && poll.voters.length > 0) {
+		const voterAvatarsEl = document.createElement("div");
+		voterAvatarsEl.className = "voter-avatars";
 
-    poll.voters.slice(0, 3).forEach((voter, index) => {
-      const avatarEl = document.createElement("img");
-      avatarEl.className = "voter-avatar";
-      avatarEl.src = voter.avatar || `/public/shared/assets/default-avatar.svg`;
-      avatarEl.alt = voter.name || voter.username;
-      avatarEl.title = voter.name || voter.username;
-      avatarEl.loading = "lazy";
-      const voterRadius =
-        voter.avatar_radius !== null && voter.avatar_radius !== undefined
-          ? avatarPxToPercent(voter.avatar_radius)
-          : voter.gold
-          ? "4px"
-          : "50px";
-      avatarEl.style.borderRadius = voterRadius;
-      avatarEl.style.zIndex = poll.voters.length - index;
-      voterAvatarsEl.appendChild(avatarEl);
-    });
+		poll.voters.slice(0, 3).forEach((voter, index) => {
+			const avatarEl = document.createElement("img");
+			avatarEl.className = "voter-avatar";
+			avatarEl.src = voter.avatar || `/public/shared/assets/default-avatar.svg`;
+			avatarEl.alt = voter.name || voter.username;
+			avatarEl.title = voter.name || voter.username;
+			avatarEl.loading = "lazy";
+			const voterRadius =
+				voter.avatar_radius !== null && voter.avatar_radius !== undefined
+					? avatarPxToPercent(voter.avatar_radius)
+					: voter.gold
+						? "4px"
+						: "50px";
+			avatarEl.style.borderRadius = voterRadius;
+			avatarEl.style.zIndex = poll.voters.length - index;
+			voterAvatarsEl.appendChild(avatarEl);
+		});
 
-    pollVotesEl.appendChild(voterAvatarsEl);
-  }
+		pollVotesEl.appendChild(voterAvatarsEl);
+	}
 
-  const votesTextEl = document.createElement("span");
-  votesTextEl.className = "poll-votes-text";
-  votesTextEl.textContent = `${poll.totalVotes} vote${
-    poll.totalVotes !== 1 ? "s" : ""
-  }`;
-  pollVotesEl.appendChild(votesTextEl);
+	const votesTextEl = document.createElement("span");
+	votesTextEl.className = "poll-votes-text";
+	votesTextEl.textContent = `${poll.totalVotes} vote${
+		poll.totalVotes !== 1 ? "s" : ""
+	}`;
+	pollVotesEl.appendChild(votesTextEl);
 
-  const pollTimeEl = document.createElement("span");
-  pollTimeEl.className = "poll-time";
-  pollTimeEl.textContent = formatTimeRemaining(poll.expires_at);
+	const pollTimeEl = document.createElement("span");
+	pollTimeEl.className = "poll-time";
+	pollTimeEl.textContent = formatTimeRemaining(poll.expires_at);
 
-  pollMetaEl.appendChild(pollVotesEl);
-  pollMetaEl.appendChild(pollTimeEl);
+	pollMetaEl.appendChild(pollVotesEl);
+	pollMetaEl.appendChild(pollTimeEl);
 
-  pollEl.appendChild(pollOptionsEl);
-  pollEl.appendChild(pollMetaEl);
+	pollEl.appendChild(pollOptionsEl);
+	pollEl.appendChild(pollMetaEl);
 
-  return pollEl;
+	return pollEl;
 };
 
 const votePoll = async (tweetId, optionId, pollElement) => {
-  try {
-    const result = await query(`/tweets/${tweetId}/poll/vote`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ optionId }),
-    });
+	try {
+		const result = await query(`/tweets/${tweetId}/poll/vote`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ optionId }),
+		});
 
-    if (result.success) {
-      updatePollDisplay(pollElement, result.poll);
-    } else {
-      toastQueue.add(`<h1>${result.error || "Failed to vote"}</h1>`);
-    }
-  } catch (error) {
-    console.error("Vote error:", error);
-    toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-  }
+		if (result.success) {
+			updatePollDisplay(pollElement, result.poll);
+		} else {
+			toastQueue.add(`<h1>${result.error || "Failed to vote"}</h1>`);
+		}
+	} catch (error) {
+		console.error("Vote error:", error);
+		toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+	}
 };
 
 const updatePollDisplay = (pollElement, poll) => {
-  const optionsContainer = pollElement.querySelector(".poll-options");
-  const metaContainer = pollElement.querySelector(".poll-meta");
+	const optionsContainer = pollElement.querySelector(".poll-options");
+	const metaContainer = pollElement.querySelector(".poll-meta");
 
-  optionsContainer.innerHTML = "";
+	optionsContainer.innerHTML = "";
 
-  poll.options.forEach((option) => {
-    const optionEl = document.createElement("div");
-    optionEl.className = `poll-option voted ${poll.isExpired ? "expired" : ""}`;
-    optionEl.innerHTML = `
+	poll.options.forEach((option) => {
+		const optionEl = document.createElement("div");
+		optionEl.className = `poll-option voted ${poll.isExpired ? "expired" : ""}`;
+		optionEl.innerHTML = `
 			<div class="poll-option-bar" style="width: ${option.percentage}%"></div>
 			<div class="poll-option-content">
 				<span class="poll-option-text">${option.option_text
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")}</span>
+					.replaceAll("<", "&lt;")
+					.replaceAll(">", "&gt;")}</span>
 				<span class="poll-option-percentage">${option.percentage}%</span>
 			</div>
 		`;
 
-    if (option.id === poll.userVote) {
-      optionEl.classList.add("user-voted");
-    }
+		if (option.id === poll.userVote) {
+			optionEl.classList.add("user-voted");
+		}
 
-    optionsContainer.appendChild(optionEl);
-  });
+		optionsContainer.appendChild(optionEl);
+	});
 
-  metaContainer.innerHTML = "";
+	metaContainer.innerHTML = "";
 
-  const pollVotesEl = document.createElement("div");
-  pollVotesEl.className = "poll-votes-container";
+	const pollVotesEl = document.createElement("div");
+	pollVotesEl.className = "poll-votes-container";
 
-  if (poll.voters && poll.voters.length > 0) {
-    const voterAvatarsEl = document.createElement("div");
-    voterAvatarsEl.className = "voter-avatars";
+	if (poll.voters && poll.voters.length > 0) {
+		const voterAvatarsEl = document.createElement("div");
+		voterAvatarsEl.className = "voter-avatars";
 
-    poll.voters.slice(0, 3).forEach((voter, index) => {
-      const avatarEl = document.createElement("img");
-      avatarEl.className = "voter-avatar";
-      avatarEl.src = voter.avatar || `/public/shared/assets/default-avatar.svg`;
-      avatarEl.alt = voter.name || voter.username;
-      avatarEl.title = voter.name || voter.username;
-      avatarEl.loading = "lazy";
-      const voterRadius2 =
-        voter.avatar_radius !== null && voter.avatar_radius !== undefined
-          ? avatarPxToPercent(voter.avatar_radius)
-          : voter.gold
-          ? "4px"
-          : "50px";
-      avatarEl.style.borderRadius = voterRadius2;
-      avatarEl.style.zIndex = poll.voters.length - index;
-      voterAvatarsEl.appendChild(avatarEl);
-    });
+		poll.voters.slice(0, 3).forEach((voter, index) => {
+			const avatarEl = document.createElement("img");
+			avatarEl.className = "voter-avatar";
+			avatarEl.src = voter.avatar || `/public/shared/assets/default-avatar.svg`;
+			avatarEl.alt = voter.name || voter.username;
+			avatarEl.title = voter.name || voter.username;
+			avatarEl.loading = "lazy";
+			const voterRadius2 =
+				voter.avatar_radius !== null && voter.avatar_radius !== undefined
+					? avatarPxToPercent(voter.avatar_radius)
+					: voter.gold
+						? "4px"
+						: "50px";
+			avatarEl.style.borderRadius = voterRadius2;
+			avatarEl.style.zIndex = poll.voters.length - index;
+			voterAvatarsEl.appendChild(avatarEl);
+		});
 
-    pollVotesEl.appendChild(voterAvatarsEl);
-  }
+		pollVotesEl.appendChild(voterAvatarsEl);
+	}
 
-  const votesTextEl = document.createElement("span");
-  votesTextEl.className = "poll-votes-text";
-  votesTextEl.textContent = `${poll.totalVotes} vote${
-    poll.totalVotes !== 1 ? "s" : ""
-  }`;
-  pollVotesEl.appendChild(votesTextEl);
+	const votesTextEl = document.createElement("span");
+	votesTextEl.className = "poll-votes-text";
+	votesTextEl.textContent = `${poll.totalVotes} vote${
+		poll.totalVotes !== 1 ? "s" : ""
+	}`;
+	pollVotesEl.appendChild(votesTextEl);
 
-  const pollTimeEl = document.createElement("span");
-  pollTimeEl.className = "poll-time";
-  pollTimeEl.textContent = formatTimeRemaining(poll.expires_at);
+	const pollTimeEl = document.createElement("span");
+	pollTimeEl.className = "poll-time";
+	pollTimeEl.textContent = formatTimeRemaining(poll.expires_at);
 
-  metaContainer.appendChild(pollVotesEl);
-  metaContainer.appendChild(pollTimeEl);
+	metaContainer.appendChild(pollVotesEl);
+	metaContainer.appendChild(pollTimeEl);
 };
 
 async function showInteractionsModal(tweetId) {
-  const modalContent = document.createElement("div");
-  modalContent.className = "interactions-modal-content";
+	const modalContent = document.createElement("div");
+	modalContent.className = "interactions-modal-content";
 
-  const tabsContainer = document.createElement("div");
-  tabsContainer.className = "interactions-tabs";
+	const tabsContainer = document.createElement("div");
+	tabsContainer.className = "interactions-tabs";
 
-  const tabs = [
-    { id: "likes", label: "Likes", icon: "❤️" },
-    { id: "retweets", label: "Retweets", icon: "🔄" },
-    { id: "quotes", label: "Quotes", icon: "💬" },
-  ];
+	const tabs = [
+		{ id: "likes", label: "Likes", icon: "❤️" },
+		{ id: "retweets", label: "Retweets", icon: "🔄" },
+		{ id: "quotes", label: "Quotes", icon: "💬" },
+	];
 
-  const contentContainer = document.createElement("div");
-  contentContainer.className = "interactions-content";
+	const contentContainer = document.createElement("div");
+	contentContainer.className = "interactions-content";
 
-  let activeTab = "likes";
-  let modal = null;
+	let activeTab = "likes";
+	let modal = null;
 
-  const loadTabContent = async (tabId) => {
-    contentContainer.innerHTML = '<div class="loading">Loading...</div>';
+	const loadTabContent = async (tabId) => {
+		contentContainer.innerHTML = '<div class="loading">Loading...</div>';
 
-    try {
-      const data = await query(`/tweets/${tweetId}/${tabId}`);
+		try {
+			const data = await query(`/tweets/${tweetId}/${tabId}`);
 
-      contentContainer.innerHTML = "";
+			contentContainer.innerHTML = "";
 
-      if (tabId === "quotes") {
-        if (!data.tweets || data.tweets.length === 0) {
-          contentContainer.innerHTML = `<div class="empty-state">No quotes yet</div>`;
-          return;
-        }
+			if (tabId === "quotes") {
+				if (!data.tweets || data.tweets.length === 0) {
+					contentContainer.innerHTML = `<div class="empty-state">No quotes yet</div>`;
+					return;
+				}
 
-        data.tweets.forEach((tweet) => {
-          const tweetEl = createTweetElement(tweet, {
-            clickToOpen: true,
-            showTopReply: false,
-            isTopReply: false,
-            size: "normal",
-          });
-          contentContainer.appendChild(tweetEl);
-        });
-      } else {
-        if (!data.users || data.users.length === 0) {
-          contentContainer.innerHTML = `<div class="empty-state">No ${tabId} yet</div>`;
-          return;
-        }
+				data.tweets.forEach((tweet) => {
+					const tweetEl = createTweetElement(tweet, {
+						clickToOpen: true,
+						showTopReply: false,
+						isTopReply: false,
+						size: "normal",
+					});
+					contentContainer.appendChild(tweetEl);
+				});
+			} else {
+				if (!data.users || data.users.length === 0) {
+					contentContainer.innerHTML = `<div class="empty-state">No ${tabId} yet</div>`;
+					return;
+				}
 
-        const usersList = document.createElement("div");
-        usersList.className = "users-list";
+				const usersList = document.createElement("div");
+				usersList.className = "users-list";
 
-        data.users.forEach((user) => {
-          const userItem = document.createElement("div");
-          userItem.className = "user-item";
+				data.users.forEach((user) => {
+					const userItem = document.createElement("div");
+					userItem.className = "user-item";
 
-          const timeText =
-            tabId === "likes"
-              ? `liked ${formatInteractionTime(new Date(user.liked_at))}`
-              : `retweeted ${formatInteractionTime(
-                  new Date(user.retweeted_at)
-                )}`;
+					const timeText =
+						tabId === "likes"
+							? `liked ${formatInteractionTime(new Date(user.liked_at))}`
+							: `retweeted ${formatInteractionTime(
+									new Date(user.retweeted_at),
+								)}`;
 
-          userItem.innerHTML = `
+					userItem.innerHTML = `
             <div class="user-avatar">
               <img src="${
-                user.avatar || "/public/shared/assets/default-avatar.svg"
-              }" alt="${user.name || user.username}" />
+								user.avatar || "/public/shared/assets/default-avatar.svg"
+							}" alt="${user.name || user.username}" />
             </div>
             <div class="user-info">
               <div class="user-name">${user.name || user.username}</div>
@@ -762,158 +762,158 @@ async function showInteractionsModal(tweetId) {
             </div>
           `;
 
-          userItem.addEventListener("click", async () => {
-            modal?.close();
-            const { default: openProfile } = await import("./profile.js");
-            openProfile(user.username);
-          });
+					userItem.addEventListener("click", async () => {
+						modal?.close();
+						const { default: openProfile } = await import("./profile.js");
+						openProfile(user.username);
+					});
 
-          usersList.appendChild(userItem);
-        });
+					usersList.appendChild(userItem);
+				});
 
-        contentContainer.appendChild(usersList);
-      }
-    } catch (error) {
-      console.error("Error loading interactions:", error);
-      contentContainer.innerHTML = `<div class="empty-state">Failed to load ${tabId}</div>`;
-    }
-  };
+				contentContainer.appendChild(usersList);
+			}
+		} catch (error) {
+			console.error("Error loading interactions:", error);
+			contentContainer.innerHTML = `<div class="empty-state">Failed to load ${tabId}</div>`;
+		}
+	};
 
-  tabs.forEach((tab) => {
-    const tabButton = document.createElement("button");
-    tabButton.className = "tab-button";
-    tabButton.dataset.tab = tab.id;
-    tabButton.innerHTML = `<span class="tab-icon">${tab.icon}</span><span>${tab.label}</span>`;
+	tabs.forEach((tab) => {
+		const tabButton = document.createElement("button");
+		tabButton.className = "tab-button";
+		tabButton.dataset.tab = tab.id;
+		tabButton.innerHTML = `<span class="tab-icon">${tab.icon}</span><span>${tab.label}</span>`;
 
-    if (tab.id === activeTab) {
-      tabButton.classList.add("active");
-    }
+		if (tab.id === activeTab) {
+			tabButton.classList.add("active");
+		}
 
-    tabButton.addEventListener("click", () => {
-      tabsContainer.querySelectorAll(".tab-button").forEach((btn) => {
-        btn.classList.remove("active");
-      });
-      tabButton.classList.add("active");
-      activeTab = tab.id;
-      loadTabContent(tab.id);
-    });
+		tabButton.addEventListener("click", () => {
+			tabsContainer.querySelectorAll(".tab-button").forEach((btn) => {
+				btn.classList.remove("active");
+			});
+			tabButton.classList.add("active");
+			activeTab = tab.id;
+			loadTabContent(tab.id);
+		});
 
-    tabsContainer.appendChild(tabButton);
-  });
+		tabsContainer.appendChild(tabButton);
+	});
 
-  modalContent.appendChild(tabsContainer);
-  modalContent.appendChild(contentContainer);
+	modalContent.appendChild(tabsContainer);
+	modalContent.appendChild(contentContainer);
 
-  modal = createModal({
-    title: "Interactions",
-    content: modalContent,
-    className: "interactions-tabbed-modal",
-  });
+	modal = createModal({
+		title: "Interactions",
+		content: modalContent,
+		className: "interactions-tabbed-modal",
+	});
 
-  await loadTabContent(activeTab);
+	await loadTabContent(activeTab);
 }
 
 export const createTweetElement = (tweet, config = {}) => {
-  if (!tweet || !tweet.author) {
-    console.error("Invalid tweet object provided to createTweetElement");
-    return document.createElement("div");
-  }
+	if (!tweet || !tweet.author) {
+		console.error("Invalid tweet object provided to createTweetElement");
+		return document.createElement("div");
+	}
 
-  const {
-    clickToOpen = true,
-    showTopReply = false,
-    isTopReply = false,
-    size = "normal",
-  } = config;
+	const {
+		clickToOpen = true,
+		showTopReply = false,
+		isTopReply = false,
+		size = "normal",
+	} = config;
 
-  if (!tweet.reaction_count) {
-    if (typeof tweet.total_reactions === "number") {
-      tweet.reaction_count = tweet.total_reactions;
-    } else if (typeof tweet.reactions_count === "number") {
-      tweet.reaction_count = tweet.reactions_count;
-    } else if (Array.isArray(tweet.reactions)) {
-      tweet.reaction_count = tweet.reactions.length;
-    }
-  }
+	if (!tweet.reaction_count) {
+		if (typeof tweet.total_reactions === "number") {
+			tweet.reaction_count = tweet.total_reactions;
+		} else if (typeof tweet.reactions_count === "number") {
+			tweet.reaction_count = tweet.reactions_count;
+		} else if (Array.isArray(tweet.reactions)) {
+			tweet.reaction_count = tweet.reactions.length;
+		}
+	}
 
-  const tweetEl = document.createElement("div");
-  tweetEl.className = isTopReply ? "tweet top-reply" : "tweet";
+	const tweetEl = document.createElement("div");
+	tweetEl.className = isTopReply ? "tweet top-reply" : "tweet";
 
-  const isBlockedByProfile = (() => {
-    try {
-      const pc = document.getElementById("profileContainer");
-      return pc?.dataset?.blockedByProfile === "true";
-    } catch (_) {
-      return false;
-    }
-  })();
+	const isBlockedByProfile = (() => {
+		try {
+			const pc = document.getElementById("profileContainer");
+			return pc?.dataset?.blockedByProfile === "true";
+		} catch (_) {
+			return false;
+		}
+	})();
 
-  if (isBlockedByProfile) tweetEl.classList.add("blocked-by-profile");
+	if (isBlockedByProfile) tweetEl.classList.add("blocked-by-profile");
 
-  if (size === "preview") {
-    tweetEl.classList.add("tweet-preview");
-    tweetEl.classList.add("clickable");
-  }
+	if (size === "preview") {
+		tweetEl.classList.add("tweet-preview");
+		tweetEl.classList.add("clickable");
+	}
 
-  const tweetHeaderEl = document.createElement("div");
-  tweetHeaderEl.className = "tweet-header";
+	const tweetHeaderEl = document.createElement("div");
+	tweetHeaderEl.className = "tweet-header";
 
-  const tweetHeaderAvatarEl = document.createElement("img");
-  tweetHeaderAvatarEl.src =
-    tweet.author.avatar || `/public/shared/assets/default-avatar.svg`;
-  tweetHeaderAvatarEl.alt = tweet.author.name || tweet.author.username;
-  tweetHeaderAvatarEl.classList.add("tweet-header-avatar");
-  tweetHeaderAvatarEl.loading = "lazy";
+	const tweetHeaderAvatarEl = document.createElement("img");
+	tweetHeaderAvatarEl.src =
+		tweet.author.avatar || `/public/shared/assets/default-avatar.svg`;
+	tweetHeaderAvatarEl.alt = tweet.author.name || tweet.author.username;
+	tweetHeaderAvatarEl.classList.add("tweet-header-avatar");
+	tweetHeaderAvatarEl.loading = "lazy";
 
-  if (
-    tweet.author.avatar_radius !== null &&
-    tweet.author.avatar_radius !== undefined
-  ) {
-    const rr = avatarPxToPercent(tweet.author.avatar_radius);
-    tweetHeaderAvatarEl.style.setProperty("border-radius", rr, "important");
-  } else if (tweet.author.gold) {
-    tweetHeaderAvatarEl.style.setProperty("border-radius", "4px", "important");
-  } else {
-    tweetHeaderAvatarEl.style.setProperty("border-radius", "50px", "important");
-  }
-  tweetHeaderAvatarEl.loading = "lazy";
-  tweetHeaderAvatarEl.addEventListener("click", (e) => {
-    e.stopPropagation();
+	if (
+		tweet.author.avatar_radius !== null &&
+		tweet.author.avatar_radius !== undefined
+	) {
+		const rr = avatarPxToPercent(tweet.author.avatar_radius);
+		tweetHeaderAvatarEl.style.setProperty("border-radius", rr, "important");
+	} else if (tweet.author.gold) {
+		tweetHeaderAvatarEl.style.setProperty("border-radius", "4px", "important");
+	} else {
+		tweetHeaderAvatarEl.style.setProperty("border-radius", "50px", "important");
+	}
+	tweetHeaderAvatarEl.loading = "lazy";
+	tweetHeaderAvatarEl.addEventListener("click", (e) => {
+		e.stopPropagation();
 
-    if (tweet.author?.suspended) {
-      switchPage("timeline", { path: "/" });
-      return;
-    }
-    import("./profile.js").then(({ default: openProfile }) => {
-      openProfile(tweet.author.username);
-    });
-  });
+		if (tweet.author?.suspended) {
+			switchPage("timeline", { path: "/" });
+			return;
+		}
+		import("./profile.js").then(({ default: openProfile }) => {
+			openProfile(tweet.author.username);
+		});
+	});
 
-  tweetHeaderEl.appendChild(tweetHeaderAvatarEl);
+	tweetHeaderEl.appendChild(tweetHeaderAvatarEl);
 
-  const tweetHeaderInfoEl = document.createElement("div");
-  tweetHeaderInfoEl.className = "tweet-header-info";
+	const tweetHeaderInfoEl = document.createElement("div");
+	tweetHeaderInfoEl.className = "tweet-header-info";
 
-  const tweetHeaderNameEl = document.createElement("p");
-  tweetHeaderNameEl.className = "name";
-  tweetHeaderNameEl.textContent = tweet.author.name || tweet.author.username;
-  tweetHeaderNameEl.classList.add("tweet-header-name");
-  tweetHeaderNameEl.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (tweet.author?.suspended) {
-      switchPage("timeline", { path: "/" });
-      return;
-    }
-    import("./profile.js").then(({ default: openProfile }) => {
-      openProfile(tweet.author.username);
-    });
-  });
+	const tweetHeaderNameEl = document.createElement("p");
+	tweetHeaderNameEl.className = "name";
+	tweetHeaderNameEl.textContent = tweet.author.name || tweet.author.username;
+	tweetHeaderNameEl.classList.add("tweet-header-name");
+	tweetHeaderNameEl.addEventListener("click", (e) => {
+		e.stopPropagation();
+		if (tweet.author?.suspended) {
+			switchPage("timeline", { path: "/" });
+			return;
+		}
+		import("./profile.js").then(({ default: openProfile }) => {
+			openProfile(tweet.author.username);
+		});
+	});
 
-  if (tweet.author.gold) {
-    const svgWrapper = document.createElement("div");
-    tweetHeaderNameEl.appendChild(svgWrapper);
+	if (tweet.author.gold) {
+		const svgWrapper = document.createElement("div");
+		tweetHeaderNameEl.appendChild(svgWrapper);
 
-    svgWrapper.outerHTML = `
+		svgWrapper.outerHTML = `
           <svg
             width="16"
             height="16"
@@ -934,11 +934,11 @@ export const createTweetElement = (tweet, config = {}) => {
               stroke-linejoin="round"
             />
           </svg>`;
-  } else if (tweet.author.verified) {
-    const svgWrapper = document.createElement("div");
-    tweetHeaderNameEl.appendChild(svgWrapper);
+	} else if (tweet.author.verified) {
+		const svgWrapper = document.createElement("div");
+		tweetHeaderNameEl.appendChild(svgWrapper);
 
-    svgWrapper.outerHTML = `
+		svgWrapper.outerHTML = `
           <svg
             width="16"
             height="16"
@@ -959,461 +959,459 @@ export const createTweetElement = (tweet, config = {}) => {
               stroke-linejoin="round"
             />
           </svg>`;
-  }
+	}
 
-  if (tweet.author.affiliate && tweet.author.affiliate_with_profile) {
-    const affiliateEl = document.createElement("a");
-    affiliateEl.href = `/@${tweet.author.affiliate_with_profile.username}`;
-    affiliateEl.className = "role-badge affiliate-with";
-    affiliateEl.title = `Affiliated with @${tweet.author.affiliate_with_profile.username}`;
+	if (tweet.author.affiliate && tweet.author.affiliate_with_profile) {
+		const affiliateEl = document.createElement("a");
+		affiliateEl.href = `/@${tweet.author.affiliate_with_profile.username}`;
+		affiliateEl.className = "role-badge affiliate-with";
+		affiliateEl.title = `Affiliated with @${tweet.author.affiliate_with_profile.username}`;
 
-    affiliateEl.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      import("./profile.js").then(({ default: openProfile }) => {
-        openProfile(tweet.author.affiliate_with_profile.username);
-      });
-    });
+		affiliateEl.addEventListener("click", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			import("./profile.js").then(({ default: openProfile }) => {
+				openProfile(tweet.author.affiliate_with_profile.username);
+			});
+		});
 
-    const affiliateImg = document.createElement("img");
-    affiliateImg.src =
-      tweet.author.affiliate_with_profile.avatar ||
-      "/public/shared/assets/default-avatar.svg";
-    affiliateImg.alt =
-      tweet.author.affiliate_with_profile.name ||
-      tweet.author.affiliate_with_profile.username;
-    affiliateImg.className = "affiliate-with-avatar";
-    affiliateImg.draggable = false;
+		const affiliateImg = document.createElement("img");
+		affiliateImg.src =
+			tweet.author.affiliate_with_profile.avatar ||
+			"/public/shared/assets/default-avatar.svg";
+		affiliateImg.alt =
+			tweet.author.affiliate_with_profile.name ||
+			tweet.author.affiliate_with_profile.username;
+		affiliateImg.className = "affiliate-with-avatar";
+		affiliateImg.draggable = false;
 
-    if (
-      tweet.author.affiliate_with_profile.avatar_radius !== null &&
-      tweet.author.affiliate_with_profile.avatar_radius !== undefined
-    ) {
-      affiliateImg.style.setProperty("border-radius", `${tweet.author.affiliate_with_profile.avatar_radius}px`, "important");
-    } else if (tweet.author.affiliate_with_profile.gold) {
-      affiliateImg.style.setProperty("border-radius", "4px", "important");
-    } else {
-      affiliateImg.style.setProperty("border-radius", "50%", "important");
-    }
+		if (
+			tweet.author.affiliate_with_profile.avatar_radius !== null &&
+			tweet.author.affiliate_with_profile.avatar_radius !== undefined
+		) {
+			affiliateImg.style.setProperty(
+				"border-radius",
+				`${tweet.author.affiliate_with_profile.avatar_radius}px`,
+				"important",
+			);
+		} else if (tweet.author.affiliate_with_profile.gold) {
+			affiliateImg.style.setProperty("border-radius", "4px", "important");
+		} else {
+			affiliateImg.style.setProperty("border-radius", "50%", "important");
+		}
 
-    affiliateEl.appendChild(affiliateImg);
-    tweetHeaderNameEl.appendChild(affiliateEl);
-  }
+		affiliateEl.appendChild(affiliateImg);
+		tweetHeaderNameEl.appendChild(affiliateEl);
+	}
 
-  if (tweet.author.label_type) {
-    const labelEl = document.createElement("span");
-    labelEl.className = `tweet-label label-${tweet.author.label_type}`;
-    const labelText =
-      tweet.author.label_type.charAt(0).toUpperCase() +
-      tweet.author.label_type.slice(1);
-    labelEl.textContent = labelText;
-    tweetHeaderNameEl.appendChild(labelEl);
-  }
+	if (tweet.author.label_type) {
+		const labelEl = document.createElement("span");
+		labelEl.className = `tweet-label label-${tweet.author.label_type}`;
+		const labelText =
+			tweet.author.label_type.charAt(0).toUpperCase() +
+			tweet.author.label_type.slice(1);
+		labelEl.textContent = labelText;
+		tweetHeaderNameEl.appendChild(labelEl);
+	}
 
-  if (tweet.author.username !== tweet.author.name) {
-    const usernameEl = document.createElement("span");
-    usernameEl.textContent = `@${tweet.author.username}`;
-    usernameEl.classList.add("tweet-header-username-span");
-    tweetHeaderNameEl.appendChild(usernameEl);
-  }
+	if (tweet.author.username !== tweet.author.name) {
+		const usernameEl = document.createElement("span");
+		usernameEl.textContent = `@${tweet.author.username}`;
+		usernameEl.classList.add("tweet-header-username-span");
+		tweetHeaderNameEl.appendChild(usernameEl);
+	}
 
-  const source_icons = {
-    desktop_web: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tweet-source-icon lucide lucide-monitor-icon lucide-monitor"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>`,
-    mobile_web: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tweet-source-icon lucide lucide-smartphone-icon lucide-smartphone"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`,
-    scheduled: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock-icon lucide-clock"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg>`,
-    articles: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-newspaper-icon lucide-newspaper"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/></svg>`,
-  };
+	const source_icons = {
+		desktop_web: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tweet-source-icon lucide lucide-monitor-icon lucide-monitor"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>`,
+		mobile_web: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tweet-source-icon lucide lucide-smartphone-icon lucide-smartphone"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`,
+		scheduled: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock-icon lucide-clock"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg>`,
+		articles: `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-newspaper-icon lucide-newspaper"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/></svg>`,
+	};
 
-  const tweetHeaderUsernameEl = document.createElement("p");
-  tweetHeaderUsernameEl.className = "username";
-  tweetHeaderUsernameEl.textContent = timeAgo(tweet.created_at);
-  tweetHeaderUsernameEl.classList.add("tweet-header-username");
-  tweetHeaderUsernameEl.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (tweet.author?.suspended) {
-      switchPage("timeline", { path: "/" });
-      return;
-    }
-    import("./profile.js").then(({ default: openProfile }) => {
-      openProfile(tweet.author.username);
-    });
-  });
+	const tweetHeaderUsernameEl = document.createElement("p");
+	tweetHeaderUsernameEl.className = "username";
+	tweetHeaderUsernameEl.textContent = timeAgo(tweet.created_at);
+	tweetHeaderUsernameEl.classList.add("tweet-header-username");
+	tweetHeaderUsernameEl.addEventListener("click", (e) => {
+		e.stopPropagation();
+		if (tweet.author?.suspended) {
+			switchPage("timeline", { path: "/" });
+			return;
+		}
+		import("./profile.js").then(({ default: openProfile }) => {
+			openProfile(tweet.author.username);
+		});
+	});
 
-  if (tweet.source && source_icons[tweet.source]) {
-    const sourceIconEl = document.createElement("span");
-    sourceIconEl.className = "tweet-source-icon-wrapper";
-    sourceIconEl.innerHTML = `${source_icons[tweet.source]}`;
-    tweetHeaderUsernameEl.appendChild(sourceIconEl);
-  } else if (tweet.source) {
-    tweetHeaderUsernameEl.textContent += ` · ${tweet.source}`;
-  }
+	if (tweet.source && source_icons[tweet.source]) {
+		const sourceIconEl = document.createElement("span");
+		sourceIconEl.className = "tweet-source-icon-wrapper";
+		sourceIconEl.innerHTML = `${source_icons[tweet.source]}`;
+		tweetHeaderUsernameEl.appendChild(sourceIconEl);
+	} else if (tweet.source) {
+		tweetHeaderUsernameEl.textContent += ` · ${tweet.source}`;
+	}
 
-  tweetHeaderInfoEl.appendChild(tweetHeaderNameEl);
-  tweetHeaderInfoEl.appendChild(tweetHeaderUsernameEl);
+	tweetHeaderInfoEl.appendChild(tweetHeaderNameEl);
+	tweetHeaderInfoEl.appendChild(tweetHeaderUsernameEl);
 
-  tweetHeaderEl.appendChild(tweetHeaderInfoEl);
+	tweetHeaderEl.appendChild(tweetHeaderInfoEl);
 
-  if (tweet.pinned) {
-    const pinnedIndicatorEl = document.createElement("div");
-    pinnedIndicatorEl.className = "pinned-indicator";
-    pinnedIndicatorEl.innerHTML = `
+	if (tweet.pinned) {
+		const pinnedIndicatorEl = document.createElement("div");
+		pinnedIndicatorEl.className = "pinned-indicator";
+		pinnedIndicatorEl.innerHTML = `
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M12 17v5"></path>
 				<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
 			</svg>
 			<span>Pinned</span>
 		`;
-    tweetEl.appendChild(pinnedIndicatorEl);
-  }
+		tweetEl.appendChild(pinnedIndicatorEl);
+	}
 
-  tweetEl.appendChild(tweetHeaderEl);
+	tweetEl.appendChild(tweetHeaderEl);
 
-  const isArticlePost = Boolean(
-    tweet.is_article && tweet.article_body_markdown
-  );
-  const showFullArticle = isArticlePost && clickToOpen === false;
+	const isArticlePost = Boolean(
+		tweet.is_article && tweet.article_body_markdown,
+	);
+	const showFullArticle = isArticlePost && clickToOpen === false;
 
-  if (isArticlePost) {
-    const articleContainer = document.createElement("div");
-    articleContainer.className = "tweet-content tweet-article";
+	if (isArticlePost) {
+		const articleContainer = document.createElement("div");
+		articleContainer.className = "tweet-content tweet-article";
 
-    if (tweet.article_title) {
-      const titleEl = document.createElement("h2");
-      titleEl.textContent = tweet.article_title;
-      articleContainer.appendChild(titleEl);
-    }
+		if (tweet.article_title) {
+			const titleEl = document.createElement("h2");
+			titleEl.textContent = tweet.article_title;
+			articleContainer.appendChild(titleEl);
+		}
 
-    const coverAttachment = Array.isArray(tweet.attachments)
-      ? tweet.attachments.find((item) => item.file_type?.startsWith("image/"))
-      : null;
+		const coverAttachment = Array.isArray(tweet.attachments)
+			? tweet.attachments.find((item) => item.file_type?.startsWith("image/"))
+			: null;
 
-    if (coverAttachment) {
-      const coverEl = document.createElement("div");
-      coverEl.classList.add("article-cover");
-      coverEl.innerHTML = `<img src="${coverAttachment.file_url}" alt="${coverAttachment.file_name}" loading="lazy" />`;
+		if (coverAttachment) {
+			const coverEl = document.createElement("div");
+			coverEl.classList.add("article-cover");
+			coverEl.innerHTML = `<img src="${coverAttachment.file_url}" alt="${coverAttachment.file_name}" loading="lazy" />`;
 
-      const coverImg = coverEl.querySelector("img");
-      if (coverImg) {
-        coverEl.appendChild(coverImg);
-      }
-      articleContainer.appendChild(coverEl);
-    }
+			const coverImg = coverEl.querySelector("img");
+			if (coverImg) {
+				coverEl.appendChild(coverImg);
+			}
+			articleContainer.appendChild(coverEl);
+		}
 
-    if (showFullArticle) {
-      const articleBody = document.createElement("div");
-      articleBody.className = "tweet-article-body";
-      articleBody.innerHTML = DOMPurify.sanitize(
-        marked.parse(tweet.article_body_markdown, {
-          breaks: true,
-          gfm: true,
-          headerIds: false,
-          mangle: false,
-        }),
-        DOMPURIFY_CONFIG
-      );
+		if (showFullArticle) {
+			const articleBody = document.createElement("div");
+			articleBody.className = "tweet-article-body";
+			articleBody.innerHTML = DOMPurify.sanitize(
+				marked.parse(tweet.article_body_markdown, {
+					breaks: true,
+					gfm: true,
+					headerIds: false,
+					mangle: false,
+				}),
+				DOMPURIFY_CONFIG,
+			);
 
-      articleBody.querySelectorAll("a").forEach((anchor) => {
-        anchor.setAttribute("target", "_blank");
-        anchor.setAttribute("rel", "noopener noreferrer");
-      });
+			articleBody.querySelectorAll("a").forEach((anchor) => {
+				anchor.setAttribute("target", "_blank");
+				anchor.setAttribute("rel", "noopener noreferrer");
+			});
 
-      articleBody.querySelectorAll("img").forEach((img) => {
-        if (!img.hasAttribute("loading")) {
-          img.setAttribute("loading", "lazy");
-        }
-      });
+			articleBody.querySelectorAll("img").forEach((img) => {
+				if (!img.hasAttribute("loading")) {
+					img.setAttribute("loading", "lazy");
+				}
+			});
 
-      articleContainer.appendChild(articleBody);
-    } else {
-      const previewBody = document.createElement("div");
-      previewBody.className = "tweet-article-preview";
-      const previewSource =
-        tweet.article_preview?.excerpt ||
-        tweet.article_title ||
-        tweet.content ||
-        "";
-      let previewText = previewSource.trim();
-      if (previewText.length > 260) {
-        previewText = `${previewText.slice(0, 257)}…`;
-      }
-      previewBody.innerHTML = linkifyText(previewText);
-      replaceEmojiShortcodesInElement(previewBody);
+			articleContainer.appendChild(articleBody);
+		} else {
+			const previewBody = document.createElement("div");
+			previewBody.className = "tweet-article-preview";
+			const previewSource =
+				tweet.article_preview?.excerpt ||
+				tweet.article_title ||
+				tweet.content ||
+				"";
+			let previewText = previewSource.trim();
+			if (previewText.length > 260) {
+				previewText = `${previewText.slice(0, 257)}…`;
+			}
+			previewBody.innerHTML = linkifyText(previewText);
+			replaceEmojiShortcodesInElement(previewBody);
 
+			previewBody.querySelectorAll("a.tweet-hashtag").forEach((tag) => {
+				const hashtag = tag.getAttribute("data-hashtag");
 
-      previewBody
-        .querySelectorAll("a.tweet-hashtag")
-        .forEach((tag) => {
-          const hashtag = tag.getAttribute("data-hashtag");
+				tag.addEventListener("click", (e) => {
+					console.log("tag click");
+					e.preventDefault();
+					e.stopPropagation();
 
-          tag.addEventListener("click", (e) => {
-            console.log("tag click")
-            e.preventDefault();
-            e.stopPropagation();
+					searchQuery(`#${hashtag}`);
+				});
+			});
 
-            searchQuery(`#${hashtag}`);
-          });
-        });
+			articleContainer.appendChild(previewBody);
 
-      articleContainer.appendChild(previewBody);
+			const readMoreButton = document.createElement("button");
+			readMoreButton.type = "button";
+			readMoreButton.textContent = "Read article";
+			readMoreButton.className = "tweet-article-read-more";
+			readMoreButton.addEventListener("click", async (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				await openTweet(tweet);
+			});
+			articleContainer.appendChild(readMoreButton);
+		}
 
-      const readMoreButton = document.createElement("button");
-      readMoreButton.type = "button";
-      readMoreButton.textContent = "Read article";
-      readMoreButton.className = "tweet-article-read-more";
-      readMoreButton.addEventListener("click", async (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        await openTweet(tweet);
-      });
-      articleContainer.appendChild(readMoreButton);
-    }
+		tweetEl.appendChild(articleContainer);
 
-    tweetEl.appendChild(articleContainer);
+		if (tweet.fact_check) {
+			tweetEl.appendChild(createFactCheck(tweet.fact_check));
+		}
+	} else {
+		const tweetContentEl = document.createElement("div");
+		tweetContentEl.className = "tweet-content";
 
-    if (tweet.fact_check) {
-      tweetEl.appendChild(createFactCheck(tweet.fact_check));
-    }
-  } else {
-    const tweetContentEl = document.createElement("div");
-    tweetContentEl.className = "tweet-content";
+		const rawContent = tweet.content ? tweet.content.trim() : "";
 
-    const rawContent = tweet.content ? tweet.content.trim() : "";
+		// TODO: replace with real future tweetapus link
+		const tweetLinkRegex =
+			/https?:\/\/(?:www\.)?(?:localhost:3000|tweetapus\.com)\/tweet\/([a-zA-Z0-9_-]+)/g;
+		let contentWithoutLinks = rawContent;
+		const extractedTweetIds = [];
+		let match = tweetLinkRegex.exec(rawContent);
 
-    // TODO: replace with real future tweetapus link
-    const tweetLinkRegex =
-      /https?:\/\/(?:www\.)?(?:localhost:3000|tweetapus\.com)\/tweet\/([a-zA-Z0-9_-]+)/g;
-    let contentWithoutLinks = rawContent;
-    const extractedTweetIds = [];
-    let match = tweetLinkRegex.exec(rawContent);
+		while (match !== null) {
+			extractedTweetIds.push(match[1]);
+			contentWithoutLinks = contentWithoutLinks.replace(match[0], "").trim();
+			match = tweetLinkRegex.exec(rawContent);
+		}
 
-    while (match !== null) {
-      extractedTweetIds.push(match[1]);
-      contentWithoutLinks = contentWithoutLinks.replace(match[0], "").trim();
-      match = tweetLinkRegex.exec(rawContent);
-    }
+		const isExpandedView = clickToOpen === false;
+		const shouldTrim =
+			contentWithoutLinks.length > 300 &&
+			!isExpandedView &&
+			!tweet.extended &&
+			!tweet.isExpanded;
 
-    const isExpandedView = clickToOpen === false;
-    const shouldTrim =
-      contentWithoutLinks.length > 300 &&
-      !isExpandedView &&
-      !tweet.extended &&
-      !tweet.isExpanded;
+		const applyLinkified = (text) => {
+			tweetContentEl.innerHTML = linkifyText(text);
+			replaceEmojiShortcodesInElement(tweetContentEl);
 
-    const applyLinkified = (text) => {
-      tweetContentEl.innerHTML = linkifyText(text);
-      replaceEmojiShortcodesInElement(tweetContentEl);
+			tweetContentEl.querySelectorAll("a.tweet-hashtag").forEach((tag) => {
+				const hashtag = tag.getAttribute("data-hashtag");
 
-      tweetContentEl
-        .querySelectorAll("a.tweet-hashtag")
-        .forEach((tag) => {
-          const hashtag = tag.getAttribute("data-hashtag");
+				tag.addEventListener("click", (e) => {
+					e.preventDefault();
+					e.stopPropagation();
 
-          tag.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+					searchQuery(`#${hashtag}`);
+				});
+			});
+		};
 
-            searchQuery(`#${hashtag}`);
-          });
-        });
-    };
+		if (shouldTrim) {
+			let trimmed = contentWithoutLinks.slice(0, 300);
+			const lastSpace = Math.max(
+				trimmed.lastIndexOf(" "),
+				trimmed.lastIndexOf("\n"),
+			);
+			if (lastSpace > 0) trimmed = trimmed.slice(0, lastSpace);
 
-    if (shouldTrim) {
-      let trimmed = contentWithoutLinks.slice(0, 300);
-      const lastSpace = Math.max(
-        trimmed.lastIndexOf(" "),
-        trimmed.lastIndexOf("\n")
-      );
-      if (lastSpace > 0) trimmed = trimmed.slice(0, lastSpace);
+			applyLinkified(trimmed);
 
-      applyLinkified(trimmed);
+			const ellipsis = document.createElement("span");
+			ellipsis.className = "tweet-ellipsis";
+			ellipsis.innerText = "Show more…";
+			ellipsis.title = "Show more";
+			ellipsis.setAttribute("role", "button");
+			ellipsis.tabIndex = 0;
 
-      const ellipsis = document.createElement("span");
-      ellipsis.className = "tweet-ellipsis";
-      ellipsis.innerText = "Show more…";
-      ellipsis.title = "Show more";
-      ellipsis.setAttribute("role", "button");
-      ellipsis.tabIndex = 0;
+			const expand = () => {
+				applyLinkified(contentWithoutLinks);
+				ellipsis.remove();
 
-      const expand = () => {
-        applyLinkified(contentWithoutLinks);
-        ellipsis.remove();
+				const collapse = document.createElement("span");
+				collapse.className = "tweet-ellipsis";
+				collapse.innerText = "Show less";
+				collapse.addEventListener("click", (ev) => {
+					ev.preventDefault();
+					ev.stopPropagation();
+					applyLinkified(trimmed);
+					tweetContentEl.appendChild(ellipsis);
+					collapse.remove();
+				});
 
-        const collapse = document.createElement("button");
-        collapse.className = "tweet-collapse-btn";
-        collapse.type = "button";
-        collapse.innerText = "Show less";
-        collapse.addEventListener("click", (ev) => {
-          ev.preventDefault();
-          ev.stopPropagation();
-          applyLinkified(trimmed);
-          tweetContentEl.appendChild(ellipsis);
-          collapse.remove();
-        });
+				tweetContentEl.appendChild(collapse);
+			};
 
-        tweetContentEl.appendChild(collapse);
-      };
+			ellipsis.addEventListener("click", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				expand();
+			});
+			ellipsis.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					expand();
+				}
+			});
 
-      ellipsis.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        expand();
-      });
-      ellipsis.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          expand();
-        }
-      });
+			tweetContentEl.appendChild(ellipsis);
+		} else {
+			applyLinkified(contentWithoutLinks);
+		}
 
-      tweetContentEl.appendChild(ellipsis);
-    } else {
-      applyLinkified(contentWithoutLinks);
-    }
+		tweetContentEl.addEventListener("click", (e) => {
+			if (e.target.classList.contains("tweet-mention")) {
+				e.preventDefault();
+				e.stopPropagation();
+				const username = e.target.dataset.username;
+				import("./profile.js").then(({ default: openProfile }) => {
+					openProfile(username);
+				});
+			}
+		});
 
-    tweetContentEl.addEventListener("click", (e) => {
-      if (e.target.classList.contains("tweet-mention")) {
-        e.preventDefault();
-        e.stopPropagation();
-        const username = e.target.dataset.username;
-        import("./profile.js").then(({ default: openProfile }) => {
-          openProfile(username);
-        });
-      }
-    });
+		tweetEl.appendChild(tweetContentEl);
 
-    tweetEl.appendChild(tweetContentEl);
+		if (tweet.fact_check) {
+			tweetEl.appendChild(createFactCheck(tweet.fact_check));
+		}
 
-    if (tweet.fact_check) {
-      tweetEl.appendChild(createFactCheck(tweet.fact_check));
-    }
+		if (extractedTweetIds.length > 0 && !tweet.quoted_tweet) {
+			const tweetId = extractedTweetIds[0];
+			query(`/tweets/${tweetId}`)
+				.then((response) => {
+					if (response?.tweet) {
+						const quotedTweetEl = createTweetElement(response.tweet, {
+							size: "preview",
+							clickToOpen: true,
+						});
+						quotedTweetEl.classList.add("tweet-preview");
 
-    if (extractedTweetIds.length > 0 && !tweet.quoted_tweet) {
-      const tweetId = extractedTweetIds[0];
-      query(`/tweets/${tweetId}`)
-        .then((response) => {
-          if (response?.tweet) {
-            const quotedTweetEl = createTweetElement(response.tweet, {
-              size: "preview",
-              clickToOpen: true,
-            });
-            quotedTweetEl.classList.add("tweet-preview");
+						const existingQuote = tweetEl.querySelector(".tweet-preview");
+						if (!existingQuote) {
+							const pollEl = tweetEl.querySelector(".poll-container");
+							const attachmentsEl = tweetEl.querySelector(".tweet-attachments");
 
-            const existingQuote = tweetEl.querySelector(".tweet-preview");
-            if (!existingQuote) {
-              const pollEl = tweetEl.querySelector(".poll-container");
-              const attachmentsEl = tweetEl.querySelector(".tweet-attachments");
+							if (pollEl) {
+								tweetEl.insertBefore(quotedTweetEl, pollEl);
+							} else if (attachmentsEl) {
+								tweetEl.insertBefore(quotedTweetEl, attachmentsEl);
+							} else {
+								tweetEl.appendChild(quotedTweetEl);
+							}
+						}
+					}
+				})
+				.catch((err) => {
+					console.error("Failed to load embedded tweet:", err);
+				});
+		}
+	}
 
-              if (pollEl) {
-                tweetEl.insertBefore(quotedTweetEl, pollEl);
-              } else if (attachmentsEl) {
-                tweetEl.insertBefore(quotedTweetEl, attachmentsEl);
-              } else {
-                tweetEl.appendChild(quotedTweetEl);
-              }
-            }
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to load embedded tweet:", err);
-        });
-    }
-  }
+	if (tweet.poll) {
+		const pollEl = createPollElement(tweet.poll, tweet);
+		if (pollEl) {
+			tweetEl.appendChild(pollEl);
+		}
+	}
 
-  if (tweet.poll) {
-    const pollEl = createPollElement(tweet.poll, tweet);
-    if (pollEl) {
-      tweetEl.appendChild(pollEl);
-    }
-  }
+	if (tweet.interactive_card?.options) {
+		const cardEl = document.createElement("div");
+		cardEl.className = "interactive-card";
 
-  if (tweet.interactive_card?.options) {
-    const cardEl = document.createElement("div");
-    cardEl.className = "interactive-card";
+		const mediaEl = document.createElement("div");
+		mediaEl.className = "card-media";
 
-    const mediaEl = document.createElement("div");
-    mediaEl.className = "card-media";
+		if (
+			tweet.interactive_card.media_type === "image" ||
+			tweet.interactive_card.media_type === "gif"
+		) {
+			const img = document.createElement("img");
+			img.src = tweet.interactive_card.media_url;
+			img.alt = "Card media";
+			img.loading = "lazy";
+			mediaEl.appendChild(img);
+		} else if (tweet.interactive_card.media_type === "video") {
+			const video = document.createElement("video");
+			video.src = tweet.interactive_card.media_url;
+			video.controls = true;
+			video.loading = "lazy";
+			mediaEl.appendChild(video);
+		}
 
-    if (
-      tweet.interactive_card.media_type === "image" ||
-      tweet.interactive_card.media_type === "gif"
-    ) {
-      const img = document.createElement("img");
-      img.src = tweet.interactive_card.media_url;
-      img.alt = "Card media";
-      img.loading = "lazy";
-      mediaEl.appendChild(img);
-    } else if (tweet.interactive_card.media_type === "video") {
-      const video = document.createElement("video");
-      video.src = tweet.interactive_card.media_url;
-      video.controls = true;
-      video.loading = "lazy";
-      mediaEl.appendChild(video);
-    }
+		cardEl.appendChild(mediaEl);
 
-    cardEl.appendChild(mediaEl);
+		const optionsEl = document.createElement("div");
+		optionsEl.className = "card-options";
 
-    const optionsEl = document.createElement("div");
-    optionsEl.className = "card-options";
+		tweet.interactive_card.options.forEach((option) => {
+			const optionBtn = document.createElement("button");
+			optionBtn.type = "button";
+			optionBtn.className = "card-option-button";
+			optionBtn.textContent = `Tweet ${option.description}`;
 
-    tweet.interactive_card.options.forEach((option) => {
-      const optionBtn = document.createElement("button");
-      optionBtn.type = "button";
-      optionBtn.className = "card-option-button";
-      optionBtn.textContent = `Tweet ${option.description}`;
+			optionBtn.addEventListener("click", async (e) => {
+				e.preventDefault();
+				e.stopPropagation();
 
-      optionBtn.addEventListener("click", async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+				const { createComposer } = await import("./composer.js");
+				const composer = await createComposer({
+					placeholder: "Confirm your tweet...",
+					autofocus: true,
+					interactiveCard: tweet.interactive_card,
+					callback: async () => {
+						modal.close();
+						toastQueue.add(`<h1>Tweet posted!</h1>`);
+					},
+				});
 
-        const { createComposer } = await import("./composer.js");
-        const composer = await createComposer({
-          placeholder: "Confirm your tweet...",
-          autofocus: true,
-          interactiveCard: tweet.interactive_card,
-          callback: async () => {
-            modal.close();
-            toastQueue.add(`<h1>Tweet posted!</h1>`);
-          },
-        });
+				const textarea = composer.querySelector("#tweet-textarea");
+				if (textarea) {
+					textarea.value = option.tweet_text;
+					textarea.dispatchEvent(new Event("input"));
+				}
 
-        const textarea = composer.querySelector("#tweet-textarea");
-        if (textarea) {
-          textarea.value = option.tweet_text;
-          textarea.dispatchEvent(new Event("input"));
-        }
+				const modal = createModal({
+					title: "Confirm Tweet",
+					content: composer,
+				});
+			});
 
-        const modal = createModal({
-          title: "Confirm Tweet",
-          content: composer,
-        });
-      });
+			optionsEl.appendChild(optionBtn);
+		});
 
-      optionsEl.appendChild(optionBtn);
-    });
+		cardEl.appendChild(optionsEl);
+		tweetEl.appendChild(cardEl);
+	}
 
-    cardEl.appendChild(optionsEl);
-    tweetEl.appendChild(cardEl);
-  }
+	if (!isArticlePost && tweet.attachments && tweet.attachments.length > 0) {
+		const attachmentsEl = document.createElement("div");
+		attachmentsEl.className = "tweet-attachments";
 
-  if (!isArticlePost && tweet.attachments && tweet.attachments.length > 0) {
-    const attachmentsEl = document.createElement("div");
-    attachmentsEl.className = "tweet-attachments";
+		tweet.attachments.forEach((attachment) => {
+			const attachmentEl = document.createElement("div");
+			attachmentEl.className = "tweet-attachment";
 
-    tweet.attachments.forEach((attachment) => {
-      const attachmentEl = document.createElement("div");
-      attachmentEl.className = "tweet-attachment";
+			if (attachment.file_type.startsWith("image/")) {
+				const img = document.createElement("img");
+				img.src = attachment.file_url;
+				img.alt = attachment.file_name;
+				img.loading = "lazy";
 
-      if (attachment.file_type.startsWith("image/")) {
-        const img = document.createElement("img");
-        img.src = attachment.file_url;
-        img.alt = attachment.file_name;
-        img.loading = "lazy";
-
-        if (attachment.is_spoiler) {
-          attachmentEl.classList.add("spoiler");
-          const spoilerOverlay = document.createElement("div");
-          spoilerOverlay.className = "spoiler-overlay";
-          spoilerOverlay.innerHTML = `
+				if (attachment.is_spoiler) {
+					attachmentEl.classList.add("spoiler");
+					const spoilerOverlay = document.createElement("div");
+					spoilerOverlay.className = "spoiler-overlay";
+					spoilerOverlay.innerHTML = `
             <div class="spoiler-content">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -1423,100 +1421,100 @@ export const createTweetElement = (tweet, config = {}) => {
               <span>Spoiler</span>
             </div>
           `;
-          spoilerOverlay.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            attachmentEl.classList.toggle("spoiler-revealed");
-          });
-          attachmentEl.appendChild(spoilerOverlay);
-        }
+					spoilerOverlay.addEventListener("click", (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						attachmentEl.classList.toggle("spoiler-revealed");
+					});
+					attachmentEl.appendChild(spoilerOverlay);
+				}
 
-        img.addEventListener("click", async (e) => {
-          if (
-            attachment.is_spoiler &&
-            !attachmentEl.classList.contains("spoiler-revealed")
-          ) {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-          }
-          e.preventDefault();
-          e.stopPropagation();
-          const { openImageFullscreen } = await import(
-            "../../shared/image-viewer.js"
-          );
-          openImageFullscreen(attachment.file_url, attachment.file_name);
-        });
-        attachmentEl.appendChild(img);
-      } else if (attachment.file_type === "video/mp4") {
-        const video = document.createElement("video");
-        video.src = attachment.file_url;
-        video.controls = true;
-        attachmentEl.appendChild(video);
-      }
+				img.addEventListener("click", async (e) => {
+					if (
+						attachment.is_spoiler &&
+						!attachmentEl.classList.contains("spoiler-revealed")
+					) {
+						e.preventDefault();
+						e.stopPropagation();
+						return;
+					}
+					e.preventDefault();
+					e.stopPropagation();
+					const { openImageFullscreen } = await import(
+						"../../shared/image-viewer.js"
+					);
+					openImageFullscreen(attachment.file_url, attachment.file_name);
+				});
+				attachmentEl.appendChild(img);
+			} else if (attachment.file_type === "video/mp4") {
+				const video = document.createElement("video");
+				video.src = attachment.file_url;
+				video.controls = true;
+				attachmentEl.appendChild(video);
+			}
 
-      attachmentsEl.appendChild(attachmentEl);
-    });
+			attachmentsEl.appendChild(attachmentEl);
+		});
 
-    tweetEl.appendChild(attachmentsEl);
-  }
+		tweetEl.appendChild(attachmentsEl);
+	}
 
-  if (tweet.quoted_tweet) {
-    if (tweet.quoted_tweet.unavailable_reason === "suspended") {
-      const suspendedQuoteEl = document.createElement("div");
-      suspendedQuoteEl.className =
-        "tweet-preview unavailable-quote suspended-quote";
-      suspendedQuoteEl.textContent = "This tweet is from a suspended account.";
+	if (tweet.quoted_tweet) {
+		if (tweet.quoted_tweet.unavailable_reason === "suspended") {
+			const suspendedQuoteEl = document.createElement("div");
+			suspendedQuoteEl.className =
+				"tweet-preview unavailable-quote suspended-quote";
+			suspendedQuoteEl.textContent = "This tweet is from a suspended account.";
 
-      suspendedQuoteEl.addEventListener("click", (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-      });
-      suspendedQuoteEl.style.cursor = "default";
-      tweetEl.appendChild(suspendedQuoteEl);
-    } else if (!tweet.quoted_tweet.author) {
-      const unavailableQuoteEl = document.createElement("div");
-      unavailableQuoteEl.className = "tweet-preview unavailable-quote";
-      unavailableQuoteEl.textContent = "Quote tweet unavailable";
-      unavailableQuoteEl.addEventListener("click", (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-      });
-      unavailableQuoteEl.style.cursor = "default";
-      tweetEl.appendChild(unavailableQuoteEl);
-    } else {
-      const quotedTweetEl = createTweetElement(tweet.quoted_tweet, {
-        clickToOpen: true,
-        showTopReply: false,
-        isTopReply: false,
-        size: "preview",
-      });
-      tweetEl.appendChild(quotedTweetEl);
-    }
-  }
+			suspendedQuoteEl.addEventListener("click", (ev) => {
+				ev.preventDefault();
+				ev.stopPropagation();
+			});
+			suspendedQuoteEl.style.cursor = "default";
+			tweetEl.appendChild(suspendedQuoteEl);
+		} else if (!tweet.quoted_tweet.author) {
+			const unavailableQuoteEl = document.createElement("div");
+			unavailableQuoteEl.className = "tweet-preview unavailable-quote";
+			unavailableQuoteEl.textContent = "Quote tweet unavailable";
+			unavailableQuoteEl.addEventListener("click", (ev) => {
+				ev.preventDefault();
+				ev.stopPropagation();
+			});
+			unavailableQuoteEl.style.cursor = "default";
+			tweetEl.appendChild(unavailableQuoteEl);
+		} else {
+			const quotedTweetEl = createTweetElement(tweet.quoted_tweet, {
+				clickToOpen: true,
+				showTopReply: false,
+				isTopReply: false,
+				size: "preview",
+			});
+			tweetEl.appendChild(quotedTweetEl);
+		}
+	}
 
-  function formatNumber(num) {
-    if (num >= 1_000_000_000_000) {
-      return `${(num / 1_000_000_000_000).toFixed(2).replace(/\.?0+$/, "")}T`;
-    } else if (num >= 1_000_000_000) {
-      return `${(num / 1_000_000_000).toFixed(2).replace(/\.?0+$/, "")}B`;
-    } else if (num >= 1_000_000) {
-      return `${(num / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
-    } else if (num >= 10_000) {
-      return `${(num / 1_000).toFixed(1).replace(/\.?0+$/, "")}k`;
-    }
-    return num;
-  }
+	function formatNumber(num) {
+		if (num >= 1_000_000_000_000) {
+			return `${(num / 1_000_000_000_000).toFixed(2).replace(/\.?0+$/, "")}T`;
+		} else if (num >= 1_000_000_000) {
+			return `${(num / 1_000_000_000).toFixed(2).replace(/\.?0+$/, "")}B`;
+		} else if (num >= 1_000_000) {
+			return `${(num / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
+		} else if (num >= 10_000) {
+			return `${(num / 1_000).toFixed(1).replace(/\.?0+$/, "")}k`;
+		}
+		return num;
+	}
 
-  const tweetInteractionsEl = document.createElement("div");
-  tweetInteractionsEl.className = "tweet-interactions";
+	const tweetInteractionsEl = document.createElement("div");
+	tweetInteractionsEl.className = "tweet-interactions";
 
-  const tweetInteractionsLikeEl = document.createElement("button");
-  tweetInteractionsLikeEl.className = "engagement";
-  tweetInteractionsLikeEl.dataset.liked = tweet.liked_by_user;
-  tweetInteractionsLikeEl.style.setProperty("--color", "249, 25, 128");
+	const tweetInteractionsLikeEl = document.createElement("button");
+	tweetInteractionsLikeEl.className = "engagement";
+	tweetInteractionsLikeEl.dataset.liked = tweet.liked_by_user;
+	tweetInteractionsLikeEl.style.setProperty("--color", "249, 25, 128");
 
-  tweetInteractionsLikeEl.innerHTML = `<svg
+	tweetInteractionsLikeEl.innerHTML = `<svg
           width="19"
           height="19"
           viewBox="0 0 20 20"
@@ -1531,60 +1529,60 @@ export const createTweetElement = (tweet, config = {}) => {
             stroke-linejoin="round"
           />
         </svg> <span class="like-count">${
-          tweet.like_count ? formatNumber(tweet.like_count) : ""
-        }</span>`;
+					tweet.like_count ? formatNumber(tweet.like_count) : ""
+				}</span>`;
 
-  tweetInteractionsLikeEl.addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+	tweetInteractionsLikeEl.addEventListener("click", async (e) => {
+		e.preventDefault();
+		e.stopPropagation();
 
-    if (isBlockedByProfile) {
-      toastQueue.add(`<h1>You have been blocked by this user</h1>`);
-      return;
-    }
+		if (isBlockedByProfile) {
+			toastQueue.add(`<h1>You have been blocked by this user</h1>`);
+			return;
+		}
 
-    const newIsLiked = tweetInteractionsLikeEl.dataset.liked !== "true";
-    tweetInteractionsLikeEl.dataset.liked = newIsLiked;
+		const newIsLiked = tweetInteractionsLikeEl.dataset.liked !== "true";
+		tweetInteractionsLikeEl.dataset.liked = newIsLiked;
 
-    const svg = tweetInteractionsLikeEl.querySelector("svg path");
-    const likeCountSpan = tweetInteractionsLikeEl.querySelector(".like-count");
-    const currentCount = parseInt(likeCountSpan.textContent || "0");
+		const svg = tweetInteractionsLikeEl.querySelector("svg path");
+		const likeCountSpan = tweetInteractionsLikeEl.querySelector(".like-count");
+		const currentCount = parseInt(likeCountSpan.textContent || "0");
 
-    if (newIsLiked) {
-      svg.setAttribute("fill", "#F91980");
-      svg.setAttribute("stroke", "#F91980");
-      likeCountSpan.textContent =
-        currentCount === -1 ? "" : formatNumber(currentCount + 1);
+		if (newIsLiked) {
+			svg.setAttribute("fill", "#F91980");
+			svg.setAttribute("stroke", "#F91980");
+			likeCountSpan.textContent =
+				currentCount === -1 ? "" : formatNumber(currentCount + 1);
 
-      tweetInteractionsLikeEl.querySelector("svg").classList.add("like-bump");
+			tweetInteractionsLikeEl.querySelector("svg").classList.add("like-bump");
 
-      setTimeout(() => {
-        tweetInteractionsLikeEl
-          .querySelector("svg")
-          .classList.remove("like-bump");
-      }, 500);
-    } else {
-      svg.setAttribute("fill", "none");
-      svg.setAttribute("stroke", "currentColor");
-      likeCountSpan.textContent =
-        Math.max(0, currentCount - 1) === 0
-          ? ""
-          : formatNumber(Math.max(0, currentCount - 1));
-    }
+			setTimeout(() => {
+				tweetInteractionsLikeEl
+					.querySelector("svg")
+					.classList.remove("like-bump");
+			}, 500);
+		} else {
+			svg.setAttribute("fill", "none");
+			svg.setAttribute("stroke", "currentColor");
+			likeCountSpan.textContent =
+				Math.max(0, currentCount - 1) === 0
+					? ""
+					: formatNumber(Math.max(0, currentCount - 1));
+		}
 
-    const result = await query(`/tweets/${tweet.id}/like`, {
-      method: "POST",
-    });
+		const result = await query(`/tweets/${tweet.id}/like`, {
+			method: "POST",
+		});
 
-    if (!result.success) {
-      toastQueue.add(`<h1>${result.error || "Failed to like tweet"}</h1>`);
-    }
-  });
+		if (!result.success) {
+			toastQueue.add(`<h1>${result.error || "Failed to like tweet"}</h1>`);
+		}
+	});
 
-  const tweetInteractionsReplyEl = document.createElement("button");
-  tweetInteractionsReplyEl.className = "engagement";
-  tweetInteractionsReplyEl.style.setProperty("--color", "17, 133, 254");
-  tweetInteractionsReplyEl.innerHTML = `<svg
+	const tweetInteractionsReplyEl = document.createElement("button");
+	tweetInteractionsReplyEl.className = "engagement";
+	tweetInteractionsReplyEl.style.setProperty("--color", "17, 133, 254");
+	tweetInteractionsReplyEl.innerHTML = `<svg
           width="19"
           height="19"
           viewBox="0 0 20 20"
@@ -1600,34 +1598,34 @@ export const createTweetElement = (tweet, config = {}) => {
           />
         </svg> ${tweet.reply_count ? formatNumber(tweet.reply_count) : ""}`;
 
-  tweetInteractionsReplyEl.addEventListener("click", async (e) => {
-    if (!clickToOpen) return;
+	tweetInteractionsReplyEl.addEventListener("click", async (e) => {
+		if (!clickToOpen) return;
 
-    e.stopPropagation();
-    e.preventDefault();
+		e.stopPropagation();
+		e.preventDefault();
 
-    if (isBlockedByProfile) {
-      toastQueue.add(`<h1>You have been blocked by this user</h1>`);
-      return;
-    }
+		if (isBlockedByProfile) {
+			toastQueue.add(`<h1>You have been blocked by this user</h1>`);
+			return;
+		}
 
-    await openTweet(tweet);
+		await openTweet(tweet);
 
-    requestAnimationFrame(() => {
-      if (document.querySelector(".tweetPage #tweet-textarea")) {
-        document.querySelector(".tweetPage #tweet-textarea").focus();
-      }
-    });
-  });
+		requestAnimationFrame(() => {
+			if (document.querySelector(".tweetPage #tweet-textarea")) {
+				document.querySelector(".tweetPage #tweet-textarea").focus();
+			}
+		});
+	});
 
-  const tweetInteractionsRetweetEl = document.createElement("button");
-  tweetInteractionsRetweetEl.className = "engagement";
-  tweetInteractionsRetweetEl.dataset.retweeted = tweet.retweeted_by_user;
-  tweetInteractionsRetweetEl.style.setProperty("--color", "0, 186, 124");
+	const tweetInteractionsRetweetEl = document.createElement("button");
+	tweetInteractionsRetweetEl.className = "engagement";
+	tweetInteractionsRetweetEl.dataset.retweeted = tweet.retweeted_by_user;
+	tweetInteractionsRetweetEl.style.setProperty("--color", "0, 186, 124");
 
-  const retweetColor = tweet.retweeted_by_user ? "#00BA7C" : "currentColor";
+	const retweetColor = tweet.retweeted_by_user ? "#00BA7C" : "currentColor";
 
-  tweetInteractionsRetweetEl.innerHTML = `
+	tweetInteractionsRetweetEl.innerHTML = `
             <svg
               width="19"
               height="19"
@@ -1643,141 +1641,142 @@ export const createTweetElement = (tweet, config = {}) => {
                 stroke-linejoin="round"
               />
             </svg> <span class="retweet-count">${
-              tweet.retweet_count ? formatNumber(tweet.retweet_count) : ""
-            }</span>`;
+							tweet.retweet_count ? formatNumber(tweet.retweet_count) : ""
+						}</span>`;
 
-  tweetInteractionsRetweetEl.addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+	tweetInteractionsRetweetEl.addEventListener("click", async (e) => {
+		e.preventDefault();
+		e.stopPropagation();
 
-    const menuItems = [
-      {
-        id: "retweet-option",
-        icon: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+		const menuItems = [
+			{
+				id: "retweet-option",
+				icon: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M2.53001 7.81595C3.49179 4.73911 6.43281 2.5 9.91173 2.5C13.1684 2.5 15.9537 4.46214 17.0852 7.23684L17.6179 8.67647M17.6179 8.67647L18.5002 4.26471M17.6179 8.67647L13.6473 6.91176M17.4995 12.1841C16.5378 15.2609 13.5967 17.5 10.1178 17.5C6.86118 17.5 4.07589 15.5379 2.94432 12.7632L2.41165 11.3235M2.41165 11.3235L1.5293 15.7353M2.41165 11.3235L6.38224 13.0882" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`,
-        title: "Retweet",
-        onClick: async () => {
-          try {
-            if (isBlockedByProfile) {
-              toastQueue.add(`<h1>You have been blocked by this user</h1>`);
-              return;
-            }
-            const result = await query(`/tweets/${tweet.id}/retweet`, {
-              method: "POST",
-            });
+				title: "Retweet",
+				onClick: async () => {
+					try {
+						if (isBlockedByProfile) {
+							toastQueue.add(`<h1>You have been blocked by this user</h1>`);
+							return;
+						}
+						const result = await query(`/tweets/${tweet.id}/retweet`, {
+							method: "POST",
+						});
 
-            if (result.success) {
-              const newIsRetweeted = result.retweeted;
-              tweetInteractionsRetweetEl.dataset.retweeted = newIsRetweeted;
+						if (result.success) {
+							const newIsRetweeted = result.retweeted;
+							tweetInteractionsRetweetEl.dataset.retweeted = newIsRetweeted;
 
-              const svgPaths =
-                tweetInteractionsRetweetEl.querySelectorAll("svg path");
-              const retweetCountSpan =
-                tweetInteractionsRetweetEl.querySelector(".retweet-count");
-              const currentCount = parseInt(
-                retweetCountSpan.textContent || "0"
-              );
+							const svgPaths =
+								tweetInteractionsRetweetEl.querySelectorAll("svg path");
+							const retweetCountSpan =
+								tweetInteractionsRetweetEl.querySelector(".retweet-count");
+							const currentCount = parseInt(
+								retweetCountSpan.textContent || "0",
+								10,
+							);
 
-              if (newIsRetweeted) {
-                svgPaths.forEach((path) =>
-                  path.setAttribute("stroke", "#00BA7C")
-                );
-                retweetCountSpan.textContent =
-                  currentCount + 1 ? formatNumber(currentCount + 1) : "";
-              } else {
-                svgPaths.forEach((path) =>
-                  path.setAttribute("stroke", "currentColor")
-                );
-                retweetCountSpan.textContent = Math.max(0, currentCount - 1)
-                  ? formatNumber(Math.max(0, currentCount - 1))
-                  : "";
-              }
-            } else {
-              toastQueue.add(`<h1>${result.error || "Failed to retweet"}</h1>`);
-            }
-          } catch (error) {
-            console.error("Error retweeting:", error);
-            toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-          }
-        },
-      },
-      {
-        id: "quote-option",
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							if (newIsRetweeted) {
+								svgPaths.forEach((path) => {
+									path.setAttribute("stroke", "#00BA7C");
+								});
+								retweetCountSpan.textContent =
+									currentCount + 1 ? formatNumber(currentCount + 1) : "";
+							} else {
+								svgPaths.forEach((path) => {
+									path.setAttribute("stroke", "currentColor");
+								});
+								retweetCountSpan.textContent = Math.max(0, currentCount - 1)
+									? formatNumber(Math.max(0, currentCount - 1))
+									: "";
+							}
+						} else {
+							toastQueue.add(`<h1>${result.error || "Failed to retweet"}</h1>`);
+						}
+					} catch (error) {
+						console.error("Error retweeting:", error);
+						toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+					}
+				},
+			},
+			{
+				id: "quote-option",
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/>
           <path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/>
         </svg>`,
-        title: "Quote",
-        onClick: async () => {
-          try {
-            const { createComposer } = await import("./composer.js");
+				title: "Quote",
+				onClick: async () => {
+					try {
+						const { createComposer } = await import("./composer.js");
 
-            const composer = await createComposer({
-              placeholder: "Add your thoughts about this tweet...",
-              quoteTweet: tweet,
-              autofocus: true,
-              callback: async (newTweet) => {
-                addTweetToTimeline(newTweet, true).classList.add("created");
-                setTimeout(() => {
-                  modal.close();
-                }, 10);
-              },
-            });
+						const composer = await createComposer({
+							placeholder: "Add your thoughts about this tweet...",
+							quoteTweet: tweet,
+							autofocus: true,
+							callback: async (newTweet) => {
+								addTweetToTimeline(newTweet, true).classList.add("created");
+								setTimeout(() => {
+									modal.close();
+								}, 10);
+							},
+						});
 
-            const modal = createModal({
-              content: composer,
-            });
-          } catch (error) {
-            console.error("Error creating quote composer:", error);
-            toastQueue.add(`<h1>Error opening quote composer</h1>`);
-          }
-        },
-      },
-    ];
+						const modal = createModal({
+							content: composer,
+						});
+					} catch (error) {
+						console.error("Error creating quote composer:", error);
+						toastQueue.add(`<h1>Error opening quote composer</h1>`);
+					}
+				},
+			},
+		];
 
-    if (tweet.quote_count && tweet.quote_count > 0) {
-      menuItems.push({
-        id: "see-quotes-option",
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		if (tweet.quote_count && tweet.quote_count > 0) {
+			menuItems.push({
+				id: "see-quotes-option",
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
           <circle cx="12" cy="12" r="3"></circle>
         </svg>`,
-        title: "See quotes",
-        onClick: async () => {
-          showInteractionUsers(tweet.id, "quotes", "Quotes");
-        },
-      });
-    }
+				title: "See quotes",
+				onClick: async () => {
+					showInteractionUsers(tweet.id, "quotes", "Quotes");
+				},
+			});
+		}
 
-    createPopup({
-      triggerElement: tweetInteractionsRetweetEl,
-      items: menuItems,
-    });
-  });
+		createPopup({
+			triggerElement: tweetInteractionsRetweetEl,
+			items: menuItems,
+		});
+	});
 
-  const tweetInteractionsOptionsEl = document.createElement("button");
-  tweetInteractionsOptionsEl.className = "engagement";
-  tweetInteractionsOptionsEl.style.setProperty("--color", "17, 133, 254");
+	const tweetInteractionsOptionsEl = document.createElement("button");
+	tweetInteractionsOptionsEl.className = "engagement";
+	tweetInteractionsOptionsEl.style.setProperty("--color", "17, 133, 254");
 
-  tweetInteractionsOptionsEl.innerHTML = `<svg width="19" height="19" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="icon"><path d="M15.498 8.50159C16.3254 8.50159 16.9959 9.17228 16.9961 9.99963C16.9961 10.8271 16.3256 11.4987 15.498 11.4987C14.6705 11.4987 14 10.8271 14 9.99963C14.0002 9.17228 14.6706 8.50159 15.498 8.50159Z"></path><path d="M4.49805 8.50159C5.32544 8.50159 5.99689 9.17228 5.99707 9.99963C5.99707 10.8271 5.32555 11.4987 4.49805 11.4987C3.67069 11.4985 3 10.827 3 9.99963C3.00018 9.17239 3.6708 8.50176 4.49805 8.50159Z"></path><path d="M10.0003 8.50159C10.8276 8.50176 11.4982 9.17239 11.4984 9.99963C11.4984 10.827 10.8277 11.4985 10.0003 11.4987C9.17283 11.4987 8.50131 10.8271 8.50131 9.99963C8.50149 9.17228 9.17294 8.50159 10.0003 8.50159Z"></path></svg>`;
+	tweetInteractionsOptionsEl.innerHTML = `<svg width="19" height="19" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="icon"><path d="M15.498 8.50159C16.3254 8.50159 16.9959 9.17228 16.9961 9.99963C16.9961 10.8271 16.3256 11.4987 15.498 11.4987C14.6705 11.4987 14 10.8271 14 9.99963C14.0002 9.17228 14.6706 8.50159 15.498 8.50159Z"></path><path d="M4.49805 8.50159C5.32544 8.50159 5.99689 9.17228 5.99707 9.99963C5.99707 10.8271 5.32555 11.4987 4.49805 11.4987C3.67069 11.4985 3 10.827 3 9.99963C3.00018 9.17239 3.6708 8.50176 4.49805 8.50159Z"></path><path d="M10.0003 8.50159C10.8276 8.50176 11.4982 9.17239 11.4984 9.99963C11.4984 10.827 10.8277 11.4985 10.0003 11.4987C9.17283 11.4987 8.50131 10.8271 8.50131 9.99963C8.50149 9.17228 9.17294 8.50159 10.0003 8.50159Z"></path></svg>`;
 
-  tweetInteractionsOptionsEl.addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+	tweetInteractionsOptionsEl.addEventListener("click", async (e) => {
+		e.preventDefault();
+		e.stopPropagation();
 
-    const defaultItems = [
-      {
-        id: "see-interactions",
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
-        title: "See interactions",
-        onClick: async () => {
-          await showInteractionsModal(tweet.id);
-        },
-      },
-      {
-        id: "bookmark",
-        icon: `
+		const defaultItems = [
+			{
+				id: "see-interactions",
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+				title: "See interactions",
+				onClick: async () => {
+					await showInteractionsModal(tweet.id);
+				},
+			},
+			{
+				id: "bookmark",
+				icon: `
         <svg
           width="19"
           height="19"
@@ -1794,204 +1793,204 @@ export const createTweetElement = (tweet, config = {}) => {
             fill="${tweet.bookmarked_by_user ? "#FFA900" : "none"}"
           />
         </svg>`,
-        title: `${tweet.bookmarked_by_user ? "Un-b" : "B"}ookmark ${
-          tweet.bookmark_count ? `(${tweet.bookmark_count || "0"})` : ""
-        }`,
-        onClick: async () => {
-          // check discord, Tr.
-          e.preventDefault();
-          e.stopPropagation();
+				title: `${tweet.bookmarked_by_user ? "Un-b" : "B"}ookmark ${
+					tweet.bookmark_count ? `(${tweet.bookmark_count || "0"})` : ""
+				}`,
+				onClick: async () => {
+					// check discord, Tr.
+					e.preventDefault();
+					e.stopPropagation();
 
-          const isBookmarked = tweet.bookmarked_by_user;
+					const isBookmarked = tweet.bookmarked_by_user;
 
-          const result = await query(
-            isBookmarked ? "/bookmarks/remove" : "/bookmarks/add",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ postId: tweet.id }),
-            }
-          );
+					const result = await query(
+						isBookmarked ? "/bookmarks/remove" : "/bookmarks/add",
+						{
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({ postId: tweet.id }),
+						},
+					);
 
-          if (result.success) {
-            tweet.bookmarked_by_user = result.bookmarked;
-          } else {
-            toastQueue.add(
-              `<h1>${result.error || "Failed to bookmark tweet"}</h1>`
-            );
-          }
-        },
-      },
+					if (result.success) {
+						tweet.bookmarked_by_user = result.bookmarked;
+					} else {
+						toastQueue.add(
+							`<h1>${result.error || "Failed to bookmark tweet"}</h1>`,
+						);
+					}
+				},
+			},
 
-      {
-        id: "copy-link",
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
-        title: "Copy link",
-        onClick: () => {
-          const tweetUrl = `${window.location.origin}/tweet/${tweet.id}`;
+			{
+				id: "copy-link",
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
+				title: "Copy link",
+				onClick: () => {
+					const tweetUrl = `${window.location.origin}/tweet/${tweet.id}`;
 
-          navigator.clipboard.writeText(tweetUrl);
-        },
-      },
+					navigator.clipboard.writeText(tweetUrl);
+				},
+			},
 
-      {
-        id: "share",
-        icon: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.2171 2.2793L10.2171 12.9745M10.2171 2.2793L13.333 4.99984M10.2171 2.2793L7.08301 4.99984M2.49967 10.9925L2.49967 14.1592C2.49967 16.011 4.00084 17.5121 5.85261 17.5121L14.9801 17.5121C16.8318 17.5121 18.333 16.011 18.333 14.1592L18.333 10.9925" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        title: "Share",
-        onClick: async () => {
-          const tweetUrl = `${window.location.origin}/tweet/${tweet.id}?ref=share`;
-          const shareData = {
-            title: `${tweet.author.name || tweet.author.username} on Tweetapus`,
-            text: tweet.content,
-            url: tweetUrl,
-          };
+			{
+				id: "share",
+				icon: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.2171 2.2793L10.2171 12.9745M10.2171 2.2793L13.333 4.99984M10.2171 2.2793L7.08301 4.99984M2.49967 10.9925L2.49967 14.1592C2.49967 16.011 4.00084 17.5121 5.85261 17.5121L14.9801 17.5121C16.8318 17.5121 18.333 16.011 18.333 14.1592L18.333 10.9925" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+				title: "Share",
+				onClick: async () => {
+					const tweetUrl = `${window.location.origin}/tweet/${tweet.id}?ref=share`;
+					const shareData = {
+						title: `${tweet.author.name || tweet.author.username} on Tweetapus`,
+						text: tweet.content,
+						url: tweetUrl,
+					};
 
-          try {
-            if (
-              navigator.share &&
-              navigator.canShare &&
-              navigator.canShare(shareData)
-            ) {
-              await navigator.share(shareData);
-            } else {
-              await navigator.clipboard.writeText(tweetUrl);
-              toastQueue.add(`<h1>Link copied to clipboard!</h1>`);
-            }
-          } catch {
-            toastQueue.add(`<h1>Unable to share tweet</h1>`);
-          }
-        },
-      },
+					try {
+						if (
+							navigator.share &&
+							navigator.canShare &&
+							navigator.canShare(shareData)
+						) {
+							await navigator.share(shareData);
+						} else {
+							await navigator.clipboard.writeText(tweetUrl);
+							toastQueue.add(`<h1>Link copied to clipboard!</h1>`);
+						}
+					} catch {
+						toastQueue.add(`<h1>Unable to share tweet</h1>`);
+					}
+				},
+			},
 
-      {
-        id: "share-image",
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>`,
-        title: "Share as image",
-        onClick: async () => {
-          const tweetElClone = document.createElement("div");
-          tweetElClone.innerHTML = tweetEl.outerHTML;
+			{
+				id: "share-image",
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>`,
+				title: "Share as image",
+				onClick: async () => {
+					const tweetElClone = document.createElement("div");
+					tweetElClone.innerHTML = tweetEl.outerHTML;
 
-          const wrapper = document.createElement("div");
-          wrapper.className = "tweet-share-wrapper";
+					const wrapper = document.createElement("div");
+					wrapper.className = "tweet-share-wrapper";
 
-          const attribution = document.createElement("div");
-          attribution.className = "tweet-share-attribution";
-          attribution.innerHTML = `Tweetapus`;
-          wrapper.appendChild(attribution);
+					const attribution = document.createElement("div");
+					attribution.className = "tweet-share-attribution";
+					attribution.innerHTML = `Tweetapus`;
+					wrapper.appendChild(attribution);
 
-          const tweetContainer = document.createElement("div");
-          tweetContainer.className = "tweet-share-container";
+					const tweetContainer = document.createElement("div");
+					tweetContainer.className = "tweet-share-container";
 
-          tweetContainer.appendChild(tweetElClone);
-          wrapper.appendChild(tweetContainer);
+					tweetContainer.appendChild(tweetElClone);
+					wrapper.appendChild(tweetContainer);
 
-          document.body.appendChild(wrapper);
+					document.body.appendChild(wrapper);
 
-          const script = document.createElement("script");
-          script.src =
-            "https://html2canvas.hertzen.com/dist/html2canvas.min.js";
-          script.onload = () => {
-            window
-              .html2canvas(wrapper, {
-                backgroundColor: "transparent",
-                scale: 3,
-                width: wrapper.offsetWidth,
-              })
-              .then((canvas) => {
-                canvas.toBlob((blob) => {
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `tweetapus_${tweet.id}.png`;
-                  a.click();
+					const script = document.createElement("script");
+					script.src =
+						"https://html2canvas.hertzen.com/dist/html2canvas.min.js";
+					script.onload = () => {
+						window
+							.html2canvas(wrapper, {
+								backgroundColor: "transparent",
+								scale: 3,
+								width: wrapper.offsetWidth,
+							})
+							.then((canvas) => {
+								canvas.toBlob((blob) => {
+									const url = URL.createObjectURL(blob);
+									const a = document.createElement("a");
+									a.href = url;
+									a.download = `tweetapus_${tweet.id}.png`;
+									a.click();
 
-                  wrapper.remove();
-                });
-              });
-          };
-          document.head.appendChild(script);
-        },
-      },
-    ];
+									wrapper.remove();
+								});
+							});
+					};
+					document.head.appendChild(script);
+				},
+			},
+		];
 
-    const userItems = [
-      {
-        id: tweet.pinned ? "unpin-option" : "pin-option",
-        icon: tweet.pinned
-          ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		const userItems = [
+			{
+				id: tweet.pinned ? "unpin-option" : "pin-option",
+				icon: tweet.pinned
+					? `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 17v5"></path>
                   <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
                 </svg>`
-          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 17v5"></path>
                   <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
                 </svg>`,
-        title: tweet.pinned ? "Unpin from profile" : "Pin to profile",
-        onClick: async () => {
-          try {
-            const method = tweet.pinned ? "DELETE" : "POST";
-            const result = await query(`/profile/pin/${tweet.id}`, {
-              method,
-            });
+				title: tweet.pinned ? "Unpin from profile" : "Pin to profile",
+				onClick: async () => {
+					try {
+						const method = tweet.pinned ? "DELETE" : "POST";
+						const result = await query(`/profile/pin/${tweet.id}`, {
+							method,
+						});
 
-            if (result.success) {
-              tweet.pinned = !tweet.pinned;
-              toastQueue.add(
-                `<h1>Tweet ${
-                  tweet.pinned ? "pinned" : "unpinned"
-                } successfully</h1>`
-              );
+						if (result.success) {
+							tweet.pinned = !tweet.pinned;
+							toastQueue.add(
+								`<h1>Tweet ${
+									tweet.pinned ? "pinned" : "unpinned"
+								} successfully</h1>`,
+							);
 
-              if (tweet.pinned) {
-                const pinnedIndicatorEl = document.createElement("div");
-                pinnedIndicatorEl.className = "pinned-indicator";
-                pinnedIndicatorEl.innerHTML = `
+							if (tweet.pinned) {
+								const pinnedIndicatorEl = document.createElement("div");
+								pinnedIndicatorEl.className = "pinned-indicator";
+								pinnedIndicatorEl.innerHTML = `
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 17v5"></path>
                         <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 7.89 17H16.1a2 2 0 0 0 1.78-2.55l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 0-1-1H10a1 1 0 0 0-1 1z"></path>
                       </svg>
                       <span>Pinned</span>
                     `;
-                const existingIndicator =
-                  tweetEl.querySelector(".pinned-indicator");
-                if (!existingIndicator) {
-                  tweetEl.insertBefore(pinnedIndicatorEl, tweetEl.firstChild);
-                }
-              } else {
-                const pinnedIndicator =
-                  tweetEl.querySelector(".pinned-indicator");
-                if (pinnedIndicator) {
-                  pinnedIndicator.remove();
-                }
-              }
-            } else {
-              toastQueue.add(
-                `<h1>${result.error || "Failed to update pin status"}</h1>`
-              );
-            }
-          } catch (error) {
-            console.error("Error updating pin status:", error);
-            toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-          }
-        },
-      },
-      {
-        id: "change-reply-restriction",
-        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								const existingIndicator =
+									tweetEl.querySelector(".pinned-indicator");
+								if (!existingIndicator) {
+									tweetEl.insertBefore(pinnedIndicatorEl, tweetEl.firstChild);
+								}
+							} else {
+								const pinnedIndicator =
+									tweetEl.querySelector(".pinned-indicator");
+								if (pinnedIndicator) {
+									pinnedIndicator.remove();
+								}
+							}
+						} else {
+							toastQueue.add(
+								`<h1>${result.error || "Failed to update pin status"}</h1>`,
+							);
+						}
+					} catch (error) {
+						console.error("Error updating pin status:", error);
+						toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+					}
+				},
+			},
+			{
+				id: "change-reply-restriction",
+				icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
           <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>`,
-        title: "Change who can reply",
-        onClick: async () => {
-          const currentRestriction = tweet.reply_restriction || "everyone";
+				title: "Change who can reply",
+				onClick: async () => {
+					const currentRestriction = tweet.reply_restriction || "everyone";
 
-          const restrictionMenu = document.createElement("div");
-          restrictionMenu.className = "reply-restriction-modal";
-          restrictionMenu.style.cssText = `
+					const restrictionMenu = document.createElement("div");
+					restrictionMenu.className = "reply-restriction-modal";
+					restrictionMenu.style.cssText = `
             position: fixed;
             top: 50%;
             left: 50%;
@@ -2006,13 +2005,13 @@ export const createTweetElement = (tweet, config = {}) => {
             width: 90%;
           `;
 
-          const title = document.createElement("h2");
-          title.textContent = "Who can reply?";
-          title.style.cssText = "margin: 0 0 16px; font-size: 18px;";
-          restrictionMenu.appendChild(title);
+					const title = document.createElement("h2");
+					title.textContent = "Who can reply?";
+					title.style.cssText = "margin: 0 0 16px; font-size: 18px;";
+					restrictionMenu.appendChild(title);
 
-          const modalOverlay = document.createElement("div");
-          modalOverlay.style.cssText = `
+					const modalOverlay = document.createElement("div");
+					modalOverlay.style.cssText = `
             position: fixed;
             top: 0;
             left: 0;
@@ -2022,43 +2021,43 @@ export const createTweetElement = (tweet, config = {}) => {
             z-index: 9999;
           `;
 
-          const closeModal = () => {
-            if (modalOverlay.parentNode === document.body) {
-              document.body.removeChild(modalOverlay);
-            }
-            if (restrictionMenu.parentNode === document.body) {
-              document.body.removeChild(restrictionMenu);
-            }
-          };
+					const closeModal = () => {
+						if (modalOverlay.parentNode === document.body) {
+							document.body.removeChild(modalOverlay);
+						}
+						if (restrictionMenu.parentNode === document.body) {
+							document.body.removeChild(restrictionMenu);
+						}
+					};
 
-          modalOverlay.addEventListener("click", closeModal);
+					modalOverlay.addEventListener("click", closeModal);
 
-          const options = [
-            { value: "everyone", label: "Everyone" },
-            { value: "following", label: "People you follow" },
-            { value: "followers", label: "Your followers" },
-            { value: "verified", label: "Verified accounts" },
-          ];
+					const options = [
+						{ value: "everyone", label: "Everyone" },
+						{ value: "following", label: "People you follow" },
+						{ value: "followers", label: "Your followers" },
+						{ value: "verified", label: "Verified accounts" },
+					];
 
-          options.forEach((option) => {
-            const optionBtn = document.createElement("button");
-            optionBtn.type = "button";
-            optionBtn.style.cssText = `
+					options.forEach((option) => {
+						const optionBtn = document.createElement("button");
+						optionBtn.type = "button";
+						optionBtn.style.cssText = `
               display: block;
               width: 100%;
               padding: 12px;
               margin-bottom: 8px;
               text-align: left;
               border: 1px solid ${
-                option.value === currentRestriction
-                  ? "var(--primary)"
-                  : "var(--border-primary)"
-              };
+								option.value === currentRestriction
+									? "var(--primary)"
+									: "var(--border-primary)"
+							};
               background: ${
-                option.value === currentRestriction
-                  ? "rgba(var(--primary-rgb), 0.1)"
-                  : "transparent"
-              };
+								option.value === currentRestriction
+									? "rgba(var(--primary-rgb), 0.1)"
+									: "transparent"
+							};
               border-radius: 8px;
               cursor: pointer;
               color: var(--text-primary);
@@ -2066,47 +2065,47 @@ export const createTweetElement = (tweet, config = {}) => {
               transition: all 0.2s ease;
             `;
 
-            if (option.value === currentRestriction) {
-              optionBtn.innerHTML = `<strong>✓ ${option.label}</strong>`;
-            } else {
-              optionBtn.textContent = option.label;
-            }
+						if (option.value === currentRestriction) {
+							optionBtn.innerHTML = `<strong>✓ ${option.label}</strong>`;
+						} else {
+							optionBtn.textContent = option.label;
+						}
 
-            optionBtn.addEventListener("click", async () => {
-              try {
-                const result = await query(
-                  `/tweets/${tweet.id}/reply-restriction`,
-                  {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ reply_restriction: option.value }),
-                  }
-                );
+						optionBtn.addEventListener("click", async () => {
+							try {
+								const result = await query(
+									`/tweets/${tweet.id}/reply-restriction`,
+									{
+										method: "PATCH",
+										headers: { "Content-Type": "application/json" },
+										body: JSON.stringify({ reply_restriction: option.value }),
+									},
+								);
 
-                if (result.success) {
-                  tweet.reply_restriction = option.value;
-                  closeModal();
-                  toastQueue.add(`<h1>Reply restriction updated</h1>`);
-                } else {
-                  toastQueue.add(
-                    `<h1>${
-                      result.error || "Failed to update reply restriction"
-                    }</h1>`
-                  );
-                }
-              } catch (err) {
-                console.error("Error updating reply restriction:", err);
-                toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-              }
-            });
+								if (result.success) {
+									tweet.reply_restriction = option.value;
+									closeModal();
+									toastQueue.add(`<h1>Reply restriction updated</h1>`);
+								} else {
+									toastQueue.add(
+										`<h1>${
+											result.error || "Failed to update reply restriction"
+										}</h1>`,
+									);
+								}
+							} catch (err) {
+								console.error("Error updating reply restriction:", err);
+								toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+							}
+						});
 
-            restrictionMenu.appendChild(optionBtn);
-          });
+						restrictionMenu.appendChild(optionBtn);
+					});
 
-          const cancelBtn = document.createElement("button");
-          cancelBtn.type = "button";
-          cancelBtn.textContent = "Cancel";
-          cancelBtn.style.cssText = `
+					const cancelBtn = document.createElement("button");
+					cancelBtn.type = "button";
+					cancelBtn.textContent = "Cancel";
+					cancelBtn.style.cssText = `
             display: block;
             width: 100%;
             padding: 12px;
@@ -2118,562 +2117,560 @@ export const createTweetElement = (tweet, config = {}) => {
             color: var(--text-primary);
             font-size: 14px;
           `;
-          cancelBtn.addEventListener("click", closeModal);
-          restrictionMenu.appendChild(cancelBtn);
+					cancelBtn.addEventListener("click", closeModal);
+					restrictionMenu.appendChild(cancelBtn);
 
-          document.body.appendChild(modalOverlay);
-          document.body.appendChild(restrictionMenu);
-        },
-      },
-      {
-        id: "delete-option",
-        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					document.body.appendChild(modalOverlay);
+					document.body.appendChild(restrictionMenu);
+				},
+			},
+			{
+				id: "delete-option",
+				icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3,6 5,6 21,6"></polyline>
               <path d="m19,6v14a2,2 0,0 1,-2,2H7a2,2 0,0 1,-2,-2V6m3,0V4a2,2 0,0 1,2,-2h4a2,2 0,0 1,2,2v2"></path>
               <line x1="10" y1="11" x2="10" y2="17"></line>
               <line x1="14" y1="11" x2="14" y2="17"></line>
             </svg>`,
-        title: "Delete tweet",
-        onClick: async () => {
-          if (!confirm("Are you sure you want to delete this tweet?")) {
-            return;
-          }
+				title: "Delete tweet",
+				onClick: async () => {
+					if (!confirm("Are you sure you want to delete this tweet?")) {
+						return;
+					}
 
-          const result = await query(`/tweets/${tweet.id}`, {
-            method: "DELETE",
-          });
+					const result = await query(`/tweets/${tweet.id}`, {
+						method: "DELETE",
+					});
 
-          if (result.success) {
-            tweetEl.classList.add("tweet-removing");
+					if (result.success) {
+						tweetEl.classList.add("tweet-removing");
 
-            setTimeout(() => {
-              tweetEl.remove();
-            }, 300);
+						setTimeout(() => {
+							tweetEl.remove();
+						}, 300);
 
-            toastQueue.add(`<h1>Tweet deleted successfully</h1>`);
-          } else {
-            toastQueue.add(
-              `<h1>${result.error || "Failed to delete tweet"}</h1>`
-            );
-          }
-        },
-      },
-    ];
+						toastQueue.add(`<h1>Tweet deleted successfully</h1>`);
+					} else {
+						toastQueue.add(
+							`<h1>${result.error || "Failed to delete tweet"}</h1>`,
+						);
+					}
+				},
+			},
+		];
 
-    // Tr, what happened to a the views indicator?ng it rn what
-    getUser().then(async (currentUser) => {
-      const items =
-        currentUser?.id === tweet.author.id
-          ? [...defaultItems, ...userItems]
-          : [...defaultItems];
+		// Tr, what happened to a the views indicator?ng it rn what
+		getUser().then(async (currentUser) => {
+			const items =
+				currentUser?.id === tweet.author.id
+					? [...defaultItems, ...userItems]
+					: [...defaultItems];
 
-      if (currentUser && tweet.author && currentUser.id !== tweet.author.id) {
-        const checkResp = await query(`/blocking/check/${tweet.author.id}`);
-        const isBlocked = checkResp?.blocked || false;
+			if (currentUser && tweet.author && currentUser.id !== tweet.author.id) {
+				const checkResp = await query(`/blocking/check/${tweet.author.id}`);
+				const isBlocked = checkResp?.blocked || false;
 
-        const blockItem = {
-          id: isBlocked ? "unblock-user" : "block-user",
-          icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
-          title: isBlocked
-            ? `Unblock @${tweet.author.username}`
-            : `Block @${tweet.author.username}`,
-          onClick: async () => {
-            try {
-              if (
-                !confirm(
-                  `${isBlocked ? "Unblock" : "Block"} @${
-                    tweet.author.username
-                  }?`
-                )
-              )
-                return;
-              const endpoint = isBlocked
-                ? "/blocking/unblock"
-                : "/blocking/block";
-              const result = await query(endpoint, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId: tweet.author.id }),
-              });
+				const blockItem = {
+					id: isBlocked ? "unblock-user" : "block-user",
+					icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+					title: isBlocked
+						? `Unblock @${tweet.author.username}`
+						: `Block @${tweet.author.username}`,
+					onClick: async () => {
+						try {
+							if (
+								!confirm(
+									`${isBlocked ? "Unblock" : "Block"} @${
+										tweet.author.username
+									}?`,
+								)
+							)
+								return;
+							const endpoint = isBlocked
+								? "/blocking/unblock"
+								: "/blocking/block";
+							const result = await query(endpoint, {
+								method: "POST",
+								headers: { "Content-Type": "application/json" },
+								body: JSON.stringify({ userId: tweet.author.id }),
+							});
 
-              if (result.success) {
-                toastQueue.add(
-                  `<h1>${isBlocked ? "User unblocked" : "User blocked"}</h1>`
-                );
-              } else {
-                toastQueue.add(
-                  `<h1>${result.error || "Failed to update block status"}</h1>`
-                );
-              }
-            } catch (err) {
-              console.error("Block/unblock error:", err);
-              toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-            }
-          },
-        };
+							if (result.success) {
+								toastQueue.add(
+									`<h1>${isBlocked ? "User unblocked" : "User blocked"}</h1>`,
+								);
+							} else {
+								toastQueue.add(
+									`<h1>${result.error || "Failed to update block status"}</h1>`,
+								);
+							}
+						} catch (err) {
+							console.error("Block/unblock error:", err);
+							toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+						}
+					},
+				};
 
-        items.push(blockItem);
-      }
+				items.push(blockItem);
+			}
 
-      const reportItem = {
-        id: "report-tweet",
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flag-icon lucide-flag"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></svg>`,
-        title: "Report tweet",
-        onClick: () => {
-          showReportModal({
-            type: "post",
-            id: tweet.id,
-            username: tweet.author.username,
-            content: tweet.content,
-          });
-        },
-      };
+			const reportItem = {
+				id: "report-tweet",
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flag-icon lucide-flag"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></svg>`,
+				title: "Report tweet",
+				onClick: () => {
+					showReportModal({
+						type: "post",
+						id: tweet.id,
+						username: tweet.author.username,
+						content: tweet.content,
+					});
+				},
+			};
 
-      items.push(reportItem);
+			items.push(reportItem);
 
-      createPopup({
-        triggerElement: tweetInteractionsOptionsEl,
-        items,
-      });
-    });
-  });
+			createPopup({
+				triggerElement: tweetInteractionsOptionsEl,
+				items,
+			});
+		});
+	});
 
-  if (isBlockedByProfile) {
-    [
-      tweetInteractionsLikeEl,
-      tweetInteractionsRetweetEl,
-      tweetInteractionsReplyEl,
-    ].forEach((btn) => {
-      try {
-        btn.disabled = true;
-        btn.setAttribute("aria-disabled", "true");
-        btn.classList.add("blocked-interaction");
-      } catch (_) {}
-    });
-  }
+	if (isBlockedByProfile) {
+		[
+			tweetInteractionsLikeEl,
+			tweetInteractionsRetweetEl,
+			tweetInteractionsReplyEl,
+		].forEach((btn) => {
+			try {
+				btn.disabled = true;
+				btn.setAttribute("aria-disabled", "true");
+				btn.classList.add("blocked-interaction");
+			} catch (_) {}
+		});
+	}
 
-  (async () => {
-    try {
-      const getUser = (await import("./auth.js")).default;
-      const currentUser = await getUser();
+	const replyRestriction = tweet.reply_restriction || "everyone";
+	let restrictionEl = null;
 
-      if (currentUser && currentUser.restricted) {
-        [
-          tweetInteractionsLikeEl,
-          tweetInteractionsRetweetEl,
-          tweetInteractionsReplyEl,
-        ].forEach((btn) => {
-          try {
-            btn.disabled = true;
-            btn.setAttribute("aria-disabled", "true");
-            btn.classList.add("reply-restricted");
-          } catch (_) {}
-        });
-      }
-    } catch (_) {}
-  })();
+	const createRestrictionElement = () => {
+		if (replyRestriction !== "everyone") {
+			import("./auth.js").then(async ({ authToken }) => {
+				if (authToken) {
+					const getUser = (await import("./auth.js")).default;
+					const currentUser = await getUser();
 
-  const replyRestriction = tweet.reply_restriction || "everyone";
-  let restrictionEl = null;
+					if (currentUser && currentUser.id === tweet.author.id) {
+						if (!restrictionEl) {
+							restrictionEl = document.createElement("div");
+							restrictionEl.className = "reply-restriction-info";
+							const existingRestriction = tweetEl.querySelector(
+								".reply-restriction-info",
+							);
+							if (!existingRestriction && tweetInteractionsEl.parentNode) {
+								tweetEl.insertBefore(restrictionEl, tweetInteractionsEl);
+							}
+						}
+						restrictionEl.textContent = "You can reply to your own tweet";
+						return;
+					}
 
-  const createRestrictionElement = () => {
-    if (replyRestriction !== "everyone") {
-      import("./auth.js").then(async ({ authToken }) => {
-        if (authToken) {
-          const getUser = (await import("./auth.js")).default;
-          const currentUser = await getUser();
+					checkReplyPermissions(tweet, replyRestriction).then(
+						({ canReply: allowed, restrictionText }) => {
+							if (!allowed) {
+								tweetInteractionsReplyEl.disabled = true;
+								tweetInteractionsReplyEl.classList.add("reply-restricted");
+								tweetInteractionsReplyEl.title =
+									"You cannot reply to this tweet";
+							}
 
-          if (currentUser && currentUser.id === tweet.author.id) {
-            if (!restrictionEl) {
-              restrictionEl = document.createElement("div");
-              restrictionEl.className = "reply-restriction-info";
-              const existingRestriction = tweetEl.querySelector(
-                ".reply-restriction-info"
-              );
-              if (!existingRestriction && tweetInteractionsEl.parentNode) {
-                tweetEl.insertBefore(restrictionEl, tweetInteractionsEl);
-              }
-            }
-            restrictionEl.textContent = "You can reply to your own tweet";
-            return;
-          }
+							if (restrictionText) {
+								if (!restrictionEl) {
+									restrictionEl = document.createElement("div");
+									restrictionEl.className = "reply-restriction-info";
+									const existingRestriction = tweetEl.querySelector(
+										".reply-restriction-info",
+									);
+									if (!existingRestriction && tweetInteractionsEl.parentNode) {
+										tweetEl.insertBefore(restrictionEl, tweetInteractionsEl);
+									}
+								}
+								restrictionEl.textContent = restrictionText;
+							}
+						},
+					);
+				}
+			});
+		}
+	};
 
-          checkReplyPermissions(tweet, replyRestriction).then(
-            ({ canReply: allowed, restrictionText }) => {
-              if (!allowed) {
-                tweetInteractionsReplyEl.disabled = true;
-                tweetInteractionsReplyEl.classList.add("reply-restricted");
-                tweetInteractionsReplyEl.title =
-                  "You cannot reply to this tweet";
-              }
+	tweetInteractionsEl.appendChild(tweetInteractionsLikeEl);
+	tweetInteractionsEl.appendChild(tweetInteractionsRetweetEl);
+	tweetInteractionsEl.appendChild(tweetInteractionsReplyEl);
 
-              if (restrictionText) {
-                if (!restrictionEl) {
-                  restrictionEl = document.createElement("div");
-                  restrictionEl.className = "reply-restriction-info";
-                  const existingRestriction = tweetEl.querySelector(
-                    ".reply-restriction-info"
-                  );
-                  if (!existingRestriction && tweetInteractionsEl.parentNode) {
-                    tweetEl.insertBefore(restrictionEl, tweetInteractionsEl);
-                  }
-                }
-                restrictionEl.textContent = restrictionText;
-              }
-            }
-          );
-        }
-      });
-    }
-  };
+	const tweetInteractionsRightEl = document.createElement("div");
+	tweetInteractionsRightEl.className = "tweet-interactions-right";
 
-  tweetInteractionsEl.appendChild(tweetInteractionsLikeEl);
-  tweetInteractionsEl.appendChild(tweetInteractionsRetweetEl);
-  tweetInteractionsEl.appendChild(tweetInteractionsReplyEl);
-
-  const tweetInteractionsRightEl = document.createElement("div");
-  tweetInteractionsRightEl.className = "tweet-interactions-right";
-
-  const tweetInteractionsViewsEl = document.createElement("span");
-  tweetInteractionsViewsEl.className = "engagement views-count";
-  tweetInteractionsViewsEl.innerHTML = `
+	const tweetInteractionsViewsEl = document.createElement("span");
+	tweetInteractionsViewsEl.className = "engagement views-count";
+	tweetInteractionsViewsEl.innerHTML = `
     <svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M10 5C5 5 2 10 2 10s3 5 8 5 8-5 8-5-3-5-8-5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
     </svg>
     <span>${tweet.view_count > 0 ? formatNumber(tweet.view_count) : ""}</span>`;
-  tweetInteractionsViewsEl.style.setProperty("--color", "119, 119, 119");
-  tweetInteractionsViewsEl.title = `${tweet.view_count || 0} views`;
+	tweetInteractionsViewsEl.style.setProperty("--color", "119, 119, 119");
+	tweetInteractionsViewsEl.title = `${tweet.view_count || 0} views`;
 
-  const reactionCountSpan = document.createElement("span");
-  reactionCountSpan.className = "reaction-count";
+	const reactionCountSpan = document.createElement("span");
+	reactionCountSpan.className = "reaction-count";
 
-  const topReactionsSpan = document.createElement("span");
-  topReactionsSpan.className = "top-reactions";
+	const topReactionsSpan = document.createElement("span");
+	topReactionsSpan.className = "top-reactions";
 
-  const tweetInteractionsReactionEl = document.createElement("button");
-  tweetInteractionsReactionEl.className = "engagement reaction-btn";
-  tweetInteractionsReactionEl.dataset.bookmarked = "false";
-  tweetInteractionsReactionEl.title = "React";
-  tweetInteractionsReactionEl.style.setProperty("--color", "255, 180, 0");
-  tweetInteractionsReactionEl.innerHTML = `
+	const tweetInteractionsReactionEl = document.createElement("button");
+	tweetInteractionsReactionEl.className = "engagement reaction-btn";
+	tweetInteractionsReactionEl.dataset.bookmarked = "false";
+	tweetInteractionsReactionEl.title = "React";
+	tweetInteractionsReactionEl.style.setProperty("--color", "255, 180, 0");
+	tweetInteractionsReactionEl.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-smile-plus-icon lucide-smile-plus"><path d="M22 11v1a10 10 0 1 1-9-10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/><path d="M16 5h6"/><path d="M19 2v6"/></svg>`;
 
-  const updateReactionDisplay = () => {
-    const topReactions = tweet.top_reactions || [];
+	const updateReactionDisplay = () => {
+		const topReactions = tweet.top_reactions || [];
 
-    if (topReactions.length > 0) {
-      topReactionsSpan.innerHTML = topReactions.map((r) => r.emoji).join("");
-      // Replace any :shortcode: text inside the top reactions with image elements
-      replaceEmojiShortcodesInElement(topReactionsSpan);
-      topReactionsSpan.style.display = "inline";
-    } else {
-      topReactionsSpan.innerHTML = "";
-      topReactionsSpan.style.display = "none";
-    }
+		if (topReactions.length > 0) {
+			topReactionsSpan.innerHTML = topReactions.map((r) => r.emoji).join("");
+			// Replace any :shortcode: text inside the top reactions with image elements
+			replaceEmojiShortcodesInElement(topReactionsSpan);
+			topReactionsSpan.style.display = "inline";
+		} else {
+			topReactionsSpan.innerHTML = "";
+			topReactionsSpan.style.display = "none";
+		}
 
-    if (tweet.reaction_count > 0) {
-      reactionCountSpan.textContent = String(tweet.reaction_count);
-      reactionCountSpan.style.display = "inline";
-    } else {
-      reactionCountSpan.textContent = "";
-      reactionCountSpan.style.display = "none";
-    }
-  };
+		if (tweet.reaction_count > 0) {
+			reactionCountSpan.textContent = String(tweet.reaction_count);
+			reactionCountSpan.style.display = "inline";
+		} else {
+			reactionCountSpan.textContent = "";
+			reactionCountSpan.style.display = "none";
+		}
+	};
 
-  updateReactionDisplay();
+	updateReactionDisplay();
 
-  tweetInteractionsReactionEl.addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+	tweetInteractionsReactionEl.addEventListener("click", async (e) => {
+		e.preventDefault();
+		e.stopPropagation();
 
-    try {
-      const { showEmojiPickerPopup } = await import(
-        "../../shared/emoji-picker.js"
-      );
-      const { triggerReactionBurst } = await import(
-        "../../shared/reactions.js"
-      );
+		try {
+			const { showEmojiPickerPopup } = await import(
+				"../../shared/emoji-picker.js"
+			);
+			const { triggerReactionBurst } = await import(
+				"../../shared/reactions.js"
+			);
 
-      const rect = tweetInteractionsReactionEl.getBoundingClientRect();
-      await showEmojiPickerPopup(
-        async (emoji) => {
-          try {
-            triggerReactionBurst(tweetInteractionsReactionEl, emoji, 6);
-            console.debug("React: sending", { tweetId: tweet.id, emoji });
+			const rect = tweetInteractionsReactionEl.getBoundingClientRect();
+			await showEmojiPickerPopup(
+				async (emoji) => {
+					try {
+						triggerReactionBurst(tweetInteractionsReactionEl, emoji, 6);
+						console.debug("React: sending", { tweetId: tweet.id, emoji });
 
-            const result = await query(`/tweets/${tweet.id}/reaction`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ emoji }),
-            });
+						const result = await query(`/tweets/${tweet.id}/reaction`, {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ emoji }),
+						});
 
-            console.debug("React: response", result);
+						console.debug("React: response", result);
 
-            if (result?.success) {
-              // Only update counts if the server returned numeric totals
-              if (typeof result.total_reactions === "number") {
-                tweet.reaction_count = result.total_reactions;
-              }
-              if (Array.isArray(result.top_reactions)) {
-                tweet.top_reactions = result.top_reactions;
-              }
-              updateReactionDisplay();
-            } else {
-              // Keep the UI stable and surface the server error
-              console.warn("Reaction failed:", result);
-              toastQueue.add(`<h1>${result?.error || "Failed to react"}</h1>`);
-            }
-          } catch (err) {
-            console.error("Reaction error:", err);
-            toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-          }
-        },
-        { x: rect.left, y: rect.bottom + 8 }
-      );
-    } catch (err) {
-      console.error("Failed to open emoji picker:", err);
-    }
-  });
+						if (result?.success) {
+							// Only update counts if the server returned numeric totals
+							if (typeof result.total_reactions === "number") {
+								tweet.reaction_count = result.total_reactions;
+							}
+							if (Array.isArray(result.top_reactions)) {
+								tweet.top_reactions = result.top_reactions;
+							}
+							updateReactionDisplay();
+						} else {
+							// Keep the UI stable and surface the server error
+							console.warn("Reaction failed:", result);
+							toastQueue.add(`<h1>${result?.error || "Failed to react"}</h1>`);
+						}
+					} catch (err) {
+						console.error("Reaction error:", err);
+						toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+					}
+				},
+				{ x: rect.left, y: rect.bottom + 8 },
+			);
+		} catch (err) {
+			console.error("Failed to open emoji picker:", err);
+		}
+	});
 
-  tweetInteractionsRightEl.appendChild(tweetInteractionsViewsEl);
+	tweetInteractionsRightEl.appendChild(tweetInteractionsViewsEl);
 
-  const reactionWrapper = document.createElement("div");
-  reactionWrapper.className = "reaction-wrapper";
+	const reactionWrapper = document.createElement("div");
+	reactionWrapper.className = "reaction-wrapper";
 
-  reactionWrapper.appendChild(tweetInteractionsReactionEl);
-  reactionWrapper.appendChild(topReactionsSpan);
-  reactionWrapper.appendChild(reactionCountSpan);
+	reactionWrapper.appendChild(tweetInteractionsReactionEl);
+	reactionWrapper.appendChild(topReactionsSpan);
+	reactionWrapper.appendChild(reactionCountSpan);
 
-  const showReactionsModal = async () => {
-    const reactionsData = await query(`/tweets/${tweet.id}/reactions`);
-    const container = document.createElement("div");
-    container.className = "reactions-list";
+	const showReactionsModal = async () => {
+		const reactionsData = await query(`/tweets/${tweet.id}/reactions`);
+		const container = document.createElement("div");
+		container.className = "reactions-list";
 
-    if (
-      !reactionsData ||
-      !reactionsData.reactions ||
-      reactionsData.reactions.length === 0
-    ) {
-      container.innerHTML = `<p>No reactions yet.</p>`;
-    } else {
-      const currentUser = await getUser();
+		if (
+			!reactionsData ||
+			!reactionsData.reactions ||
+			reactionsData.reactions.length === 0
+		) {
+			container.innerHTML = `<p>No reactions yet.</p>`;
+		} else {
+			const currentUser = await getUser();
 
-      reactionsData.reactions.forEach((r) => {
-        const item = document.createElement("div");
-        item.className = "reaction-item";
-        const avatarSrc =
-          r.avatar || "/public/shared/assets/default-avatar.svg";
-        const displayName = r.name || r.username || "Unknown";
-        const usernameText = r.username || "";
-        const isOwnReaction = currentUser && r.user_id === currentUser.id;
+			reactionsData.reactions.forEach((r) => {
+				const item = document.createElement("div");
+				item.className = "reaction-item";
+				const avatarSrc =
+					r.avatar || "/public/shared/assets/default-avatar.svg";
+				const displayName = r.name || r.username || "Unknown";
+				const usernameText = r.username || "";
+				const isOwnReaction = currentUser && r.user_id === currentUser.id;
 
-        item.innerHTML = `
+				item.innerHTML = `
           <div class="reaction-user-avatar"><img src="${avatarSrc}" alt="${displayName
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")}" loading="lazy"/></div>
+						.replaceAll("<", "&lt;")
+						.replaceAll(">", "&gt;")}" loading="lazy"/></div>
           <div class="reaction-content">
             <div class="reaction-emoji">${r.emoji}</div>
             <div class="reaction-user-info">
               <div class="reaction-user-name">${displayName
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")}</div>
+								.replaceAll("<", "&lt;")
+								.replaceAll(">", "&gt;")}</div>
               <div class="reaction-user-username">${
-                usernameText
-                  ? `@${usernameText
-                      .replaceAll("<", "&lt;")
-                      .replaceAll(">", "&gt;")}`
-                  : ""
-              }</div>
+								usernameText
+									? `@${usernameText
+											.replaceAll("<", "&lt;")
+											.replaceAll(">", "&gt;")}`
+									: ""
+							}</div>
             </div>
           </div>
           ${
-            isOwnReaction
-              ? `<button class="reaction-remove-btn" title="Remove reaction"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash2-icon lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>`
-              : ""
-          }
+						isOwnReaction
+							? `<button class="reaction-remove-btn" title="Remove reaction"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash2-icon lucide-trash-2"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>`
+							: ""
+					}
         `;
 
-        if (isOwnReaction) {
-          const removeBtn = item.querySelector(".reaction-remove-btn");
-          const emoji = r.emoji;
-          removeBtn.addEventListener("click", async (e) => {
-            e.stopPropagation();
+				if (isOwnReaction) {
+					const removeBtn = item.querySelector(".reaction-remove-btn");
+					const emoji = r.emoji;
+					removeBtn.addEventListener("click", async (e) => {
+						e.stopPropagation();
 
-            try {
-              const result = await query(`/tweets/${tweet.id}/reaction`, {
-                method: "POST",
-                body: { emoji },
-              });
+						try {
+							const result = await query(`/tweets/${tweet.id}/reaction`, {
+								method: "POST",
+								body: { emoji },
+							});
 
-              if (result.success) {
-                item.style.transition = "opacity 0.2s, transform 0.2s";
-                item.style.opacity = "0";
-                item.style.transform = "scale(0.95)";
-                setTimeout(() => {
-                  item.remove();
-                  if (
-                    container.querySelectorAll(".reaction-item").length === 0
-                  ) {
-                    container.innerHTML = `<p>No reactions yet.</p>`;
-                  }
-                }, 200);
+							if (result.success) {
+								item.style.transition = "opacity 0.2s, transform 0.2s";
+								item.style.opacity = "0";
+								item.style.transform = "scale(0.95)";
+								setTimeout(() => {
+									item.remove();
+									if (
+										container.querySelectorAll(".reaction-item").length === 0
+									) {
+										container.innerHTML = `<p>No reactions yet.</p>`;
+									}
+								}, 200);
 
-                if (result.total_reactions !== undefined) {
-                  reactionCountSpan.textContent = result.total_reactions || "";
-                }
+								if (result.total_reactions !== undefined) {
+									reactionCountSpan.textContent = result.total_reactions || "";
+								}
 
-                if (result.top_reactions) {
-                  topReactionsSpan.innerHTML = result.top_reactions
-                    .map((tr) => tr.emoji)
-                    .join("");
-                  replaceEmojiShortcodesInElement(topReactionsSpan);
-                }
-              }
-            } catch (err) {
-              console.error("Error removing reaction:", err);
-            }
-          });
-        }
+								if (result.top_reactions) {
+									topReactionsSpan.innerHTML = result.top_reactions
+										.map((tr) => tr.emoji)
+										.join("");
+									replaceEmojiShortcodesInElement(topReactionsSpan);
+								}
+							}
+						} catch (err) {
+							console.error("Error removing reaction:", err);
+						}
+					});
+				}
 
-        container.appendChild(item);
-      });
-      replaceEmojiShortcodesInElement(container);
-    }
+				container.appendChild(item);
+			});
+			replaceEmojiShortcodesInElement(container);
+		}
 
-    createModal({
-      title: "Reactions",
-      content: container,
-      className: "reactions-modal",
-    });
-  };
+		createModal({
+			title: "Reactions",
+			content: container,
+			className: "reactions-modal",
+		});
+	};
 
-  topReactionsSpan.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    showReactionsModal();
-  });
+	topReactionsSpan.addEventListener("click", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		showReactionsModal();
+	});
 
-  reactionCountSpan.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    showReactionsModal();
-  });
+	reactionCountSpan.addEventListener("click", (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		showReactionsModal();
+	});
 
-  tweetInteractionsRightEl.appendChild(reactionWrapper);
-  tweetInteractionsRightEl.appendChild(tweetInteractionsOptionsEl);
+	tweetInteractionsRightEl.appendChild(reactionWrapper);
+	tweetInteractionsRightEl.appendChild(tweetInteractionsOptionsEl);
 
-  tweetInteractionsEl.appendChild(tweetInteractionsRightEl);
+	tweetInteractionsEl.appendChild(tweetInteractionsRightEl);
 
-  if (size !== "preview") {
-    tweetEl.appendChild(tweetInteractionsEl);
-    createRestrictionElement();
-  }
+	if (size !== "preview") {
+		(async () => {
+			try {
+				const getUser = (await import("./auth.js")).default;
+				const currentUser = await getUser();
 
-  if (tweet.top_reply && showTopReply) {
-    const topReplyEl = createTweetElement(tweet.top_reply, {
-      clickToOpen: true,
-      showTopReply: false,
-      isTopReply: true,
-    });
+				if (currentUser?.restricted) {
+					const disableButton = (btn) => {
+						if (btn) {
+							btn.disabled = true;
+							btn.setAttribute("aria-disabled", "true");
+							btn.classList.add("reply-restricted");
+							btn.style.opacity = "0.5";
+							btn.style.cursor = "not-allowed";
+						}
+					};
+					disableButton(tweetInteractionsLikeEl);
+					disableButton(tweetInteractionsRetweetEl);
+					disableButton(tweetInteractionsReplyEl);
+					disableButton(tweetInteractionsReactionEl);
+					disableButton(tweetInteractionsOptionsEl);
+				}
+			} catch (_) {}
+		})();
 
-    const replyIndicator = document.createElement("div");
-    replyIndicator.className = "reply-indicator";
-    replyIndicator.innerText = `Replying to @${tweet.author.username}`;
-    topReplyEl.insertBefore(replyIndicator, topReplyEl.firstChild);
+		tweetEl.appendChild(tweetInteractionsEl);
+		createRestrictionElement();
+	}
+	if (tweet.top_reply && showTopReply) {
+		const topReplyEl = createTweetElement(tweet.top_reply, {
+			clickToOpen: true,
+			showTopReply: false,
+			isTopReply: true,
+		});
 
-    tweetEl.appendChild(topReplyEl);
-  }
+		const replyIndicator = document.createElement("div");
+		replyIndicator.className = "reply-indicator";
+		replyIndicator.innerText = `Replying to @${tweet.author.username}`;
+		topReplyEl.insertBefore(replyIndicator, topReplyEl.firstChild);
 
-  if (clickToOpen) {
-    tweetEl.classList.add("clickable");
+		tweetEl.appendChild(topReplyEl);
+	}
 
-    tweetEl.addEventListener("click", (e) => {
-      if (e.target.closest("button, a, .engagement")) {
-        return;
-      }
-      if (size === "preview") {
-        e.stopPropagation();
-      }
-      // If tweet's author is suspended, redirect to timeline instead of opening the tweet.
-      if (tweet.author?.suspended) {
-        switchPage("timeline", { path: "/" });
-        return;
-      }
-      openTweet(tweet);
-    });
-  }
+	if (clickToOpen) {
+		tweetEl.classList.add("clickable");
 
-  return tweetEl;
+		tweetEl.addEventListener("click", (e) => {
+			if (e.target.closest("button, a, .engagement")) {
+				return;
+			}
+			if (size === "preview") {
+				e.stopPropagation();
+			}
+			// If tweet's author is suspended, redirect to timeline instead of opening the tweet.
+			if (tweet.author?.suspended) {
+				switchPage("timeline", { path: "/" });
+				return;
+			}
+			openTweet(tweet);
+		});
+	}
+
+	return tweetEl;
 };
 
 export const addTweetToTimeline = (tweet, prepend = false) => {
-  if (!tweet) {
-    console.error("No tweet provided to addTweetToTimeline");
-    return null;
-  }
+	if (!tweet) {
+		console.error("No tweet provided to addTweetToTimeline");
+		return null;
+	}
 
-  // Handle tweets without author property (fallback)
-  if (!tweet.author && tweet.user) {
-    tweet.author = tweet.user;
-  }
+	// Handle tweets without author property (fallback)
+	if (!tweet.author && tweet.user) {
+		tweet.author = tweet.user;
+	}
 
-  if (!tweet.author) {
-    console.error(
-      "Invalid tweet object provided to addTweetToTimeline - missing author",
-      tweet
-    );
-    return null;
-  }
+	if (!tweet.author) {
+		console.error(
+			"Invalid tweet object provided to addTweetToTimeline - missing author",
+			tweet,
+		);
+		return null;
+	}
 
-  const tweetEl = createTweetElement(tweet, {
-    clickToOpen: true,
-    showTopReply: true,
-  });
+	const tweetEl = createTweetElement(tweet, {
+		clickToOpen: true,
+		showTopReply: true,
+	});
 
-  const tweetsContainer = document.querySelector(".tweets");
-  if (!tweetsContainer) {
-    console.error("Tweets container not found");
-    return null;
-  }
+	const tweetsContainer = document.querySelector(".tweets");
+	if (!tweetsContainer) {
+		console.error("Tweets container not found");
+		return null;
+	}
 
-  if (prepend) {
-    tweetsContainer.insertBefore(tweetEl, tweetsContainer.firstChild);
-  } else {
-    tweetsContainer.appendChild(tweetEl);
-  }
+	if (prepend) {
+		tweetsContainer.insertBefore(tweetEl, tweetsContainer.firstChild);
+	} else {
+		tweetsContainer.appendChild(tweetEl);
+	}
 
-  // If tweet didn't include reactions count, fetch reactions summary in background
-  // and update badge if server reports any reactions. This ensures counts appear
-  // on load for tweets that actually have reactions even if the timeline payload
-  // omitted the count.
-  (async () => {
-    try {
-      if (tweet.reaction_count === undefined) {
-        const resp = await query(`/tweets/${tweet.id}/reactions`);
-        if (
-          resp &&
-          Array.isArray(resp.reactions) &&
-          resp.reactions.length > 0
-        ) {
-          tweet.reaction_count = resp.reactions.length;
-          const reactionWrapper = tweetEl.querySelector(".reaction-wrapper");
-          const reactionCountSpan = reactionWrapper
-            ? reactionWrapper.querySelector(".reaction-count")
-            : null;
-          if (reactionWrapper && reactionCountSpan) {
-            reactionCountSpan.textContent = String(tweet.reaction_count);
-            if (!reactionCountSpan.parentNode)
-              reactionWrapper.appendChild(reactionCountSpan);
-          }
-        }
-      }
-    } catch (_) {
-      // ignore background fetch errors
-    }
-  })();
+	// If tweet didn't include reactions count, fetch reactions summary in background
+	// and update badge if server reports any reactions. This ensures counts appear
+	// on load for tweets that actually have reactions even if the timeline payload
+	// omitted the count.
+	(async () => {
+		try {
+			if (tweet.reaction_count === undefined) {
+				const resp = await query(`/tweets/${tweet.id}/reactions`);
+				if (
+					resp &&
+					Array.isArray(resp.reactions) &&
+					resp.reactions.length > 0
+				) {
+					tweet.reaction_count = resp.reactions.length;
+					const reactionWrapper = tweetEl.querySelector(".reaction-wrapper");
+					const reactionCountSpan = reactionWrapper
+						? reactionWrapper.querySelector(".reaction-count")
+						: null;
+					if (reactionWrapper && reactionCountSpan) {
+						reactionCountSpan.textContent = String(tweet.reaction_count);
+						if (!reactionCountSpan.parentNode)
+							reactionWrapper.appendChild(reactionCountSpan);
+					}
+				}
+			}
+		} catch {}
+	})();
 
-  return tweetEl;
+	return tweetEl;
 };
-
-// stuck ->

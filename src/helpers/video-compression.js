@@ -1,46 +1,32 @@
 import ffmpeg from "fluent-ffmpeg";
 import { promises as fs } from "fs";
 
-/**
- * Compresses a video file to reduce size while maintaining acceptable quality
- * @param {string} inputPath - Path to the input video file
- * @param {string} outputPath - Path where the compressed video will be saved
- * @param {Object} options - Compression options
- * @param {number} options.crf - Constant Rate Factor (18-28, lower = higher quality)
- * @param {string} options.preset - Encoding preset (ultrafast, fast, medium, slow)
- * @param {number} options.maxWidth - Maximum width in pixels
- * @param {number} options.maxHeight - Maximum height in pixels
- * @returns {Promise<{success: boolean, outputPath?: string, originalSize?: number, compressedSize?: number, error?: string}>}
- */
 export async function compressVideo(inputPath, outputPath, options = {}) {
 	const {
-		crf = 28, // Good balance of quality/size for social media
-		preset = "fast", // Faster encoding
-		maxWidth = 1280, // HD width limit
-		maxHeight = 720, // HD height limit
+		crf = 28,
+		preset = "fast",
+		maxWidth = 1280,
+		maxHeight = 720,
 	} = options;
 
 	try {
-		// Get original file size
 		const originalStats = await fs.stat(inputPath);
 		const originalSize = originalStats.size;
 
-		// Return promise that resolves when compression is complete
 		return new Promise((resolve, reject) => {
 			const command = ffmpeg(inputPath)
 				.outputOptions([
-					"-vcodec libx264", // H.264 codec for compatibility
-					`-crf ${crf}`, // Quality setting
-					`-preset ${preset}`, // Speed vs compression efficiency
-					"-movflags +faststart", // Enable fast start for web playback
-					"-pix_fmt yuv420p", // Ensure compatibility with all players
+					"-vcodec libx264",
+					`-crf ${crf}`,
+					`-preset ${preset}`,
+					"-movflags +faststart",
+					"-pix_fmt yuv420p",
 				])
 				.videoFilters(
 					`scale='min(${maxWidth},iw)':'min(${maxHeight},ih)':force_original_aspect_ratio=decrease`,
-				) // Maintain aspect ratio
+				)
 				.on("end", async () => {
 					try {
-						// Get compressed file size
 						const compressedStats = await fs.stat(outputPath);
 						const compressedSize = compressedStats.size;
 
@@ -122,12 +108,6 @@ export function getVideoMetadata(videoPath) {
 	});
 }
 
-/**
- * Determines if a video needs compression based on file size and metadata
- * @param {string} videoPath - Path to the video file
- * @param {number} maxSizeBytes - Maximum acceptable file size in bytes
- * @returns {Promise<{needsCompression: boolean, reason?: string, metadata?: Object}>}
- */
 export async function shouldCompressVideo(
 	videoPath,
 	maxSizeBytes = 5 * 1024 * 1024,
@@ -144,7 +124,6 @@ export async function shouldCompressVideo(
 			};
 		}
 
-		// Also compress if video is very high resolution
 		if (
 			metadata.video &&
 			(metadata.video.width > 1280 || metadata.video.height > 720)

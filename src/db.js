@@ -4,22 +4,31 @@ const db = new Database("./.data/db.sqlite");
 
 // Ensure schema changes for restricted/action columns are applied when DB already exists
 try {
-  const usersColumns = db.query("PRAGMA table_info(users);").all();
-  const usersColumnNames = usersColumns.map((c) => c.name);
-  if (!usersColumnNames.includes("restricted")) {
-    db.query("ALTER TABLE users ADD COLUMN restricted BOOLEAN DEFAULT FALSE").run();
-  }
-  const suspColumns = db.query("PRAGMA table_info(suspensions);").all();
-  const suspColumnNames = suspColumns.map((c) => c.name);
-  if (!suspColumnNames.includes("action")) {
-    db.query("ALTER TABLE suspensions ADD COLUMN action TEXT DEFAULT 'suspend'").run();
-  }
+	const usersColumns = db.query("PRAGMA table_info(users);").all();
+	const usersColumnNames = usersColumns.map((c) => c.name);
+	if (!usersColumnNames.includes("restricted")) {
+		db.query(
+			"ALTER TABLE users ADD COLUMN restricted BOOLEAN DEFAULT FALSE",
+		).run();
+	}
+	if (!usersColumnNames.includes("shadowbanned")) {
+		db.query(
+			"ALTER TABLE users ADD COLUMN shadowbanned BOOLEAN DEFAULT FALSE",
+		).run();
+	}
+	const suspColumns = db.query("PRAGMA table_info(suspensions);").all();
+	const suspColumnNames = suspColumns.map((c) => c.name);
+	if (!suspColumnNames.includes("action")) {
+		db.query(
+			"ALTER TABLE suspensions ADD COLUMN action TEXT DEFAULT 'suspend'",
+		).run();
+	}
 } catch (e) {
-  // Ignore migration errors for now; db might be created from scratch with new schema
+	// Ignore migration errors for now; db might be created from scratch with new schema
 }
 
 db.query(
-  `
+	`
 PRAGMA journal_mode = WAL;
 
 CREATE TABLE IF NOT EXISTS users (
@@ -40,6 +49,7 @@ CREATE TABLE IF NOT EXISTS users (
   admin BOOLEAN DEFAULT FALSE,
   suspended BOOLEAN DEFAULT FALSE,
   restricted BOOLEAN DEFAULT FALSE,
+  shadowbanned BOOLEAN DEFAULT FALSE,
   private BOOLEAN DEFAULT FALSE,
   pronouns TEXT DEFAULT NULL,
   theme TEXT DEFAULT NULL,
@@ -613,7 +623,7 @@ CREATE TABLE IF NOT EXISTS interactive_card_options (
 );
 
 CREATE INDEX IF NOT EXISTS idx_interactive_card_options_card_id ON interactive_card_options(card_id);
-`
+`,
 ).run();
 
 export default db;
