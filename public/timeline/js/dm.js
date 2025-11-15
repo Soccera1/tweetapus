@@ -272,8 +272,8 @@ function handleDisappearingUpdate(data) {
 	if (currentConversation) {
 		currentConversation.disappearing_enabled = data.enabled;
 		currentConversation.disappearing_duration = data.duration;
-		
-		const statusText = data.enabled 
+
+		const statusText = data.enabled
 			? `Disappearing messages enabled (${formatDisappearingDuration(data.duration)})`
 			: "Disappearing messages disabled";
 		toastQueue.add(statusText);
@@ -1027,11 +1027,54 @@ function openGroupSettings() {
 	const groupNameInput = document.getElementById("groupNameInput");
 	const disappearingEnabled = document.getElementById("disappearingEnabled");
 	const disappearingDuration = document.getElementById("disappearingDuration");
-	const disappearingDurationSelect = document.getElementById("disappearingDurationSelect");
+	const disappearingDurationSelect = document.getElementById(
+		"disappearingDurationSelect",
+	);
 
 	if (modal && groupNameInput) {
 		groupNameInput.value = currentConversation.title || "";
-		
+
+		if (disappearingEnabled) {
+			disappearingEnabled.checked = !!currentConversation.disappearing_enabled;
+			if (disappearingDuration) {
+				disappearingDuration.style.display = disappearingEnabled.checked
+					? "block"
+					: "none";
+			}
+		}
+
+		if (
+			disappearingDurationSelect &&
+			currentConversation.disappearing_duration
+		) {
+			disappearingDurationSelect.value =
+				currentConversation.disappearing_duration.toString();
+		}
+
+		renderParticipantsList();
+		modal.style.display = "flex";
+	}
+}
+
+function closeGroupSettings() {
+	const modal = document.getElementById("groupSettingsModal");
+	if (modal) {
+		modal.style.display = "none";
+	}
+}
+
+function openDirectSettings() {
+	if (!currentConversation || currentConversation.type !== "direct") {
+		toastQueue.add("This feature is only available for direct conversations");
+		return;
+	}
+
+	const modal = document.getElementById("directSettingsModal");
+	const disappearingEnabled = document.getElementById("directDisappearingEnabled");
+	const disappearingDuration = document.getElementById("directDisappearingDuration");
+	const disappearingDurationSelect = document.getElementById("directDisappearingDurationSelect");
+
+	if (modal) {
 		if (disappearingEnabled) {
 			disappearingEnabled.checked = !!currentConversation.disappearing_enabled;
 			if (disappearingDuration) {
@@ -1043,16 +1086,63 @@ function openGroupSettings() {
 			disappearingDurationSelect.value = currentConversation.disappearing_duration.toString();
 		}
 		
-		renderParticipantsList();
 		modal.style.display = "flex";
 	}
 }
 
-function closeGroupSettings() {
-	const modal = document.getElementById("groupSettingsModal");
+function closeDirectSettings() {
+	const modal = document.getElementById("directSettingsModal");
 	if (modal) {
 		modal.style.display = "none";
 	}
+}
+
+async function saveDirectSettings() {
+	if (!currentConversation) return;
+
+	const disappearingEnabled = document.getElementById("directDisappearingEnabled");
+	const disappearingDurationSelect = document.getElementById("directDisappearingDurationSelect");
+
+	if (disappearingEnabled && disappearingDurationSelect) {
+		const enabled = disappearingEnabled.checked;
+		const duration = enabled ? parseInt(disappearingDurationSelect.value) : null;
+
+		if (enabled !== currentConversation.disappearing_enabled || 
+			duration !== currentConversation.disappearing_duration) {
+			try {
+				const data = await query(
+					`/dm/conversations/${currentConversation.id}/disappearing`,
+					{
+						method: "PATCH",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({ enabled, duration }),
+					},
+				);
+
+				if (data.error) {
+					toastQueue.add(data.error);
+					return;
+				}
+
+				currentConversation.disappearing_enabled = enabled;
+				currentConversation.disappearing_duration = duration;
+				
+				const statusText = enabled 
+					? `Disappearing messages enabled (${formatDisappearingDuration(duration)})`
+					: "Disappearing messages disabled";
+				toastQueue.add(statusText);
+			} catch (error) {
+				console.error("Failed to update disappearing messages:", error);
+				toastQueue.add("Failed to update disappearing messages");
+				return;
+			}
+		}
+	}
+
+	closeDirectSettings();
+	loadConversations();
 }
 
 function renderParticipantsList() {
@@ -1099,7 +1189,9 @@ async function saveGroupSettings() {
 	const groupNameInput = document.getElementById("groupNameInput");
 	const newTitle = groupNameInput?.value?.trim() || null;
 	const disappearingEnabled = document.getElementById("disappearingEnabled");
-	const disappearingDurationSelect = document.getElementById("disappearingDurationSelect");
+	const disappearingDurationSelect = document.getElementById(
+		"disappearingDurationSelect",
+	);
 
 	if (newTitle !== (currentConversation.title || "")) {
 		try {
@@ -1129,10 +1221,14 @@ async function saveGroupSettings() {
 
 	if (disappearingEnabled && disappearingDurationSelect) {
 		const enabled = disappearingEnabled.checked;
-		const duration = enabled ? parseInt(disappearingDurationSelect.value) : null;
+		const duration = enabled
+			? parseInt(disappearingDurationSelect.value)
+			: null;
 
-		if (enabled !== currentConversation.disappearing_enabled || 
-			duration !== currentConversation.disappearing_duration) {
+		if (
+			enabled !== currentConversation.disappearing_enabled ||
+			duration !== currentConversation.disappearing_duration
+		) {
 			try {
 				const data = await query(
 					`/dm/conversations/${currentConversation.id}/disappearing`,
@@ -1152,8 +1248,8 @@ async function saveGroupSettings() {
 
 				currentConversation.disappearing_enabled = enabled;
 				currentConversation.disappearing_duration = duration;
-				
-				const statusText = enabled 
+
+				const statusText = enabled
 					? `Disappearing messages enabled (${formatDisappearingDuration(duration)})`
 					: "Disappearing messages disabled";
 				toastQueue.add(statusText);
@@ -1661,6 +1757,22 @@ document.addEventListener("DOMContentLoaded", () => {
 			disappearingDuration.style.display = e.target.checked ? "block" : "none";
 		}
 	});
+
+	const directDisappearingEnabled = document.getElementById("directDisappearingEnabled");
+	const directDisappearingDuration = document.getElementById("directDisappearingDuration");
+	directDisappearingEnabled?.addEventListener("change", (e) => {
+		if (directDisappearingDuration) {
+			directDisappearingDuration.style.display = e.target.checked ? "block" : "none";
+		}
+	});
+
+	const directSettingsModalClose = document.getElementById("directSettingsModalClose");
+	const cancelDirectSettings = document.getElementById("cancelDirectSettings");
+	const saveDirectSettingsBtn = document.getElementById("saveDirectSettings");
+	
+	directSettingsModalClose?.addEventListener("click", closeDirectSettings);
+	cancelDirectSettings?.addEventListener("click", closeDirectSettings);
+	saveDirectSettingsBtn?.addEventListener("click", saveDirectSettings);
 	dmFileInput?.addEventListener("change", (e) => {
 		if (e.target.files.length > 0) {
 			handleFileUpload(Array.from(e.target.files));
@@ -2115,7 +2227,11 @@ async function deleteMessage(messageId) {
 		return;
 	}
 
-	if (!confirm("Are you sure you want to delete this message? This cannot be undone.")) {
+	if (
+		!confirm(
+			"Are you sure you want to delete this message? This cannot be undone.",
+		)
+	) {
 		return;
 	}
 

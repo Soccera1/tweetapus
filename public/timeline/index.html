@@ -498,6 +498,52 @@
       </div>
     </div>
 
+    <!-- Direct Conversation Settings Modal -->
+    <div class="direct-settings-modal" id="directSettingsModal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Conversation Settings</h3>
+          <button class="modal-close" id="directSettingsModalClose">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Disappearing Messages:</label>
+            <div class="disappearing-settings">
+              <label class="checkbox-label">
+                <input type="checkbox" id="directDisappearingEnabled" />
+                Enable disappearing messages
+              </label>
+              <div class="disappearing-duration" id="directDisappearingDuration" style="display: none; margin-top: 12px;">
+                <label for="directDisappearingDurationSelect">Messages disappear after:</label>
+                <select id="directDisappearingDurationSelect">
+                  <option value="60">1 minute</option>
+                  <option value="300">5 minutes</option>
+                  <option value="900">15 minutes</option>
+                  <option value="3600">1 hour</option>
+                  <option value="86400">24 hours</option>
+                  <option value="604800">7 days</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelDirectSettings">
+            Cancel
+          </button>
+          <button type="button" class="btn-primary" id="saveDirectSettings">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="profile">
       <div class="profile-header">
         <button class="back-button" onclick="history.back()">

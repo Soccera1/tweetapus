@@ -2244,7 +2244,10 @@ export default new Elysia({ prefix: "/admin" })
 
 		if (
 			targetUser.admin &&
-			!(process.env.SUPERADMIN_IDS && SUPERADMIN_IDS.split(";").includes(user.id))
+			!(
+				process.env.SUPERADMIN_IDS &&
+				SUPERADMIN_IDS.split(";").includes(user.id)
+			)
 		) {
 			return { error: "Cannot impersonate admin users" };
 		}
@@ -2298,10 +2301,10 @@ export default new Elysia({ prefix: "/admin" })
 			return { error: "Username parameter required" };
 		}
 
-		const page = Math.max(1, Number.parseInt(query.page || "1"));
+		const page = Math.max(1, Number.parseInt(query.page || "1", 10));
 		const limit = Math.min(
 			50,
-			Math.max(1, Number.parseInt(query.limit || "20")),
+			Math.max(1, Number.parseInt(query.limit || "20", 10)),
 		);
 		const offset = (page - 1) * limit;
 

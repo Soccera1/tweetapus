@@ -442,25 +442,35 @@ export default new Elysia({ prefix: "/dm" })
 				const messageType = files && files.length > 0 ? "media" : "text";
 
 				let expiresAt = null;
-				if (conversation.disappearing_enabled && conversation.disappearing_duration) {
+				if (
+					conversation.disappearing_enabled &&
+					conversation.disappearing_duration
+				) {
 					const expirationDate = new Date();
-					expirationDate.setSeconds(expirationDate.getSeconds() + conversation.disappearing_duration);
-					expiresAt = expirationDate.toISOString().replace('T', ' ').substring(0, 19);
+					expirationDate.setSeconds(
+						expirationDate.getSeconds() + conversation.disappearing_duration,
+					);
+					expiresAt = expirationDate
+						.toISOString()
+						.replace("T", " ")
+						.substring(0, 19);
 				}
 
-				const message = db.query(`
+				const message = db
+					.query(`
 					INSERT INTO dm_messages (id, conversation_id, sender_id, content, message_type, reply_to, expires_at)
 					VALUES (?, ?, ?, ?, ?, ?, ?)
 					RETURNING *
-				`).get(
-					messageId,
-					id,
-					user.id,
-					content || "",
-					messageType,
-					replyTo || null,
-					expiresAt
-				);
+				`)
+					.get(
+						messageId,
+						id,
+						user.id,
+						content || "",
+						messageType,
+						replyTo || null,
+						expiresAt,
+					);
 
 				const attachments = [];
 				if (files && Array.isArray(files)) {
