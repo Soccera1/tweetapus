@@ -1070,22 +1070,34 @@ function openDirectSettings() {
 	}
 
 	const modal = document.getElementById("directSettingsModal");
-	const disappearingEnabled = document.getElementById("directDisappearingEnabled");
-	const disappearingDuration = document.getElementById("directDisappearingDuration");
-	const disappearingDurationSelect = document.getElementById("directDisappearingDurationSelect");
+	const disappearingEnabled = document.getElementById(
+		"directDisappearingEnabled",
+	);
+	const disappearingDuration = document.getElementById(
+		"directDisappearingDuration",
+	);
+	const disappearingDurationSelect = document.getElementById(
+		"directDisappearingDurationSelect",
+	);
 
 	if (modal) {
 		if (disappearingEnabled) {
 			disappearingEnabled.checked = !!currentConversation.disappearing_enabled;
 			if (disappearingDuration) {
-				disappearingDuration.style.display = disappearingEnabled.checked ? "block" : "none";
+				disappearingDuration.style.display = disappearingEnabled.checked
+					? "block"
+					: "none";
 			}
 		}
-		
-		if (disappearingDurationSelect && currentConversation.disappearing_duration) {
-			disappearingDurationSelect.value = currentConversation.disappearing_duration.toString();
+
+		if (
+			disappearingDurationSelect &&
+			currentConversation.disappearing_duration
+		) {
+			disappearingDurationSelect.value =
+				currentConversation.disappearing_duration.toString();
 		}
-		
+
 		modal.style.display = "flex";
 	}
 }
@@ -1100,15 +1112,23 @@ function closeDirectSettings() {
 async function saveDirectSettings() {
 	if (!currentConversation) return;
 
-	const disappearingEnabled = document.getElementById("directDisappearingEnabled");
-	const disappearingDurationSelect = document.getElementById("directDisappearingDurationSelect");
+	const disappearingEnabled = document.getElementById(
+		"directDisappearingEnabled",
+	);
+	const disappearingDurationSelect = document.getElementById(
+		"directDisappearingDurationSelect",
+	);
 
 	if (disappearingEnabled && disappearingDurationSelect) {
 		const enabled = disappearingEnabled.checked;
-		const duration = enabled ? parseInt(disappearingDurationSelect.value) : null;
+		const duration = enabled
+			? parseInt(disappearingDurationSelect.value)
+			: null;
 
-		if (enabled !== currentConversation.disappearing_enabled || 
-			duration !== currentConversation.disappearing_duration) {
+		if (
+			enabled !== currentConversation.disappearing_enabled ||
+			duration !== currentConversation.disappearing_duration
+		) {
 			try {
 				const data = await query(
 					`/dm/conversations/${currentConversation.id}/disappearing`,
@@ -1128,8 +1148,8 @@ async function saveDirectSettings() {
 
 				currentConversation.disappearing_enabled = enabled;
 				currentConversation.disappearing_duration = duration;
-				
-				const statusText = enabled 
+
+				const statusText = enabled
 					? `Disappearing messages enabled (${formatDisappearingDuration(duration)})`
 					: "Disappearing messages disabled";
 				toastQueue.add(statusText);
@@ -1758,18 +1778,26 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	});
 
-	const directDisappearingEnabled = document.getElementById("directDisappearingEnabled");
-	const directDisappearingDuration = document.getElementById("directDisappearingDuration");
+	const directDisappearingEnabled = document.getElementById(
+		"directDisappearingEnabled",
+	);
+	const directDisappearingDuration = document.getElementById(
+		"directDisappearingDuration",
+	);
 	directDisappearingEnabled?.addEventListener("change", (e) => {
 		if (directDisappearingDuration) {
-			directDisappearingDuration.style.display = e.target.checked ? "block" : "none";
+			directDisappearingDuration.style.display = e.target.checked
+				? "block"
+				: "none";
 		}
 	});
 
-	const directSettingsModalClose = document.getElementById("directSettingsModalClose");
+	const directSettingsModalClose = document.getElementById(
+		"directSettingsModalClose",
+	);
 	const cancelDirectSettings = document.getElementById("cancelDirectSettings");
 	const saveDirectSettingsBtn = document.getElementById("saveDirectSettings");
-	
+
 	directSettingsModalClose?.addEventListener("click", closeDirectSettings);
 	cancelDirectSettings?.addEventListener("click", closeDirectSettings);
 	saveDirectSettingsBtn?.addEventListener("click", saveDirectSettings);
