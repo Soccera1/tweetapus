@@ -286,7 +286,7 @@ class AdminPanel {
 								)}" style="width:48px;height:48px;object-fit:contain" />
                 <div>
                   <strong>${this.escapeHtml(e.name)}</strong>
-                  <div class="text-muted" style="font-size:12px">Uploaded: ${this.formatDate(
+                  <div class="text-muted" style="font-size:12px">${this.formatDate(
 										e.created_at,
 									)}</div>
                 </div>
