@@ -167,6 +167,7 @@ export default new Elysia({
     if (restriction && !["GET", "OPTIONS"].includes(request.method)) {
       return {
         success: false,
+        restricted: true,
         error: "Your account is in a read-only state and is not allowed to perform this action",
       };
     }
