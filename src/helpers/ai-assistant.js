@@ -278,7 +278,7 @@ async function callOpenAI(messages, db) {
 					content: m.content,
 				})),
 				tools: tools,
-				max_output_tokens: 1_000,
+				max_output_tokens: 10_000,
 			}),
 		});
 
@@ -333,7 +333,7 @@ async function callOpenAI(messages, db) {
 						})),
 						...toolResults,
 					],
-					max_output_tokens: 1_000,
+					max_output_tokens: 10_000,
 				}),
 			});
 
