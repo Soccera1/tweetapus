@@ -274,7 +274,7 @@ async function callOpenAI(messages, db) {
 					content: m.content,
 				})),
 				tools: tools,
-				max_output_tokens: 500,
+				max_output_tokens: 1_000,
 			}),
 		});
 
@@ -288,7 +288,9 @@ async function callOpenAI(messages, db) {
 		const output = data.output;
 		if (!output || output.length === 0) return null;
 
-		const functionCalls = output.filter((item) => item.type === "function_call");
+		const functionCalls = output.filter(
+			(item) => item.type === "function_call",
+		);
 
 		if (functionCalls.length > 0) {
 			const toolResults = [];
@@ -328,7 +330,7 @@ async function callOpenAI(messages, db) {
 						})),
 						...toolResults,
 					],
-					max_output_tokens: 500,
+					max_output_tokens: 1_000,
 				}),
 			});
 
