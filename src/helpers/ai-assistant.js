@@ -347,9 +347,9 @@ async function callOpenAI(messages, db) {
 			return data.output_text.trim();
 		}
 
-		const messages = data.output.filter((item) => item.type === "message");
-		if (messages.length > 0) {
-			const lastMessage = messages[messages.length - 1];
+		const messageItems = data.output.filter((item) => item.type === "message");
+		if (messageItems.length > 0) {
+			const lastMessage = messageItems[messageItems.length - 1];
 			const textContent = lastMessage.content.find(
 				(c) => c.type === "output_text",
 			);
