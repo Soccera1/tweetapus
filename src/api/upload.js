@@ -5,6 +5,7 @@ import { Elysia, file } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
 import db from "../db.js";
 import ratelimit from "../helpers/ratelimit.js";
+import cap from "./cap.js";
 import {
   compressVideo,
   shouldCompressVideo,
@@ -47,6 +48,13 @@ export default new Elysia({ prefix: "/upload" })
   .post("/", async ({ jwt, headers, body }) => {
     const authorization = headers.authorization;
     if (!authorization) return { error: "Authentication required" };
+
+    if (body.capToken) {
+      const capResult = await cap.verify(body.capToken);
+      if (!capResult.success) {
+        return { error: "Captcha verification failed" };
+      }
+    }
 
     try {
       const payload = await jwt.verify(authorization.replace("Bearer ", ""));

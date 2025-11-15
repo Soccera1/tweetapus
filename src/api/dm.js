@@ -2,7 +2,9 @@ import { jwt } from "@elysiajs/jwt";
 import { Elysia, t } from "elysia";
 import db from "../db.js";
 import { generateAIDMResponse } from "../helpers/ai-assistant.js";
+import { getRateLimitMiddleware } from "../helpers/customRateLimit.js";
 import { addNotification } from "./notifications.js";
+import cap from "./cap.js";
 
 let broadcastToUser, sendUnreadCounts;
 try {
@@ -205,6 +207,7 @@ const getReplyMessage = db.query(`
 
 export default new Elysia({ prefix: "/dm" })
 	.use(jwt({ name: "jwt", secret: JWT_SECRET }))
+	.onBeforeHandle(getRateLimitMiddleware("dm"))
 
 	.get("/conversations", ({ headers }) => {
 		try {
@@ -416,10 +419,17 @@ export default new Elysia({ prefix: "/dm" })
 
 	.post(
 		"/conversations/:id/messages",
-		({ params, body, headers }) => {
+		async ({ params, body, headers }) => {
 			try {
 				const token = headers.authorization?.replace("Bearer ", "");
 				if (!token) return { error: "Unauthorized" };
+
+				if (body.capToken) {
+					const capResult = await cap.verify(body.capToken);
+					if (!capResult.success) {
+						return { error: "Captcha verification failed" };
+					}
+				}
 
 				const payload = JSON.parse(atob(token.split(".")[1]));
 				const user = getUserByUsername.get(payload.username);
@@ -618,6 +628,7 @@ export default new Elysia({ prefix: "/dm" })
 						}),
 					),
 				),
+				capToken: t.Optional(t.String()),
 			}),
 		},
 	)

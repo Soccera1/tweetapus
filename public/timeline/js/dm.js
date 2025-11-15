@@ -362,18 +362,24 @@ function renderConversationsList() {
 	if (!listElement) return;
 
 	if (currentConversations.length === 0) {
-		listElement.innerHTML = `
-      <div class="no-conversations">
-        <p>No conversations yet.</p>
-        <p>Start a new conversation to get chatting!</p>
-      </div>
-    `;
+		if (!listElement.querySelector('.no-conversations')) {
+			listElement.innerHTML = `
+        <div class="no-conversations">
+          <p>No conversations yet.</p>
+          <p>Start a new conversation to get chatting!</p>
+        </div>
+      `;
+		}
 		return;
 	}
 
-	listElement.innerHTML = currentConversations
+	const newHTML = currentConversations
 		.map((conversation) => createConversationElement(conversation))
 		.join("");
+	
+	if (listElement.innerHTML !== newHTML) {
+		listElement.innerHTML = newHTML;
+	}
 }
 
 function createConversationElement(conversation) {
@@ -518,69 +524,73 @@ function renderConversationHeader() {
 	);
 	const isGroup = currentConversation.type === "group";
 
-	if (isGroup && participants.length > 3) {
-		const visibleParticipants = participants.slice(0, 3);
-		avatarsElement.innerHTML = `
-      ${visibleParticipants
+	const newAvatarsHTML = isGroup && participants.length > 3
+		? `${participants.slice(0, 3)
 				.map((p) => {
 					const radius =
 						p.avatar_radius !== null && p.avatar_radius !== undefined
 							? `${p.avatar_radius}px`
-							: p.gold
-								? `4px`
-								: `50px`;
+							: p.gold ? `4px` : `50px`;
 					return `<img src="${
 						p.avatar || "/public/shared/assets/default-avatar.svg"
 					}" alt="${
 						p.name || p.username
 					}" style="border-radius: ${radius};" />`;
 				})
-				.join("")}
-      <div class="avatar-more">+${participants.length - 3}</div>
-    `;
-	} else {
-		avatarsElement.innerHTML = participants
-			.map((p) => {
-				const radius =
-					p.avatar_radius !== null && p.avatar_radius !== undefined
-						? `${p.avatar_radius}px`
-						: p.gold
-							? `4px`
-							: `50px`;
-				return `<img src="${
-					p.avatar || "/public/shared/assets/default-avatar.svg"
-				}" alt="${p.name || p.username}" style="border-radius: ${radius};" />`;
-			})
-			.join("");
+				.join("")}<div class="avatar-more">+${participants.length - 3}</div>`
+		: participants
+				.map((p) => {
+					const radius =
+						p.avatar_radius !== null && p.avatar_radius !== undefined
+							? `${p.avatar_radius}px`
+							: p.gold ? `4px` : `50px`;
+					return `<img src="${
+						p.avatar || "/public/shared/assets/default-avatar.svg"
+					}" alt="${p.name || p.username}" style="border-radius: ${radius};" />`;
+				})
+				.join("");
+	
+	if (avatarsElement.innerHTML !== newAvatarsHTML) {
+		avatarsElement.innerHTML = newAvatarsHTML;
 	}
 
 	if (isGroup) {
-		titleElement.textContent = currentConversation.title || "Group Chat";
-		countElement.textContent = `${participants.length + 1} participants`;
+		const newTitle = currentConversation.title || "Group Chat";
+		const newCount = `${participants.length + 1} participants`;
+		if (titleElement.textContent !== newTitle) {
+			titleElement.textContent = newTitle;
+		}
+		if (countElement.textContent !== newCount) {
+			countElement.textContent = newCount;
+		}
 
 		if (actionsElement) {
-			actionsElement.innerHTML = `
-        <button class="dm-action-btn" onclick="openGroupSettings()" title="Group Settings">
-          ⚙️
-        </button>
-      `;
+			const newActions = `<button class="dm-action-btn" onclick="openGroupSettings()" title="Group Settings">⚙️</button>`;
+			if (actionsElement.innerHTML !== newActions) {
+				actionsElement.innerHTML = newActions;
+			}
 		}
 	} else {
+		let newTitle, newCount;
 		if (participants.length === 1) {
-			titleElement.textContent =
-				participants[0].name || participants[0].username;
-			countElement.textContent = `@${participants[0].username}`;
+			newTitle = participants[0].name || participants[0].username;
+			newCount = `@${participants[0].username}`;
 		} else {
-			titleElement.textContent = "Direct Message";
-			countElement.textContent = "1-on-1 chat";
+			newTitle = "Direct Message";
+			newCount = "1-on-1 chat";
+		}
+		if (titleElement.textContent !== newTitle) {
+			titleElement.textContent = newTitle;
+		}
+		if (countElement.textContent !== newCount) {
+			countElement.textContent = newCount;
 		}
 
 		if (actionsElement) {
-			actionsElement.innerHTML = `
-        <button class="dm-action-btn" onclick="openDirectSettings()" title="Conversation Settings">
-          ⚙️
-        </button>
-      `;
+			const newActions = `<button class="dm-action-btn" onclick="openDirectSettings()" title="Conversation Settings">⚙️</button>`;
+			if (actionsElement.innerHTML !== newActions) {
+				actionsElement.innerHTML = newActions;
+			}
 		}
 	}
 }
@@ -894,12 +904,19 @@ function setupInfiniteScroll() {
 async function handleScroll(event) {
 	const messagesElement = event.target;
 	const scrollTop = messagesElement.scrollTop;
-	const threshold = 300;
+	const threshold = 200;
 
-	if (scrollTop < threshold && !isLoadingMoreMessages && hasMoreMessages) {
-		await loadMoreMessages();
+	if (handleScroll.debounceTimer) {
+		clearTimeout(handleScroll.debounceTimer);
 	}
+
+	handleScroll.debounceTimer = setTimeout(() => {
+		if (scrollTop < threshold && !isLoadingMoreMessages && hasMoreMessages && currentMessages.length > 0) {
+			loadMoreMessages();
+		}
+	}, 100);
 }
+handleScroll.debounceTimer = null;
 
 async function loadMoreMessages() {
 	if (!currentConversation || isLoadingMoreMessages || !hasMoreMessages) return;
@@ -907,6 +924,15 @@ async function loadMoreMessages() {
 	isLoadingMoreMessages = true;
 
 	try {
+		const messagesElement = document.getElementById("dmMessages");
+		if (!messagesElement) {
+			isLoadingMoreMessages = false;
+			return;
+		}
+
+		const scrollHeightBefore = messagesElement.scrollHeight;
+		const scrollTopBefore = messagesElement.scrollTop;
+
 		const data = await query(
 			`/dm/conversations/${currentConversation.id}?limit=50&offset=${messageOffset}`,
 		);
@@ -919,22 +945,24 @@ async function loadMoreMessages() {
 
 		const newMessages = data.messages || [];
 
-		if (newMessages.length === 0) {
+		if (newMessages.length === 0 || newMessages.length < 50) {
 			hasMoreMessages = false;
+		}
+
+		if (newMessages.length === 0) {
 			isLoadingMoreMessages = false;
 			return;
 		}
-
-		const messagesElement = document.getElementById("dmMessages");
-		const scrollHeightBefore = messagesElement.scrollHeight;
 
 		currentMessages = [...newMessages.reverse(), ...currentMessages];
 		messageOffset += newMessages.length;
 		renderMessages();
 
-		const scrollHeightAfter = messagesElement.scrollHeight;
-		const heightDifference = scrollHeightAfter - scrollHeightBefore;
-		messagesElement.scrollTop = heightDifference;
+		requestAnimationFrame(() => {
+			const scrollHeightAfter = messagesElement.scrollHeight;
+			const heightDifference = scrollHeightAfter - scrollHeightBefore;
+			messagesElement.scrollTop = scrollTopBefore + heightDifference;
+		});
 
 		isLoadingMoreMessages = false;
 	} catch (error) {
