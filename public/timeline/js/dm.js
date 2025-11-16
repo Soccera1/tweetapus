@@ -90,7 +90,7 @@ function connectSSE() {
 	}
 
 	lastSSEConnect = now;
-	const sseUrl = `/sse?token=${encodeURIComponent(authToken)}`;
+	const sseUrl = `/api/sse?token=${encodeURIComponent(authToken)}`;
 	eventSource = new EventSource(sseUrl);
 
 	eventSource.onopen = () => {

@@ -655,9 +655,9 @@ const requireAdmin = async ({ headers, jwt, set }) => {
 	};
 };
 
-export default new Elysia({ prefix: "/admin" })
+export default new Elysia({ prefix: "/admin", tags: ["admin"] })
 	.use(
-		jwt({ name: "jwt", secret: process.env.JWT_SECRET || "your-secret-key" }),
+		jwt({ name: "jwt", secret: process.env.JWT_SECRET }),
 	)
 	.derive(requireAdmin)
 	.guard({

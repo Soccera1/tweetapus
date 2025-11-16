@@ -1,5 +1,5 @@
 import { jwt } from "@elysiajs/jwt";
-import { fromTypes, openapi } from "@elysiajs/openapi";
+import { openapi } from "@elysiajs/openapi";
 import { staticPlugin } from "@elysiajs/static";
 import { Elysia, file } from "elysia";
 
@@ -112,90 +112,108 @@ new Elysia()
 	.use(staticPlugin())
 	.use(
 		openapi({
-			references: fromTypes(),
+			path: "/api",
+			scalar: {
+				hideTestRequestButton: true,
+				hideModels: true,
+				hideClientButton: true,
+				showSidebar: true,
+				telemetry: false,
+			},
+			exclude: {
+				paths: ["/*", "/public/*", "/legal", "/admin", "/api/admin/*"],
+				tags: ["admin"],
+			},
 		}),
 	)
 	.use(jwt({ name: "jwt", secret: process.env.JWT_SECRET }))
-	.get("/sse", async ({ jwt, query, set }) => {
-		const { token } = query;
+	.get(
+		"/api/sse",
+		async ({ jwt, query, set }) => {
+			const { token } = query;
 
-		if (!token) {
-			set.status = 401;
-			return { error: "Authentication required" };
-		}
+			if (!token) {
+				set.status = 401;
+				return { error: "Authentication required" };
+			}
 
-		const payload = await jwt.verify(token);
-		if (!payload) {
-			set.status = 401;
-			return { error: "Invalid token" };
-		}
+			const payload = await jwt.verify(token);
+			if (!payload) {
+				set.status = 401;
+				return { error: "Invalid token" };
+			}
 
-		const userId = payload.userId;
-		const now = Date.now();
-		const lastConnection = sseRateLimits.get(userId) || 0;
+			const userId = payload.userId;
+			const now = Date.now();
+			const lastConnection = sseRateLimits.get(userId) || 0;
 
-		if (now - lastConnection < 1000) {
-			set.status = 429;
-			return { error: "Too many connection attempts. Please wait." };
-		}
+			if (now - lastConnection < 1000) {
+				set.status = 429;
+				return { error: "Too many connection attempts. Please wait." };
+			}
 
-		sseRateLimits.set(userId, now);
+			sseRateLimits.set(userId, now);
 
-		const stream = new ReadableStream({
-			start(controller) {
-				controller.enqueue(`:ok\n\n`);
+			const stream = new ReadableStream({
+				start(controller) {
+					controller.enqueue(`:ok\n\n`);
 
-				if (!sseConnections.has(userId)) {
-					sseConnections.set(userId, new Set());
-				}
-				const client = { controller };
-				sseConnections.get(userId).add(client);
-
-				const notifResult = getUnreadNotificationsCount.get(userId);
-				const dmResult = getUnreadDMCount.get(userId, userId);
-
-				controller.enqueue(
-					`data: ${JSON.stringify({
-						type: "u",
-						notifications: notifResult?.count || 0,
-						dms: dmResult?.count || 0,
-					})}\n\n`,
-				);
-
-				const keepAlive = setInterval(() => {
-					try {
-						controller.enqueue(`:ping\n\n`);
-					} catch {
-						clearInterval(keepAlive);
+					if (!sseConnections.has(userId)) {
+						sseConnections.set(userId, new Set());
 					}
-				}, 30000);
+					const client = { controller };
+					sseConnections.get(userId).add(client);
 
-				client.keepAlive = keepAlive;
-			},
-			cancel() {
-				if (sseConnections.has(userId)) {
-					const clients = sseConnections.get(userId);
-					for (const client of clients) {
-						if (client.keepAlive) clearInterval(client.keepAlive);
+					const notifResult = getUnreadNotificationsCount.get(userId);
+					const dmResult = getUnreadDMCount.get(userId, userId);
+
+					controller.enqueue(
+						`data: ${JSON.stringify({
+							type: "u",
+							notifications: notifResult?.count || 0,
+							dms: dmResult?.count || 0,
+						})}\n\n`,
+					);
+
+					const keepAlive = setInterval(() => {
+						try {
+							controller.enqueue(`:ping\n\n`);
+						} catch {
+							clearInterval(keepAlive);
+						}
+					}, 30000);
+
+					client.keepAlive = keepAlive;
+				},
+				cancel() {
+					if (sseConnections.has(userId)) {
+						const clients = sseConnections.get(userId);
+						for (const client of clients) {
+							if (client.keepAlive) clearInterval(client.keepAlive);
+						}
+						clients.clear();
+						sseConnections.delete(userId);
 					}
-					clients.clear();
-					sseConnections.delete(userId);
-				}
+				},
+			});
+
+			set.headers = {
+				"Content-Type": "text/event-stream",
+				"Cache-Control": "no-cache",
+				Connection: "keep-alive",
+			};
+
+			return new Response(stream, {
+				headers: set.headers,
+			});
+		},
+		{
+			detail: {
+				description: "Notifications & DMs stream"
 			},
-		});
-
-		set.headers = {
-			"Content-Type": "text/event-stream",
-			"Cache-Control": "no-cache",
-			Connection: "keep-alive",
-		};
-
-		return new Response(stream, {
-			headers: set.headers,
-		});
-	})
+		},
+	)
 	.get("/admin", () => file("./public/admin/index.html"))
-	.get("/settings", ({ redirect }) => redirect("/settings/account"))
 	.get("/legal", () => file("./public/legal.html"))
 	.get("*", ({ cookie }) => {
 		return cookie.agree?.value === "yes"

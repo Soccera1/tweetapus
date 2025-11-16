@@ -2,31 +2,6 @@ import { Database } from "bun:sqlite";
 
 const db = new Database("./.data/db.sqlite");
 
-// Ensure schema changes for restricted/action columns are applied when DB already exists
-try {
-	const usersColumns = db.query("PRAGMA table_info(users);").all();
-	const usersColumnNames = usersColumns.map((c) => c.name);
-	if (!usersColumnNames.includes("restricted")) {
-		db.query(
-			"ALTER TABLE users ADD COLUMN restricted BOOLEAN DEFAULT FALSE",
-		).run();
-	}
-	if (!usersColumnNames.includes("shadowbanned")) {
-		db.query(
-			"ALTER TABLE users ADD COLUMN shadowbanned BOOLEAN DEFAULT FALSE",
-		).run();
-	}
-	const suspColumns = db.query("PRAGMA table_info(suspensions);").all();
-	const suspColumnNames = suspColumns.map((c) => c.name);
-	if (!suspColumnNames.includes("action")) {
-		db.query(
-			"ALTER TABLE suspensions ADD COLUMN action TEXT DEFAULT 'suspend'",
-		).run();
-	}
-} catch (e) {
-	// Ignore migration errors for now; db might be created from scratch with new schema
-}
-
 db.query(
 	`
 PRAGMA journal_mode = WAL;
