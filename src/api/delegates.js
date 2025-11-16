@@ -66,8 +66,6 @@ export default new Elysia({ prefix: "/delegates", tags: ["Delegates"] })
 			const authorization = headers.authorization;
 			if (!authorization) return { error: "Authentication required" };
 
-			console.log(body)
-
 			try {
 				const payload = await jwt.verify(authorization.replace("Bearer ", ""));
 				if (!payload) return { error: "Invalid token" };
@@ -120,12 +118,12 @@ export default new Elysia({ prefix: "/delegates", tags: ["Delegates"] })
 		{
 			detail: {
 				description: "Invites a user to be a delegate",
-			},/*
+			},
 			body: t.Object({
 				username: t.String(),
-			}),*/
+			}),
 			response: t.Object({
-				success: t.Optional(t.Boolean()), // OPTUONAL
+				success: t.Optional(t.Boolean()),
 				error: t.Optional(t.String()),
 				id: t.Optional(t.String()),
 			}),
