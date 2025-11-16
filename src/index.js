@@ -116,7 +116,6 @@ new Elysia()
 			scalar: {
 				hideTestRequestButton: true,
 				hideModels: true,
-				hideClientButton: true,
 				showSidebar: true,
 				telemetry: false,
 			},

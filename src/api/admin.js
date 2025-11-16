@@ -688,6 +688,21 @@ export default new Elysia({ prefix: "/admin", tags: ["admin"] })
 				suspensions: recentSuspensions,
 			},
 		};
+	}, {
+		detail: {
+			description: "Gets admin statistics and recent activity"
+		},
+		response: t.Object({
+			stats: t.Object({
+				users: t.Any(),
+				posts: t.Any(),
+				suspensions: t.Any()
+			}),
+			recentActivity: t.Object({
+				users: t.Array(t.Any()),
+				suspensions: t.Array(t.Any())
+			})
+		})
 	})
 
 	.get("/users", async ({ query }) => {
@@ -717,6 +732,24 @@ export default new Elysia({ prefix: "/admin", tags: ["admin"] })
 				pages: Math.ceil(totalCount.count / limit),
 			},
 		};
+	}, {
+		detail: {
+			description: "Lists users with pagination and search"
+		},
+		query: t.Object({
+			page: t.Optional(t.Number()),
+			limit: t.Optional(t.Number()),
+			search: t.Optional(t.String())
+		}),
+		response: t.Object({
+			users: t.Array(t.Any()),
+			pagination: t.Object({
+				page: t.Number(),
+				limit: t.Number(),
+				total: t.Number(),
+				pages: t.Number()
+			})
+		})
 	})
 
 	.post(

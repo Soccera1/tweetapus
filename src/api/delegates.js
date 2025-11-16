@@ -1,5 +1,5 @@
 import { jwt } from "@elysiajs/jwt";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
 import db from "../db.js";
 import ratelimit from "../helpers/ratelimit.js";
@@ -37,7 +37,6 @@ const checkIfAlreadyInvited = db.prepare(
 const getUserByUsername = db.prepare(
 	"SELECT * FROM users WHERE LOWER(username) = LOWER(?)",
 );
-const getUserById = db.prepare("SELECT * FROM users WHERE id = ?");
 
 const isRestrictedQuery = db.prepare(
 	"SELECT 1 FROM suspensions WHERE user_id = ? AND status = 'active' AND action = 'restrict' AND (expires_at IS NULL OR expires_at > datetime('now'))",
@@ -113,6 +112,21 @@ export default new Elysia({ prefix: "/delegates" })
 			console.error("Invite delegate error:", error);
 			return { error: "Failed to invite delegate" };
 		}
+	}, {
+		detail: {
+			description: "Invites a user to be a delegate",
+		},
+		params: t.Object({
+			id: t.String(),
+		}),
+		body: t.Object({
+			username: t.String(),
+		}),
+		response: t.Object({
+			success: t.Boolean(),
+			error: t.Optional(t.String()),
+			id: t.String(),
+		}),
 	})
 	.post("/:id/accept", async ({ jwt, headers, params }) => {
 		const authorization = headers.authorization;
@@ -162,6 +176,17 @@ export default new Elysia({ prefix: "/delegates" })
 			console.error("Accept delegate error:", error);
 			return { error: "Failed to accept delegate invitation" };
 		}
+	}, {
+		detail: {
+			description: "Accepts a delegate invitation",
+		},
+		params: t.Object({
+			id: t.String(),
+		}),
+		response: t.Object({
+			success: t.Boolean(),
+			error: t.Optional(t.String()),
+		}),
 	})
 	.post("/:id/decline", async ({ jwt, headers, params }) => {
 		const authorization = headers.authorization;
@@ -198,6 +223,17 @@ export default new Elysia({ prefix: "/delegates" })
 			console.error("Decline delegate error:", error);
 			return { error: "Failed to decline delegate invitation" };
 		}
+	}, {
+		detail: {
+			description: "Declines a delegate invitation",
+		},
+		params: t.Object({
+			id: t.String(),
+		}),
+		response: t.Object({
+			success: t.Boolean(),
+			error: t.Optional(t.String()),
+		}),
 	})
 	.delete("/:id", async ({ jwt, headers, params }) => {
 		const authorization = headers.authorization;
@@ -233,6 +269,17 @@ export default new Elysia({ prefix: "/delegates" })
 			console.error("Remove delegate error:", error);
 			return { error: "Failed to remove delegation" };
 		}
+	}, {
+		detail: {
+			description: "Removes a delegate from a user",
+		},
+		params: t.Object({
+			id: t.String(),
+		}),
+		response: t.Object({
+			success: t.Boolean(),
+			error: t.Optional(t.String()),
+		})
 	})
 	.get("/my-delegates", async ({ jwt, headers }) => {
 		const authorization = headers.authorization;
