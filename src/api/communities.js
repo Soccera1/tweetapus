@@ -1,5 +1,5 @@
 import { jwt } from "@elysiajs/jwt";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import db from "./../db.js";
 import { addNotification } from "./notifications.js";
 
@@ -125,61 +125,26 @@ export default new Elysia({ tags: ["Communities"] })
 			return { user: null };
 		}
 	})
-	.post("/communities", async ({ user, body, set }) => {
-		if (!user) {
-			set.status = 401;
-			return { error: "Unauthorized" };
-		}
+	.post(
+		"/communities",
+		async ({ user, body, set }) => {
+			if (!user) {
+				set.status = 401;
+				return { error: "Unauthorized" };
+			}
 
-		const { name, description, rules, access_mode, owner_username } = body;
+			const { name, description, rules, access_mode, owner_username } = body;
 
-		if (!name || name.trim().length === 0) {
-			set.status = 400;
-			return { error: "Community name is required" };
-		}
-
-		if (name.length > 50) {
-			set.status = 400;
-			return { error: "Community name must be 50 characters or less" };
-		}
-
-		const existing = getCommunityByName.get(name.trim());
-		if (existing) {
-			set.status = 400;
-			return { error: "A community with this name already exists" };
-		}
-
-		const communityId = Bun.randomUUIDv7();
-
-		let ownerId = user.userId;
-
-		if (owner_username && user.admin) {
-			const ownerUser = getUserByUsername.get(owner_username);
-			if (!ownerUser) {
+			if (!name || name.trim().length === 0) {
 				set.status = 400;
-				return { error: "Owner user not found" };
-			}
-			ownerId = ownerUser.id;
-		} else if (owner_username === null && user.admin) {
-			ownerId = null;
-		}
-
-		try {
-			createCommunity.run(
-				communityId,
-				name.trim(),
-				description?.trim() || null,
-				rules?.trim() || null,
-				ownerId,
-				access_mode === "locked" ? "locked" : "open",
-			);
-
-			if (ownerId) {
-				const memberId = Bun.randomUUIDv7();
-				addMember.run(memberId, communityId, ownerId, "owner");
-				incrementMemberCount.run(communityId);
+				return { error: "Community name is required" };
 			}
 
+<<<<<<< HEAD
+			if (name.length > 50) {
+				set.status = 400;
+				return { error: "Community name must be 50 characters or less" };
+=======
 			const community = getCommunity.get(communityId);
 			return { success: true, community };
 		} catch {
@@ -209,97 +174,257 @@ export default new Elysia({ tags: ["Communities"] })
 			member = getMember.get(params.id, user.userId);
 			if (!member) {
 				joinRequest = getJoinRequest.get(params.id, user.userId);
+>>>>>>> main
 			}
-		}
 
-		return {
-			community,
-			member,
-			joinRequest: joinRequest?.status === "pending" ? joinRequest : null,
-		};
-	})
-	.patch("/communities/:id", async ({ user, params, body, set }) => {
-		if (!user) {
-			set.status = 401;
-			return { error: "Unauthorized" };
-		}
-
-		const community = getCommunity.get(params.id);
-		if (!community) {
-			set.status = 404;
-			return { error: "Community not found" };
-		}
-
-		const member = getMember.get(params.id, user.userId);
-		const canEdit =
-			user.admin ||
-			(member && (member.role === "owner" || member.role === "admin"));
-
-		if (!canEdit) {
-			set.status = 403;
-			return { error: "You don't have permission to edit this community" };
-		}
-
-		const { name, description, rules, access_mode } = body;
-
-		if (name && name.trim().length === 0) {
-			set.status = 400;
-			return { error: "Community name cannot be empty" };
-		}
-
-		if (name && name.length > 50) {
-			set.status = 400;
-			return { error: "Community name must be 50 characters or less" };
-		}
-
-		if (name && name !== community.name) {
 			const existing = getCommunityByName.get(name.trim());
 			if (existing) {
 				set.status = 400;
 				return { error: "A community with this name already exists" };
 			}
-		}
 
-		updateCommunity.run(
-			name?.trim() || community.name,
-			description?.trim() || community.description,
-			rules?.trim() || community.rules,
-			params.id,
-		);
+			const communityId = Bun.randomUUIDv7();
 
-		if (access_mode && (access_mode === "open" || access_mode === "locked")) {
-			db.query("UPDATE communities SET access_mode = ? WHERE id = ?").run(
-				access_mode,
+			let ownerId = user.userId;
+
+			if (owner_username && user.admin) {
+				const ownerUser = getUserByUsername.get(owner_username);
+				if (!ownerUser) {
+					set.status = 400;
+					return { error: "Owner user not found" };
+				}
+				ownerId = ownerUser.id;
+			} else if (owner_username === null && user.admin) {
+				ownerId = null;
+			}
+
+			try {
+				createCommunity.run(
+					communityId,
+					name.trim(),
+					description?.trim() || null,
+					rules?.trim() || null,
+					ownerId,
+					access_mode === "locked" ? "locked" : "open",
+				);
+
+				if (ownerId) {
+					const memberId = Bun.randomUUIDv7();
+					addMember.run(memberId, communityId, ownerId, "owner");
+					incrementMemberCount.run(communityId);
+				}
+
+				const community = getCommunity.get(communityId);
+				return { success: true, community };
+			} catch {
+				set.status = 500;
+				return { error: "Failed to create community" };
+			}
+		},
+		{
+			detail: {
+				description: "Creates a new community",
+			},
+			body: t.Object({
+				name: t.String(),
+				description: t.Optional(t.String()),
+				rules: t.Optional(t.String()),
+				icon: t.Optional(t.String()),
+				banner: t.Optional(t.String()),
+				owner_user_id: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+				community: t.Object(),
+			}),
+		},
+	)
+	.get(
+		"/communities",
+		async ({ query }) => {
+			const limit = Math.min(parseInt(query.limit, 10) || 20, 100);
+			const offset = parseInt(query.offset, 10) || 0;
+
+			const communities = getCommunities.all(limit, offset);
+			return { communities };
+		},
+		{
+			detail: {
+				description: "Gets a list of communities",
+			},
+			params: t.Object({
+				limit: t.Optional(t.Number()),
+				offset: t.Optional(t.Number()),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+				communities: t.Array(t.Object()),
+			}),
+		},
+	)
+	.get(
+		"/communities/:id",
+		async ({ params, user, set }) => {
+			const community = getCommunity.get(params.id);
+
+			if (!community) {
+				set.status = 404;
+				return { error: "Community not found" };
+			}
+
+			let member = null;
+			let joinRequest = null;
+
+			if (user) {
+				member = getMember.get(params.id, user.userId);
+				if (!member) {
+					joinRequest = getJoinRequest.get(params.id, user.userId);
+				}
+			}
+
+			return {
+				community,
+				member,
+				joinRequest: joinRequest?.status === "pending" ? joinRequest : null,
+			};
+		},
+		{
+			detail: {
+				description: "Gets a community",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+				community: t.Object(),
+				member: t.Object(),
+				joinRequest: t.Optional(t.Object()),
+			}),
+		},
+	)
+	.patch(
+		"/communities/:id",
+		async ({ user, params, body, set }) => {
+			if (!user) {
+				set.status = 401;
+				return { error: "Unauthorized" };
+			}
+
+			const community = getCommunity.get(params.id);
+			if (!community) {
+				set.status = 404;
+				return { error: "Community not found" };
+			}
+
+			const member = getMember.get(params.id, user.userId);
+			const canEdit =
+				user.admin ||
+				(member && (member.role === "owner" || member.role === "admin"));
+
+			if (!canEdit) {
+				set.status = 403;
+				return { error: "You don't have permission to edit this community" };
+			}
+
+			const { name, description, rules, access_mode } = body;
+
+			if (name && name.trim().length === 0) {
+				set.status = 400;
+				return { error: "Community name cannot be empty" };
+			}
+
+			if (name && name.length > 50) {
+				set.status = 400;
+				return { error: "Community name must be 50 characters or less" };
+			}
+
+			if (name && name !== community.name) {
+				const existing = getCommunityByName.get(name.trim());
+				if (existing) {
+					set.status = 400;
+					return { error: "A community with this name already exists" };
+				}
+			}
+
+			updateCommunity.run(
+				name?.trim() || community.name,
+				description?.trim() || community.description,
+				rules?.trim() || community.rules,
 				params.id,
 			);
-		}
 
-		const updated = getCommunity.get(params.id);
-		return { success: true, community: updated };
-	})
-	.delete("/communities/:id", async ({ user, params, set }) => {
-		if (!user) {
-			set.status = 401;
-			return { error: "Unauthorized" };
-		}
+			if (access_mode && (access_mode === "open" || access_mode === "locked")) {
+				db.query("UPDATE communities SET access_mode = ? WHERE id = ?").run(
+					access_mode,
+					params.id,
+				);
+			}
 
-		const community = getCommunity.get(params.id);
-		if (!community) {
-			set.status = 404;
-			return { error: "Community not found" };
-		}
+			const updated = getCommunity.get(params.id);
+			return { success: true, community: updated };
+		},
+		{
+			detail: {
+				description: "Updates a community",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			body: t.Object({
+				name: t.String(),
+				description: t.Optional(t.String()),
+				rules: t.Optional(t.String()),
+				access_mode: t.Optional(t.String()),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+				community: t.Object(),
+			}),
+		},
+	)
+	.delete(
+		"/communities/:id",
+		async ({ user, params, set }) => {
+			if (!user) {
+				set.status = 401;
+				return { error: "Unauthorized" };
+			}
 
-		const canDelete = user.admin || community.owner_id === user.userId;
-		if (!canDelete) {
-			set.status = 403;
-			return {
-				error: "Only the community owner or admin can delete the community",
-			};
-		}
+			const community = getCommunity.get(params.id);
+			if (!community) {
+				set.status = 404;
+				return { error: "Community not found" };
+			}
 
-		deleteCommunity.run(params.id);
-		return { success: true };
-	})
+			const canDelete = user.admin || community.owner_id === user.userId;
+			if (!canDelete) {
+				set.status = 403;
+				return {
+					error: "Only the community owner or admin can delete the community",
+				};
+			}
+
+			deleteCommunity.run(params.id);
+			return { success: true };
+		},
+		{
+			detail: {
+				description: "Deletes a community",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+			}),
+		},
+	)
 	.post("/communities/:id/join", async ({ user, params, set }) => {
 		if (!user) {
 			set.status = 401;
@@ -362,6 +487,21 @@ export default new Elysia({ tags: ["Communities"] })
 		incrementMemberCount.run(params.id);
 
 		return { success: true, status: "joined" };
+	}, {
+		detail: {
+			description: "Joins or sends a join request to a community",
+		},
+		params: t.Object({
+			id: t.String(),
+		}),
+		body: t.Object({
+			username: t.String(),
+		}),
+		response: t.Object({
+			success: t.Boolean(),
+			error: t.Optional(t.String()),
+			status: t.String(),
+		}),
 	})
 	.post("/communities/:id/leave", async ({ user, params, set }) => {
 		if (!user) {
@@ -393,6 +533,17 @@ export default new Elysia({ tags: ["Communities"] })
 		decrementMemberCount.run(params.id);
 
 		return { success: true };
+	}, {
+		detail: {
+			description: "Leaves a community",
+		},
+		params: t.Object({
+			id: t.String(),
+		}),
+		response: t.Object({
+			success: t.Boolean(),
+			error: t.Optional(t.String()),
+		}),
 	})
 	.get("/communities/:id/members", async ({ params, query, set }) => {
 		const community = getCommunity.get(params.id);
@@ -401,11 +552,25 @@ export default new Elysia({ tags: ["Communities"] })
 			return { error: "Community not found" };
 		}
 
-		const limit = Math.min(parseInt(query.limit) || 20, 100);
-		const offset = parseInt(query.offset) || 0;
+		const limit = Math.min(parseInt(query.limit, 19) || 20, 100);
+		const offset = parseInt(query.offset, 10) || 0;
 
 		const members = getCommunityMembers.all(params.id, limit, offset);
 		return { members };
+	}, {
+		detail: {
+			description: "Gets a list of community members",
+		},
+		params: t.Object({
+			id: t.String(),
+		}),
+		query: t.Object({
+			limit: t.Optional(t.Number()),
+			offset: t.Optional(t.Number()),
+		}),
+		response: t.Object({
+			members: t.Array(t.Object()),
+		}),
 	})
 	.post(
 		"/communities/:id/members/:userId/role",
@@ -475,6 +640,22 @@ export default new Elysia({ tags: ["Communities"] })
 			set.status = 403;
 			return { error: "You don't have permission to change this user's role" };
 		},
+		{
+			detail: {
+				description: "Changes a community member's role",
+			},
+			params: t.Object({
+				id: t.String(),
+				userId: t.String(),
+			}),
+			body: t.Object({
+				role: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+			}),
+		},
 	)
 	.post(
 		"/communities/:id/members/:userId/ban",
@@ -540,6 +721,19 @@ export default new Elysia({ tags: ["Communities"] })
 
 			return { success: true };
 		},
+		{
+			detail: {
+				description: "Bans a community member",
+			},
+			params: t.Object({
+				id: t.String(),
+				userId: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+			}),
+		},
 	)
 	.post(
 		"/communities/:id/members/:userId/unban",
@@ -584,6 +778,19 @@ export default new Elysia({ tags: ["Communities"] })
 
 			return { success: true };
 		},
+		{
+			detail: {
+				description: "Unbans a community member",
+			},
+			params: t.Object({
+				id: t.String(),
+				userId: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+			}),
+		},
 	)
 	.patch(
 		"/communities/:id/access-mode",
@@ -615,6 +822,22 @@ export default new Elysia({ tags: ["Communities"] })
 
 			return { success: true, access_mode };
 		},
+		{
+			detail: {
+				description: "Updates a community's access mode",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			body: t.Object({
+				access_mode: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+				access_mode: t.String(),
+			}),
+		},
 	)
 	.get(
 		"/communities/:id/join-requests",
@@ -641,6 +864,21 @@ export default new Elysia({ tags: ["Communities"] })
 
 			const requests = getPendingJoinRequests.all(params.id, limit, offset);
 			return { requests };
+		},
+		{
+			detail: {
+				description: "Gets a list of pending join requests",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			query: t.Object({
+				limit: t.Optional(t.Number()),
+				offset: t.Optional(t.Number()),
+			}),
+			response: t.Object({
+				requests: t.Array(t.Object()),
+			}),
 		},
 	)
 	.post(
@@ -694,6 +932,19 @@ export default new Elysia({ tags: ["Communities"] })
 
 			return { success: true };
 		},
+		{
+			detail: {
+				description: "Approves a join request to a community",
+			},
+			params: t.Object({
+				id: t.String(),
+				requestId: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+			}),
+		},
 	)
 	.post(
 		"/communities/:id/join-requests/:requestId/reject",
@@ -742,13 +993,40 @@ export default new Elysia({ tags: ["Communities"] })
 
 			return { success: true };
 		},
+		{
+			detail: {
+				description: "Rejects a join request to a community",
+			},
+			params: t.Object({
+				id: t.String(),
+				requestId: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+			}),
+		},
 	)
 	.get("/users/:userId/communities", async ({ params, query }) => {
-		const limit = Math.min(parseInt(query.limit) || 20, 100);
-		const offset = parseInt(query.offset) || 0;
+		const limit = Math.min(parseInt(query.limit, 10) || 20, 100);
+		const offset = parseInt(query.offset, 10) || 0;
 
 		const communities = getUserCommunities.all(params.userId, limit, offset);
 		return { communities };
+	}, {
+		detail: {
+			description: "Gets a list of communities a user is a member of",
+		},
+		params: t.Object({
+			userId: t.String(),
+		}),
+		query: t.Object({
+			limit: t.Optional(t.Number()),
+			offset: t.Optional(t.Number()),
+		}),
+		response: t.Object({
+			communities: t.Array(t.Object()),
+		}),
 	})
 	.post("/communities/:id/icon", async ({ user, params, body, set }) => {
 		if (!user) {
@@ -774,6 +1052,20 @@ export default new Elysia({ tags: ["Communities"] })
 		updateCommunityIcon.run(icon, params.id);
 
 		return { success: true };
+	}, {
+		detail: {
+			description: "Updates a community's icon",
+		},
+		params: t.Object({
+			id: t.String(),
+		}),
+		body: t.Object({
+			icon: t.String(),
+		}),
+		response: t.Object({
+			success: t.Boolean(),
+			error: t.Optional(t.String()),
+		}),
 	})
 	.post("/communities/:id/banner", async ({ user, params, body, set }) => {
 		if (!user) {
@@ -799,6 +1091,20 @@ export default new Elysia({ tags: ["Communities"] })
 		updateCommunityBanner.run(banner, params.id);
 
 		return { success: true };
+	}, {
+		detail: {
+			description: "Updates a community's banner",
+		},
+		params: t.Object({
+			id: t.String(),
+		}),
+		body: t.Object({
+			banner: t.String(),
+		}),
+		response: t.Object({
+			success: t.Boolean(),
+			error: t.Optional(t.String()),
+		}),
 	})
 	.get("/communities/:id/tweets", async ({ user, params, query, set }) => {
 		const community = getCommunity.get(params.id);
@@ -807,8 +1113,8 @@ export default new Elysia({ tags: ["Communities"] })
 			return { error: "Community not found" };
 		}
 
-		const limit = Math.min(parseInt(query.limit) || 20, 100);
-		const offset = parseInt(query.offset) || 0;
+		const limit = Math.min(parseInt(query.limit, 10) || 20, 100);
+		const offset = parseInt(query.offset, 10) || 0;
 
 		const tweets = db
 			.query(
@@ -875,4 +1181,19 @@ export default new Elysia({ tags: ["Communities"] })
 		});
 
 		return { tweets: enrichedTweets };
+	}, {
+		detail: {
+			description: "Gets a list of tweets in a community",
+		},
+		params: t.Object({
+			id: t.String(),
+		}),
+		query: t.Object({
+			limit: t.Optional(t.Number()),
+			offset: t.Optional(t.Number()),
+		}),
+		response: t.Object({
+			tweets: t.Array(t.Object()),
+			error: t.Optional(t.String()),
+		}),
 	});
