@@ -187,13 +187,6 @@ export default new Elysia({ tags: ["Communities"] })
 			return { error: "Failed to create community" };
 		}
 	})
-	.get("/communities", async ({ query }) => {
-		const limit = Math.min(parseInt(query.limit, 10) || 20, 100);
-		const offset = parseInt(query.offset, 10) || 0;
-
-		const communities = getCommunities.all(limit, offset);
-		return { communities };
-	})
 	.get(
 		"/communities/:id",
 		async ({ params, user, set }) => {
@@ -252,15 +245,6 @@ export default new Elysia({ tags: ["Communities"] })
 			detail: {
 				description: "Gets a list of communities",
 			},
-			params: t.Object({
-				limit: t.Optional(t.Number()),
-				offset: t.Optional(t.Number()),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-				communities: t.Array(t.Object()),
-			}),
 		},
 	)
 	.get(
@@ -295,16 +279,9 @@ export default new Elysia({ tags: ["Communities"] })
 			},
 			params: t.Object({
 				id: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-				community: t.Object(),
-				member: t.Object(),
-				joinRequest: t.Optional(t.Object()),
-			}),
+			})
 		},
-	)
+	) // 
 	.patch(
 		"/communities/:id",
 		async ({ user, params, body, set }) => {
@@ -378,12 +355,7 @@ export default new Elysia({ tags: ["Communities"] })
 				description: t.Optional(t.String()),
 				rules: t.Optional(t.String()),
 				access_mode: t.Optional(t.String()),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-				community: t.Object(),
-			}),
+			})
 		},
 	)
 	.delete(
@@ -417,11 +389,7 @@ export default new Elysia({ tags: ["Communities"] })
 			},
 			params: t.Object({
 				id: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-			}),
+			})
 		},
 	)
 	.post(
@@ -498,12 +466,7 @@ export default new Elysia({ tags: ["Communities"] })
 			}),
 			body: t.Object({
 				username: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-				status: t.String(),
-			}),
+			})
 		},
 	)
 	.post(
@@ -545,11 +508,7 @@ export default new Elysia({ tags: ["Communities"] })
 			},
 			params: t.Object({
 				id: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-			}),
+			})
 		},
 	)
 	.get(
@@ -577,10 +536,7 @@ export default new Elysia({ tags: ["Communities"] })
 			query: t.Object({
 				limit: t.Optional(t.Number()),
 				offset: t.Optional(t.Number()),
-			}),
-			response: t.Object({
-				members: t.Array(t.Object()),
-			}),
+			})
 		},
 	)
 	.post(
@@ -661,11 +617,7 @@ export default new Elysia({ tags: ["Communities"] })
 			}),
 			body: t.Object({
 				role: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-			}),
+			})
 		},
 	)
 	.post(
@@ -739,11 +691,7 @@ export default new Elysia({ tags: ["Communities"] })
 			params: t.Object({
 				id: t.String(),
 				userId: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-			}),
+			})
 		},
 	)
 	.post(
@@ -796,11 +744,7 @@ export default new Elysia({ tags: ["Communities"] })
 			params: t.Object({
 				id: t.String(),
 				userId: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-			}),
+			})
 		},
 	)
 	.patch(
@@ -842,12 +786,7 @@ export default new Elysia({ tags: ["Communities"] })
 			}),
 			body: t.Object({
 				access_mode: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-				access_mode: t.String(),
-			}),
+			})
 		},
 	)
 	.get(
@@ -886,10 +825,7 @@ export default new Elysia({ tags: ["Communities"] })
 			query: t.Object({
 				limit: t.Optional(t.Number()),
 				offset: t.Optional(t.Number()),
-			}),
-			response: t.Object({
-				requests: t.Array(t.Object()),
-			}),
+			})
 		},
 	)
 	.post(
@@ -950,11 +886,7 @@ export default new Elysia({ tags: ["Communities"] })
 			params: t.Object({
 				id: t.String(),
 				requestId: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-			}),
+			})
 		},
 	)
 	.post(
@@ -1011,11 +943,7 @@ export default new Elysia({ tags: ["Communities"] })
 			params: t.Object({
 				id: t.String(),
 				requestId: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-			}),
+			})
 		},
 	)
 	.get(
@@ -1037,10 +965,7 @@ export default new Elysia({ tags: ["Communities"] })
 			query: t.Object({
 				limit: t.Optional(t.Number()),
 				offset: t.Optional(t.Number()),
-			}),
-			response: t.Object({
-				communities: t.Array(t.Object()),
-			}),
+			})
 		},
 	)
 	.post(
@@ -1079,11 +1004,7 @@ export default new Elysia({ tags: ["Communities"] })
 			}),
 			body: t.Object({
 				icon: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-			}),
+			})
 		},
 	)
 	.post(
@@ -1122,11 +1043,7 @@ export default new Elysia({ tags: ["Communities"] })
 			}),
 			body: t.Object({
 				banner: t.String(),
-			}),
-			response: t.Object({
-				success: t.Boolean(),
-				error: t.Optional(t.String()),
-			}),
+			})
 		},
 	)
 	.get(
@@ -1219,10 +1136,6 @@ export default new Elysia({ tags: ["Communities"] })
 			query: t.Object({
 				limit: t.Optional(t.Number()),
 				offset: t.Optional(t.Number()),
-			}),
-			response: t.Object({
-				tweets: t.Array(t.Object()),
-				error: t.Optional(t.String()),
-			}),
+			})
 		},
 	);

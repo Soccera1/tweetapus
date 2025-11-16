@@ -120,31 +120,40 @@ new Elysia()
 				telemetry: false,
 			},
 			documentation: {
+				info: {
+					title: "Tweetapus",
+					description: "Tweetapus' REST API endpoints",
+				},
 				tags: [
-					{ name: "Admin", description: "Admin endpoints" },
-					{ name: "Articles", description: "Article endpoints" },
+					{ name: "Admin", description: "All endpoints used by the admin panel" },
+					{ name: "Articles", description: "Viewing, creating and managing article" },
 					{
 						name: "Auth",
 						description:
 							"Logging in, registering, and managing passkeys and accounts",
 					},
-					{ name: "Blocking", description: "Blocking & unblocking" },
-					{ name: "Bookmarks", description: "Bookmarks endpoints" },
-					{ name: "Communities", description: "Communities endpoints" },
-					{ name: "Communities", description: "Communities endpoints" },
-					{ name: "Delegates", description: "Delegates endpoints" },
+					{ name: "Blocking", description: "Blocking & unblocking users" },
+					{ name: "Bookmarks", description: "Bookmarking and viewing bookmarks" },
+					{ name: "Communities", description: "All endpoints related to communities" },
+					{ name: "Delegates", description: "Managing and using delegates" },
 					{ name: "DM", description: "Sending and reading DMs" },
-					{ name: "Extensions", description: "Extensions endpoints" },
-					{ name: "Notifications", description: "Recieving and managing notifications" },
-					{ name: "Profile", description: "Profile endpoints" },
-					{ name: "Reports", description: "Reports endpoints" },
-					{ name: "Scheduling", description: "Managing and viewing scheduled tweets" },
-					{ name: "Search", description: "Search endpoints" },
-					{ name: "Tenor", description: "Tenor endpoints" },
-					{ name: "Timeline", description: "Timeline endpoints" },
-					{ name: "Tweet", description: "Tweet endpoints" },
+					{ name: "Extensions", description: "Downloading and installing extensions" },
+					{
+						name: "Notifications",
+						description: "Receiving and managing notifications",
+					},
+					{ name: "Profile", description: "Viewing and editing profiles" },
+					{ name: "Reports", description: "Reporting and managing reports" },
+					{
+						name: "Scheduling",
+						description: "Managing and viewing scheduled tweets",
+					},
+					{ name: "Search", description: "Searching tweets and users" },
+					{ name: "Tenor", description: "Searching for GIFs using Tweetapus' Tenor API" },
+					{ name: "Timeline", description: "Scrolling your timeline" },
+					{ name: "Tweet", description: "Creating, viewing, and managing tweets" },
 					{ name: "Upload", description: "Managing and viewing uploads" },
-					{ name: "Emojis", description: "Listing emojis" },
+					{ name: "Emojis", description: "Downloading emoji lists" },
 				],
 				components: {
 					securitySchemes: {
@@ -157,7 +166,7 @@ new Elysia()
 				},
 			},
 			exclude: {
-				paths: ["/*", "/public/*", "/legal", "/admin"]
+				paths: ["/*", "/public/*", "/legal", "/admin"],
 			},
 		}),
 	)
