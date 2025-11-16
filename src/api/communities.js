@@ -125,26 +125,61 @@ export default new Elysia({ tags: ["Communities"] })
 			return { user: null };
 		}
 	})
-	.post(
-		"/communities",
-		async ({ user, body, set }) => {
-			if (!user) {
-				set.status = 401;
-				return { error: "Unauthorized" };
+	.post("/communities", async ({ user, body, set }) => {
+		if (!user) {
+			set.status = 401;
+			return { error: "Unauthorized" };
+		}
+
+		const { name, description, rules, access_mode, owner_username } = body;
+
+		if (!name || name.trim().length === 0) {
+			set.status = 400;
+			return { error: "Community name is required" };
+		}
+
+		if (name.length > 50) {
+			set.status = 400;
+			return { error: "Community name must be 50 characters or less" };
+		}
+
+		const existing = getCommunityByName.get(name.trim());
+		if (existing) {
+			set.status = 400;
+			return { error: "A community with this name already exists" };
+		}
+
+		const communityId = Bun.randomUUIDv7();
+
+		let ownerId = user.userId;
+
+		if (owner_username && user.admin) {
+			const ownerUser = getUserByUsername.get(owner_username);
+			if (!ownerUser) {
+				set.status = 400;
+				return { error: "Owner user not found" };
+			}
+			ownerId = ownerUser.id;
+		} else if (owner_username === null && user.admin) {
+			ownerId = null;
+		}
+
+		try {
+			createCommunity.run(
+				communityId,
+				name.trim(),
+				description?.trim() || null,
+				rules?.trim() || null,
+				ownerId,
+				access_mode === "locked" ? "locked" : "open",
+			);
+
+			if (ownerId) {
+				const memberId = Bun.randomUUIDv7();
+				addMember.run(memberId, communityId, ownerId, "owner");
+				incrementMemberCount.run(communityId);
 			}
 
-			const { name, description, rules, access_mode, owner_username } = body;
-
-			if (!name || name.trim().length === 0) {
-				set.status = 400;
-				return { error: "Community name is required" };
-			}
-
-<<<<<<< HEAD
-			if (name.length > 50) {
-				set.status = 400;
-				return { error: "Community name must be 50 characters or less" };
-=======
 			const community = getCommunity.get(communityId);
 			return { success: true, community };
 		} catch {
@@ -159,67 +194,31 @@ export default new Elysia({ tags: ["Communities"] })
 		const communities = getCommunities.all(limit, offset);
 		return { communities };
 	})
-	.get("/communities/:id", async ({ params, user, set }) => {
-		const community = getCommunity.get(params.id);
+	.get(
+		"/communities/:id",
+		async ({ params, user, set }) => {
+			const community = getCommunity.get(params.id);
 
-		if (!community) {
-			set.status = 404;
-			return { error: "Community not found" };
-		}
-
-		let member = null;
-		let joinRequest = null;
-
-		if (user) {
-			member = getMember.get(params.id, user.userId);
-			if (!member) {
-				joinRequest = getJoinRequest.get(params.id, user.userId);
->>>>>>> main
+			if (!community) {
+				set.status = 404;
+				return { error: "Community not found" };
 			}
 
-			const existing = getCommunityByName.get(name.trim());
-			if (existing) {
-				set.status = 400;
-				return { error: "A community with this name already exists" };
-			}
+			let member = null;
+			let joinRequest = null;
 
-			const communityId = Bun.randomUUIDv7();
-
-			let ownerId = user.userId;
-
-			if (owner_username && user.admin) {
-				const ownerUser = getUserByUsername.get(owner_username);
-				if (!ownerUser) {
-					set.status = 400;
-					return { error: "Owner user not found" };
+			if (user) {
+				member = getMember.get(params.id, user.userId);
+				if (!member) {
+					joinRequest = getJoinRequest.get(params.id, user.userId);
 				}
-				ownerId = ownerUser.id;
-			} else if (owner_username === null && user.admin) {
-				ownerId = null;
 			}
 
-			try {
-				createCommunity.run(
-					communityId,
-					name.trim(),
-					description?.trim() || null,
-					rules?.trim() || null,
-					ownerId,
-					access_mode === "locked" ? "locked" : "open",
-				);
-
-				if (ownerId) {
-					const memberId = Bun.randomUUIDv7();
-					addMember.run(memberId, communityId, ownerId, "owner");
-					incrementMemberCount.run(communityId);
-				}
-
-				const community = getCommunity.get(communityId);
-				return { success: true, community };
-			} catch {
-				set.status = 500;
-				return { error: "Failed to create community" };
-			}
+			return {
+				community,
+				member,
+				joinRequest: joinRequest?.status === "pending" ? joinRequest : null,
+			};
 		},
 		{
 			detail: {
@@ -425,153 +424,165 @@ export default new Elysia({ tags: ["Communities"] })
 			}),
 		},
 	)
-	.post("/communities/:id/join", async ({ user, params, set }) => {
-		if (!user) {
-			set.status = 401;
-			return { error: "Unauthorized" };
-		}
-
-		const community = getCommunity.get(params.id);
-		if (!community) {
-			set.status = 404;
-			return { error: "Community not found" };
-		}
-
-		const existingMember = getMember.get(params.id, user.userId);
-		if (existingMember) {
-			if (existingMember.banned) {
-				set.status = 403;
-				return { error: "You are banned from this community" };
+	.post(
+		"/communities/:id/join",
+		async ({ user, params, set }) => {
+			if (!user) {
+				set.status = 401;
+				return { error: "Unauthorized" };
 			}
-			set.status = 400;
-			return { error: "You are already a member of this community" };
-		}
 
-		if (community.access_mode === "locked") {
-			const existingRequest = getJoinRequest.get(params.id, user.userId);
-			if (existingRequest) {
-				if (existingRequest.status === "pending") {
-					set.status = 400;
-					return { error: "You already have a pending join request" };
-				} else if (existingRequest.status === "rejected") {
+			const community = getCommunity.get(params.id);
+			if (!community) {
+				set.status = 404;
+				return { error: "Community not found" };
+			}
+
+			const existingMember = getMember.get(params.id, user.userId);
+			if (existingMember) {
+				if (existingMember.banned) {
 					set.status = 403;
-					return { error: "Your join request was rejected" };
+					return { error: "You are banned from this community" };
 				}
+				set.status = 400;
+				return { error: "You are already a member of this community" };
 			}
 
-			const requestId = Bun.randomUUIDv7();
-			createJoinRequest.run(requestId, params.id, user.userId);
+			if (community.access_mode === "locked") {
+				const existingRequest = getJoinRequest.get(params.id, user.userId);
+				if (existingRequest) {
+					if (existingRequest.status === "pending") {
+						set.status = 400;
+						return { error: "You already have a pending join request" };
+					} else if (existingRequest.status === "rejected") {
+						set.status = 403;
+						return { error: "Your join request was rejected" };
+					}
+				}
 
-			const ownerMember = db
-				.prepare(
-					"SELECT user_id FROM community_members WHERE community_id = ? AND role = 'owner'",
-				)
-				.get(params.id);
-			if (ownerMember) {
-				await addNotification(
-					ownerMember.user_id,
-					"community_join_request",
-					`${user.username} requested to join ${community.name}`,
-					params.id,
-					user.userId,
-					user.username,
-					user.name || user.username,
-				);
+				const requestId = Bun.randomUUIDv7();
+				createJoinRequest.run(requestId, params.id, user.userId);
+
+				const ownerMember = db
+					.prepare(
+						"SELECT user_id FROM community_members WHERE community_id = ? AND role = 'owner'",
+					)
+					.get(params.id);
+				if (ownerMember) {
+					await addNotification(
+						ownerMember.user_id,
+						"community_join_request",
+						`${user.username} requested to join ${community.name}`,
+						params.id,
+						user.userId,
+						user.username,
+						user.name || user.username,
+					);
+				}
+
+				return { success: true, status: "pending" };
 			}
 
-			return { success: true, status: "pending" };
-		}
+			const memberId = Bun.randomUUIDv7();
+			addMember.run(memberId, params.id, user.userId, "member");
+			incrementMemberCount.run(params.id);
 
-		const memberId = Bun.randomUUIDv7();
-		addMember.run(memberId, params.id, user.userId, "member");
-		incrementMemberCount.run(params.id);
-
-		return { success: true, status: "joined" };
-	}, {
-		detail: {
-			description: "Joins or sends a join request to a community",
+			return { success: true, status: "joined" };
 		},
-		params: t.Object({
-			id: t.String(),
-		}),
-		body: t.Object({
-			username: t.String(),
-		}),
-		response: t.Object({
-			success: t.Boolean(),
-			error: t.Optional(t.String()),
-			status: t.String(),
-		}),
-	})
-	.post("/communities/:id/leave", async ({ user, params, set }) => {
-		if (!user) {
-			set.status = 401;
-			return { error: "Unauthorized" };
-		}
-
-		const community = getCommunity.get(params.id);
-		if (!community) {
-			set.status = 404;
-			return { error: "Community not found" };
-		}
-
-		const member = getMember.get(params.id, user.userId);
-		if (!member) {
-			set.status = 400;
-			return { error: "You are not a member of this community" };
-		}
-
-		if (member.role === "owner") {
-			set.status = 403;
-			return {
-				error:
-					"The community owner cannot leave. Transfer ownership or delete the community instead.",
-			};
-		}
-
-		removeMember.run(params.id, user.userId);
-		decrementMemberCount.run(params.id);
-
-		return { success: true };
-	}, {
-		detail: {
-			description: "Leaves a community",
+		{
+			detail: {
+				description: "Joins or sends a join request to a community",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			body: t.Object({
+				username: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+				status: t.String(),
+			}),
 		},
-		params: t.Object({
-			id: t.String(),
-		}),
-		response: t.Object({
-			success: t.Boolean(),
-			error: t.Optional(t.String()),
-		}),
-	})
-	.get("/communities/:id/members", async ({ params, query, set }) => {
-		const community = getCommunity.get(params.id);
-		if (!community) {
-			set.status = 404;
-			return { error: "Community not found" };
-		}
+	)
+	.post(
+		"/communities/:id/leave",
+		async ({ user, params, set }) => {
+			if (!user) {
+				set.status = 401;
+				return { error: "Unauthorized" };
+			}
 
-		const limit = Math.min(parseInt(query.limit, 19) || 20, 100);
-		const offset = parseInt(query.offset, 10) || 0;
+			const community = getCommunity.get(params.id);
+			if (!community) {
+				set.status = 404;
+				return { error: "Community not found" };
+			}
 
-		const members = getCommunityMembers.all(params.id, limit, offset);
-		return { members };
-	}, {
-		detail: {
-			description: "Gets a list of community members",
+			const member = getMember.get(params.id, user.userId);
+			if (!member) {
+				set.status = 400;
+				return { error: "You are not a member of this community" };
+			}
+
+			if (member.role === "owner") {
+				set.status = 403;
+				return {
+					error:
+						"The community owner cannot leave. Transfer ownership or delete the community instead.",
+				};
+			}
+
+			removeMember.run(params.id, user.userId);
+			decrementMemberCount.run(params.id);
+
+			return { success: true };
 		},
-		params: t.Object({
-			id: t.String(),
-		}),
-		query: t.Object({
-			limit: t.Optional(t.Number()),
-			offset: t.Optional(t.Number()),
-		}),
-		response: t.Object({
-			members: t.Array(t.Object()),
-		}),
-	})
+		{
+			detail: {
+				description: "Leaves a community",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+			}),
+		},
+	)
+	.get(
+		"/communities/:id/members",
+		async ({ params, query, set }) => {
+			const community = getCommunity.get(params.id);
+			if (!community) {
+				set.status = 404;
+				return { error: "Community not found" };
+			}
+
+			const limit = Math.min(parseInt(query.limit, 19) || 20, 100);
+			const offset = parseInt(query.offset, 10) || 0;
+
+			const members = getCommunityMembers.all(params.id, limit, offset);
+			return { members };
+		},
+		{
+			detail: {
+				description: "Gets a list of community members",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			query: t.Object({
+				limit: t.Optional(t.Number()),
+				offset: t.Optional(t.Number()),
+			}),
+			response: t.Object({
+				members: t.Array(t.Object()),
+			}),
+		},
+	)
 	.post(
 		"/communities/:id/members/:userId/role",
 		async ({ user, params, body, set }) => {
@@ -1007,118 +1018,132 @@ export default new Elysia({ tags: ["Communities"] })
 			}),
 		},
 	)
-	.get("/users/:userId/communities", async ({ params, query }) => {
-		const limit = Math.min(parseInt(query.limit, 10) || 20, 100);
-		const offset = parseInt(query.offset, 10) || 0;
+	.get(
+		"/users/:userId/communities",
+		async ({ params, query }) => {
+			const limit = Math.min(parseInt(query.limit, 10) || 20, 100);
+			const offset = parseInt(query.offset, 10) || 0;
 
-		const communities = getUserCommunities.all(params.userId, limit, offset);
-		return { communities };
-	}, {
-		detail: {
-			description: "Gets a list of communities a user is a member of",
+			const communities = getUserCommunities.all(params.userId, limit, offset);
+			return { communities };
 		},
-		params: t.Object({
-			userId: t.String(),
-		}),
-		query: t.Object({
-			limit: t.Optional(t.Number()),
-			offset: t.Optional(t.Number()),
-		}),
-		response: t.Object({
-			communities: t.Array(t.Object()),
-		}),
-	})
-	.post("/communities/:id/icon", async ({ user, params, body, set }) => {
-		if (!user) {
-			set.status = 401;
-			return { error: "Unauthorized" };
-		}
-
-		const community = getCommunity.get(params.id);
-		if (!community) {
-			set.status = 404;
-			return { error: "Community not found" };
-		}
-
-		const member = getMember.get(params.id, user.userId);
-		if (!member || !["owner", "admin"].includes(member.role)) {
-			set.status = 403;
-			return {
-				error: "You don't have permission to update the community icon",
-			};
-		}
-
-		const { icon } = body;
-		updateCommunityIcon.run(icon, params.id);
-
-		return { success: true };
-	}, {
-		detail: {
-			description: "Updates a community's icon",
+		{
+			detail: {
+				description: "Gets a list of communities a user is a member of",
+			},
+			params: t.Object({
+				userId: t.String(),
+			}),
+			query: t.Object({
+				limit: t.Optional(t.Number()),
+				offset: t.Optional(t.Number()),
+			}),
+			response: t.Object({
+				communities: t.Array(t.Object()),
+			}),
 		},
-		params: t.Object({
-			id: t.String(),
-		}),
-		body: t.Object({
-			icon: t.String(),
-		}),
-		response: t.Object({
-			success: t.Boolean(),
-			error: t.Optional(t.String()),
-		}),
-	})
-	.post("/communities/:id/banner", async ({ user, params, body, set }) => {
-		if (!user) {
-			set.status = 401;
-			return { error: "Unauthorized" };
-		}
+	)
+	.post(
+		"/communities/:id/icon",
+		async ({ user, params, body, set }) => {
+			if (!user) {
+				set.status = 401;
+				return { error: "Unauthorized" };
+			}
 
-		const community = getCommunity.get(params.id);
-		if (!community) {
-			set.status = 404;
-			return { error: "Community not found" };
-		}
+			const community = getCommunity.get(params.id);
+			if (!community) {
+				set.status = 404;
+				return { error: "Community not found" };
+			}
 
-		const member = getMember.get(params.id, user.userId);
-		if (!member || !["owner", "admin"].includes(member.role)) {
-			set.status = 403;
-			return {
-				error: "You don't have permission to update the community banner",
-			};
-		}
+			const member = getMember.get(params.id, user.userId);
+			if (!member || !["owner", "admin"].includes(member.role)) {
+				set.status = 403;
+				return {
+					error: "You don't have permission to update the community icon",
+				};
+			}
 
-		const { banner } = body;
-		updateCommunityBanner.run(banner, params.id);
+			const { icon } = body;
+			updateCommunityIcon.run(icon, params.id);
 
-		return { success: true };
-	}, {
-		detail: {
-			description: "Updates a community's banner",
+			return { success: true };
 		},
-		params: t.Object({
-			id: t.String(),
-		}),
-		body: t.Object({
-			banner: t.String(),
-		}),
-		response: t.Object({
-			success: t.Boolean(),
-			error: t.Optional(t.String()),
-		}),
-	})
-	.get("/communities/:id/tweets", async ({ user, params, query, set }) => {
-		const community = getCommunity.get(params.id);
-		if (!community) {
-			set.status = 404;
-			return { error: "Community not found" };
-		}
+		{
+			detail: {
+				description: "Updates a community's icon",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			body: t.Object({
+				icon: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+			}),
+		},
+	)
+	.post(
+		"/communities/:id/banner",
+		async ({ user, params, body, set }) => {
+			if (!user) {
+				set.status = 401;
+				return { error: "Unauthorized" };
+			}
 
-		const limit = Math.min(parseInt(query.limit, 10) || 20, 100);
-		const offset = parseInt(query.offset, 10) || 0;
+			const community = getCommunity.get(params.id);
+			if (!community) {
+				set.status = 404;
+				return { error: "Community not found" };
+			}
 
-		const tweets = db
-			.query(
-				`
+			const member = getMember.get(params.id, user.userId);
+			if (!member || !["owner", "admin"].includes(member.role)) {
+				set.status = 403;
+				return {
+					error: "You don't have permission to update the community banner",
+				};
+			}
+
+			const { banner } = body;
+			updateCommunityBanner.run(banner, params.id);
+
+			return { success: true };
+		},
+		{
+			detail: {
+				description: "Updates a community's banner",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			body: t.Object({
+				banner: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+			}),
+		},
+	)
+	.get(
+		"/communities/:id/tweets",
+		async ({ user, params, query, set }) => {
+			const community = getCommunity.get(params.id);
+			if (!community) {
+				set.status = 404;
+				return { error: "Community not found" };
+			}
+
+			const limit = Math.min(parseInt(query.limit, 10) || 20, 100);
+			const offset = parseInt(query.offset, 10) || 0;
+
+			const tweets = db
+				.query(
+					`
       SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with
       FROM posts
       JOIN users ON posts.user_id = users.id
@@ -1126,74 +1151,78 @@ export default new Elysia({ tags: ["Communities"] })
       ORDER BY posts.created_at DESC
       LIMIT ? OFFSET ?
     `,
-			)
-			.all(params.id, limit, offset);
+				)
+				.all(params.id, limit, offset);
 
-		const enrichedTweets = tweets.map((tweet) => {
-			const attachments = db
-				.query("SELECT * FROM attachments WHERE post_id = ?")
-				.all(tweet.id);
+			const enrichedTweets = tweets.map((tweet) => {
+				const attachments = db
+					.query("SELECT * FROM attachments WHERE post_id = ?")
+					.all(tweet.id);
 
-			const author = {
-				username: tweet.username,
-				name: tweet.name,
-				avatar: tweet.avatar,
-				verified: tweet.verified || false,
-				gold: tweet.gold || false,
-				avatar_radius: tweet.avatar_radius || null,
-				affiliate: tweet.affiliate || false,
-				affiliate_with: tweet.affiliate_with || null,
-			};
+				const author = {
+					username: tweet.username,
+					name: tweet.name,
+					avatar: tweet.avatar,
+					verified: tweet.verified || false,
+					gold: tweet.gold || false,
+					avatar_radius: tweet.avatar_radius || null,
+					affiliate: tweet.affiliate || false,
+					affiliate_with: tweet.affiliate_with || null,
+				};
 
-			if (author.affiliate && author.affiliate_with) {
-				const affiliateProfile = db
-					.query(
-						"SELECT id, username, name, avatar, verified, gold, avatar_radius FROM users WHERE id = ?",
-					)
-					.get(author.affiliate_with);
-				if (affiliateProfile) {
-					author.affiliate_with_profile = affiliateProfile;
+				if (author.affiliate && author.affiliate_with) {
+					const affiliateProfile = db
+						.query(
+							"SELECT id, username, name, avatar, verified, gold, avatar_radius FROM users WHERE id = ?",
+						)
+						.get(author.affiliate_with);
+					if (affiliateProfile) {
+						author.affiliate_with_profile = affiliateProfile;
+					}
 				}
-			}
 
-			return {
-				...tweet,
-				author,
-				attachments: attachments || [],
-				liked_by_user: user
-					? !!db
-							.query("SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?")
-							.get(user.userId, tweet.id)
-					: false,
-				retweeted_by_user: user
-					? !!db
-							.query("SELECT 1 FROM retweets WHERE user_id = ? AND post_id = ?")
-							.get(user.userId, tweet.id)
-					: false,
-				bookmarked_by_user: user
-					? !!db
-							.query(
-								"SELECT 1 FROM bookmarks WHERE user_id = ? AND post_id = ?",
-							)
-							.get(user.userId, tweet.id)
-					: false,
-			};
-		});
+				return {
+					...tweet,
+					author,
+					attachments: attachments || [],
+					liked_by_user: user
+						? !!db
+								.query("SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?")
+								.get(user.userId, tweet.id)
+						: false,
+					retweeted_by_user: user
+						? !!db
+								.query(
+									"SELECT 1 FROM retweets WHERE user_id = ? AND post_id = ?",
+								)
+								.get(user.userId, tweet.id)
+						: false,
+					bookmarked_by_user: user
+						? !!db
+								.query(
+									"SELECT 1 FROM bookmarks WHERE user_id = ? AND post_id = ?",
+								)
+								.get(user.userId, tweet.id)
+						: false,
+				};
+			});
 
-		return { tweets: enrichedTweets };
-	}, {
-		detail: {
-			description: "Gets a list of tweets in a community",
+			return { tweets: enrichedTweets };
 		},
-		params: t.Object({
-			id: t.String(),
-		}),
-		query: t.Object({
-			limit: t.Optional(t.Number()),
-			offset: t.Optional(t.Number()),
-		}),
-		response: t.Object({
-			tweets: t.Array(t.Object()),
-			error: t.Optional(t.String()),
-		}),
-	});
+		{
+			detail: {
+				description: "Gets a list of tweets in a community",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			query: t.Object({
+				limit: t.Optional(t.Number()),
+				offset: t.Optional(t.Number()),
+			}),
+			response: t.Object({
+				tweets: t.Array(t.Object()),
+				error: t.Optional(t.String()),
+			}),
+		},
+	);
