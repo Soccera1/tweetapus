@@ -1,5 +1,5 @@
 import { jwt } from "@elysiajs/jwt";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
 import db from "./../db.js";
 import ratelimit from "../helpers/ratelimit.js";
@@ -196,75 +196,106 @@ export default new Elysia({ prefix: "/bookmarks" })
 			generator: ratelimit,
 		}),
 	)
-	.post("/add", async ({ jwt, headers, body }) => {
-		const authorization = headers.authorization;
-		if (!authorization) return { error: "Authentication required" };
+	.post(
+		"/add",
+		async ({ jwt, headers, body }) => {
+			const authorization = headers.authorization;
+			if (!authorization) return { error: "Authentication required" };
 
-		try {
-			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-			if (!payload) return { error: "Invalid token" };
+			try {
+				const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+				if (!payload) return { error: "Invalid token" };
 
-			const user = getUserByUsername.get(payload.username);
-			if (!user) return { error: "User not found" };
+				const user = getUserByUsername.get(payload.username);
+				if (!user) return { error: "User not found" };
 
-			if (isUserRestrictedById(user.id))
-				return { error: "Action not allowed: account is restricted" };
+				if (isUserRestrictedById(user.id))
+					return { error: "Action not allowed: account is restricted" };
 
-			const { postId } = body;
-			if (!postId) return { error: "Post ID is required" };
+				const { postId } = body;
+				if (!postId) return { error: "Post ID is required" };
 
-			const tweet = getTweetById.get(postId);
-			if (!tweet) return { error: "Tweet not found" };
+				const tweet = getTweetById.get(postId);
+				if (!tweet) return { error: "Tweet not found" };
 
-			// block bookmarking tweets whose author is suspended
-			if (isUserSuspendedById(tweet.user_id)) {
-				return { error: "Tweet not found" };
+				if (isUserSuspendedById(tweet.user_id)) {
+					return { error: "Tweet not found" };
+				}
+
+				const existingBookmark = checkBookmarkExists.get(user.id, postId);
+				if (existingBookmark) {
+					return { error: "Tweet is already bookmarked" };
+				}
+
+				const bookmarkId = Bun.randomUUIDv7();
+				addBookmark.run(bookmarkId, user.id, postId);
+
+				return { success: true, bookmarked: true };
+			} catch (error) {
+				console.error("Add bookmark error:", error);
+				return { error: "Failed to add bookmark" };
 			}
+		},
+		{
+			detail: {
+				description: "Bookmarks a tweet",
+			},
+			body: t.Object({
+				postId: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+				bookmarked: true,
+			}),
+		},
+	)
+	.post(
+		"/remove",
+		async ({ jwt, headers, body }) => {
+			const authorization = headers.authorization;
+			if (!authorization) return { error: "Authentication required" };
 
-			const existingBookmark = checkBookmarkExists.get(user.id, postId);
-			if (existingBookmark) {
-				return { error: "Tweet is already bookmarked" };
+			try {
+				const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+				if (!payload) return { error: "Invalid token" };
+
+				const user = getUserByUsername.get(payload.username);
+				if (!user) return { error: "User not found" };
+
+				if (isUserRestrictedById(user.id))
+					return { error: "Action not allowed: account is restricted" };
+
+				const { postId } = body;
+				if (!postId) return { error: "Post ID is required" };
+
+				const existingBookmark = checkBookmarkExists.get(user.id, postId);
+				if (!existingBookmark) {
+					return { error: "Tweet is not bookmarked" };
+				}
+
+				removeBookmark.run(user.id, postId);
+
+				return { success: true, bookmarked: false };
+			} catch (error) {
+				console.error("Remove bookmark error:", error);
+				return { error: "Failed to remove bookmark" };
 			}
-
-			const bookmarkId = Bun.randomUUIDv7();
-			addBookmark.run(bookmarkId, user.id, postId);
-
-			return { success: true, bookmarked: true };
-		} catch (error) {
-			console.error("Add bookmark error:", error);
-			return { error: "Failed to add bookmark" };
-		}
-	})
-	.post("/remove", async ({ jwt, headers, body }) => {
-		const authorization = headers.authorization;
-		if (!authorization) return { error: "Authentication required" };
-
-		try {
-			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-			if (!payload) return { error: "Invalid token" };
-
-			const user = getUserByUsername.get(payload.username);
-			if (!user) return { error: "User not found" };
-
-			if (isUserRestrictedById(user.id))
-				return { error: "Action not allowed: account is restricted" };
-
-			const { postId } = body;
-			if (!postId) return { error: "Post ID is required" };
-
-			const existingBookmark = checkBookmarkExists.get(user.id, postId);
-			if (!existingBookmark) {
-				return { error: "Tweet is not bookmarked" };
-			}
-
-			removeBookmark.run(user.id, postId);
-
-			return { success: true, bookmarked: false };
-		} catch (error) {
-			console.error("Remove bookmark error:", error);
-			return { error: "Failed to remove bookmark" };
-		}
-	})
+		},
+		{
+			detail: {
+				description: "Unbookmarks a tweet",
+			},
+			body: t.Object({
+				postId: t.String(),
+			}),
+			response: t.Object({
+				success: t.Boolean(),
+				error: t.Optional(t.String()),
+				bookmarked: false,
+			}),
+		},
+	)
 	.get("/", async ({ jwt, headers, query }) => {
 		const authorization = headers.authorization;
 		if (!authorization) return { error: "Authentication required" };
@@ -279,7 +310,7 @@ export default new Elysia({ prefix: "/bookmarks" })
 			const { limit = 20 } = query;
 			const bookmarkedTweets = getBookmarkedTweets.all(
 				user.id,
-				parseInt(limit),
+				parseInt(limit, 10),
 			);
 
 			const postIds = bookmarkedTweets.map((tweet) => tweet.id);
@@ -354,27 +385,18 @@ export default new Elysia({ prefix: "/bookmarks" })
 			console.error("Get bookmarks error:", error);
 			return { error: "Failed to get bookmarks" };
 		}
-	})
-	.get("/check/:postId", async ({ jwt, headers, params }) => {
-		const authorization = headers.authorization;
-		if (!authorization) return { error: "Authentication required" };
-
-		try {
-			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-			if (!payload) return { error: "Invalid token" };
-
-			const user = getUserByUsername.get(payload.username);
-			if (!user) return { error: "User not found" };
-
-			const { postId } = params;
-			const isBookmarked = checkBookmarkExists.get(user.id, postId);
-
-			return {
-				success: true,
-				bookmarked: !!isBookmarked,
-			};
-		} catch (error) {
-			console.error("Check bookmark status error:", error);
-			return { error: "Failed to check bookmark status" };
-		}
+	}, {
+		detail: {
+			description: "Gets a user's bookmarks",
+		},
+		params: t.Object({
+			limit: t.Optional(t.Number()),
+		}),
+		response: t.Object({
+			success: t.Boolean(),
+			error: t.Optional(t.String()),
+			bookmarks: t.Array(
+				t.Object(),
+			),
+		}),
 	});
