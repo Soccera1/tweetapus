@@ -20,6 +20,7 @@ import timeline from "./api/timeline.js";
 import tweet from "./api/tweet.js";
 import upload, { uploadRoutes } from "./api/upload.js";
 import db from "./db.js";
+import { emojiCache } from "./helpers/cache.js";
 import ratelimit from "./helpers/ratelimit.js";
 import {
 	getSuspensionCache,
@@ -184,11 +185,16 @@ export default new Elysia({
 		"/emojis",
 		async () => {
 			try {
+				const cached = emojiCache.get("all");
+				if (cached) return { emojis: cached };
+
 				const rows = db
 					.query(
 						"SELECT id, name, file_hash, file_url, created_by, created_at FROM emojis ORDER BY created_at DESC",
 					)
 					.all();
+
+				emojiCache.set("all", rows);
 				return { emojis: rows };
 			} catch (_err) {
 				return { emojis: [] };

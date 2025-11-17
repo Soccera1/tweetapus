@@ -1,4 +1,5 @@
 const rateLimitStore = new Map();
+const violationStore = new Map();
 
 const RATE_LIMITS = {
 	default: { max: 30, duration: 10000 },
@@ -7,18 +8,25 @@ const RATE_LIMITS = {
 	dm: { max: 20, duration: 10000 },
 	post: { max: 15, duration: 60000 },
 	sensitive: { max: 3, duration: 60000 },
+	search: { max: 20, duration: 10000 },
+	timeline: { max: 25, duration: 10000 },
 };
 
 function cleanupExpired() {
 	const now = Date.now();
 	for (const [key, data] of rateLimitStore.entries()) {
-		if (now - data.resetTime > data.duration) {
+		if (now - data.resetTime > data.duration + 5000) {
 			rateLimitStore.delete(key);
+		}
+	}
+	for (const [key, data] of violationStore.entries()) {
+		if (now - data.lastViolation > 3600000) {
+			violationStore.delete(key);
 		}
 	}
 }
 
-setInterval(cleanupExpired, 30000);
+setInterval(cleanupExpired, 60000);
 
 export function checkRateLimit(identifier, limitType = "default") {
 	const config = RATE_LIMITS[limitType] || RATE_LIMITS.default;
@@ -26,6 +34,10 @@ export function checkRateLimit(identifier, limitType = "default") {
 	const now = Date.now();
 
 	let data = rateLimitStore.get(key);
+	const violations = violationStore.get(identifier) || {
+		count: 0,
+		lastViolation: 0,
+	};
 
 	if (!data || now - data.resetTime > config.duration) {
 		data = {
@@ -41,11 +53,18 @@ export function checkRateLimit(identifier, limitType = "default") {
 	const remaining = Math.max(0, config.max - data.count);
 	const isLimited = data.count > config.max;
 
+	if (isLimited) {
+		violations.count++;
+		violations.lastViolation = now;
+		violationStore.set(identifier, violations);
+	}
+
 	return {
 		isLimited,
 		remaining,
 		resetIn: Math.ceil((data.resetTime + config.duration - now) / 1000),
 		limit: config.max,
+		violations: violations.count,
 	};
 }
 
@@ -66,9 +85,11 @@ export function getRateLimitMiddleware(limitType = "default") {
 
 		if (result.isLimited) {
 			set.status = 429;
+			const backoffMs = Math.min(result.violations * 1000, 30000);
 			return {
 				error: "Too many requests",
 				resetIn: result.resetIn,
+				retryAfter: Math.ceil(backoffMs / 1000),
 			};
 		}
 	};
