@@ -1160,7 +1160,6 @@ export const createTweetElement = (tweet, config = {}) => {
 				const hashtag = tag.getAttribute("data-hashtag");
 
 				tag.addEventListener("click", (e) => {
-					console.log("tag click");
 					e.preventDefault();
 					e.stopPropagation();
 

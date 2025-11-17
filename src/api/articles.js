@@ -1,5 +1,5 @@
 import { jwt } from "@elysiajs/jwt";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
 import db from "../db.js";
 import ratelimit from "../helpers/ratelimit.js";
@@ -132,148 +132,174 @@ export default new Elysia({ prefix: "/articles", tags: ["Articles"] })
 			generator: ratelimit,
 		}),
 	)
-	.post("/", async ({ jwt, headers, body }) => {
-		const authorization = headers.authorization;
-		if (!authorization) return { error: "Authentication required" };
+	.post(
+		"/",
+		async ({ jwt, headers, body }) => {
+			const authorization = headers.authorization;
+			if (!authorization) return { error: "Authentication required" };
 
-		let user;
-		try {
-			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-			if (!payload) return { error: "Invalid token" };
-			user = getUserByUsername.get(payload.username);
-			if (!user) return { error: "User not found" };
-		} catch (error) {
-			console.error("Article auth error:", error);
-			return { error: "Authentication failed" };
-		}
-
-		const { title, markdown, cover, source } = body || {};
-
-		if (!title || typeof title !== "string" || title.trim().length < 5) {
-			return { error: "Title must be at least 5 characters" };
-		}
-
-		if (
-			!markdown ||
-			typeof markdown !== "string" ||
-			markdown.trim().length < 50
-		) {
-			return { error: "Article body must be at least 50 characters" };
-		}
-
-		if (cover) {
-			if (typeof cover !== "object") {
-				return { error: "Invalid cover metadata" };
+			let user;
+			try {
+				const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+				if (!payload) return { error: "Invalid token" };
+				user = getUserByUsername.get(payload.username);
+				if (!user) return { error: "User not found" };
+			} catch (error) {
+				console.error("Article auth error:", error);
+				return { error: "Authentication failed" };
 			}
 
-			if (cover.type !== "image/webp") {
-				return { error: "Cover image must be a WebP file" };
+			const { title, markdown, cover, source } = body || {};
+
+			if (!title || typeof title !== "string" || title.trim().length < 5) {
+				return { error: "Title must be at least 5 characters" };
 			}
 
 			if (
-				typeof cover.hash !== "string" ||
-				typeof cover.name !== "string" ||
-				typeof cover.url !== "string" ||
-				typeof cover.size !== "number"
+				!markdown ||
+				typeof markdown !== "string" ||
+				markdown.trim().length < 50
 			) {
-				return { error: "Invalid cover metadata" };
+				return { error: "Article body must be at least 50 characters" };
 			}
-		}
 
-		const excerpt = buildExcerpt(markdown);
-		const articleId = Bun.randomUUIDv7();
+			if (cover) {
+				if (typeof cover !== "object") {
+					return { error: "Invalid cover metadata" };
+				}
 
-		const article = insertArticle.get(
-			articleId,
-			user.id,
-			excerpt,
-			source || "articles",
-			title.trim(),
-			markdown.trim(),
-		);
+				if (cover.type !== "image/webp") {
+					return { error: "Cover image must be a WebP file" };
+				}
 
-		if (!article) {
-			return { error: "Failed to create article" };
-		}
+				if (
+					typeof cover.hash !== "string" ||
+					typeof cover.name !== "string" ||
+					typeof cover.url !== "string" ||
+					typeof cover.size !== "number"
+				) {
+					return { error: "Invalid cover metadata" };
+				}
+			}
 
-		let attachment = null;
-		if (cover) {
-			attachment = saveAttachment.get(
-				Bun.randomUUIDv7(),
+			const excerpt = buildExcerpt(markdown);
+			const articleId = Bun.randomUUIDv7();
+
+			const article = insertArticle.get(
 				articleId,
-				cover.hash,
-				cover.name,
-				cover.type,
-				cover.size,
-				cover.url,
-			);
-		}
-
-		return {
-			success: true,
-			article: {
-				...article,
-				author: serializeUser(user),
-				attachments: attachment ? [attachment] : [],
-				cover: attachment || null,
+				user.id,
 				excerpt,
-			},
-		};
-	})
-	.get("/", async ({ jwt, headers, query }) => {
-		const authorization = headers.authorization;
-		if (!authorization) return { error: "Authentication required" };
+				source || "articles",
+				title.trim(),
+				markdown.trim(),
+			);
 
-		try {
-			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-			if (!payload) return { error: "Invalid token" };
-			const user = getUserByUsername.get(payload.username);
-			if (!user) return { error: "User not found" };
-		} catch (error) {
-			console.error("Articles list auth error:", error);
-			return { error: "Authentication failed" };
-		}
-
-		const before = query?.before;
-		let articles;
-		if (before) {
-			articles = listArticlesBefore.all(before);
-		} else {
-			articles = listArticles.all();
-		}
-
-		if (articles.length === 0) {
-			return { articles: [] };
-		}
-
-		const userIds = [...new Set(articles.map((item) => item.user_id))];
-		const userPlaceholders = userIds.map(() => "?").join(",");
-		const users = userPlaceholders
-			? db
-					.query(`SELECT * FROM users WHERE id IN (${userPlaceholders})`)
-					.all(...userIds)
-			: [];
-		const userMap = new Map(users.map((u) => [u.id, u]));
-
-		const attachments = getAttachmentsForPostIds(
-			articles.map((item) => item.id),
-		);
-		const attachmentsMap = new Map();
-		attachments.forEach((attachment) => {
-			if (!attachmentsMap.has(attachment.post_id)) {
-				attachmentsMap.set(attachment.post_id, []);
+			if (!article) {
+				return { error: "Failed to create article" };
 			}
-			attachmentsMap.get(attachment.post_id).push(attachment);
-		});
 
-		return {
-			articles: attachArticleExtras(articles, attachmentsMap, userMap),
-			next:
-				articles.length === 10
-					? articles[articles.length - 1].created_at
-					: null,
-		};
-	})
+			let attachment = null;
+			if (cover) {
+				attachment = saveAttachment.get(
+					Bun.randomUUIDv7(),
+					articleId,
+					cover.hash,
+					cover.name,
+					cover.type,
+					cover.size,
+					cover.url,
+				);
+			}
+
+			return {
+				success: true,
+				article: {
+					...article,
+					author: serializeUser(user),
+					attachments: attachment ? [attachment] : [],
+					cover: attachment || null,
+					excerpt,
+				},
+			};
+		},
+		{
+			detail: {
+				description: "Publishes an article",
+			},
+			response: t.Object({
+				success: t.Optional(t.Boolean()),
+				article: t.Optional(t.Object()),
+				error: t.Optional(t.String()),
+			}),
+		},
+	)
+	.get(
+		"/",
+		async ({ jwt, headers, query }) => {
+			const authorization = headers.authorization;
+			if (!authorization) return { error: "Authentication required" };
+
+			try {
+				const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+				if (!payload) return { error: "Invalid token" };
+				const user = getUserByUsername.get(payload.username);
+				if (!user) return { error: "User not found" };
+			} catch (error) {
+				console.error("Articles list auth error:", error);
+				return { error: "Authentication failed" };
+			}
+
+			const before = query?.before;
+			let articles;
+			if (before) {
+				articles = listArticlesBefore.all(before);
+			} else {
+				articles = listArticles.all();
+			}
+
+			if (articles.length === 0) {
+				return { articles: [] };
+			}
+
+			const userIds = [...new Set(articles.map((item) => item.user_id))];
+			const userPlaceholders = userIds.map(() => "?").join(",");
+			const users = userPlaceholders
+				? db
+						.query(`SELECT * FROM users WHERE id IN (${userPlaceholders})`)
+						.all(...userIds)
+				: [];
+			const userMap = new Map(users.map((u) => [u.id, u]));
+
+			const attachments = getAttachmentsForPostIds(
+				articles.map((item) => item.id),
+			);
+			const attachmentsMap = new Map();
+			attachments.forEach((attachment) => {
+				if (!attachmentsMap.has(attachment.post_id)) {
+					attachmentsMap.set(attachment.post_id, []);
+				}
+				attachmentsMap.get(attachment.post_id).push(attachment);
+			});
+
+			return {
+				articles: attachArticleExtras(articles, attachmentsMap, userMap),
+				next:
+					articles.length === 10
+						? articles[articles.length - 1].created_at
+						: null,
+			};
+		},
+		{
+			detail: {
+				description: "Fetches a list of articles",
+			},
+			response: t.Object({
+				articles: t.Array(t.Object()),
+				next: t.Optional(t.String()),
+				error: t.Optional(t.String()),
+			}),
+		},
+	)
 	.get("/:id", async ({ jwt, headers, params }) => {
 		const authorization = headers.authorization;
 		if (!authorization) return { error: "Authentication required" };
@@ -356,4 +382,16 @@ export default new Elysia({ prefix: "/articles", tags: ["Articles"] })
 			},
 			replies: serializedReplies,
 		};
+	}, {
+		detail: {
+			description: "Fetches an article by ID",
+		},
+		response: t.Object({
+			article: t.Object(),
+			replies: t.Array(t.Object()),
+			error: t.Optional(t.String()),
+		}),
+		params: t.Object({
+			id: t.String(),
+		}),
 	});

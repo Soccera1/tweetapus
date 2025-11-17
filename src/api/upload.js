@@ -45,13 +45,10 @@ export default new Elysia({ prefix: "/upload", tags: ["Upload"] })
 		}),
 	)
 	.post(
-		// Tr Happies
 		"/",
 		async ({ jwt, headers, body }) => {
 			const authorization = headers.authorization;
 			if (!authorization) return { error: "Authentication required" };
-
-			console.log("hihi", body);
 
 			try {
 				const payload = await jwt.verify(authorization.replace("Bearer ", ""));

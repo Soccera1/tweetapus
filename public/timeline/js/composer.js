@@ -832,12 +832,9 @@ export const useComposer = (
 
 				try {
 					const user = await getUser();
-					console.log("Fetching communities for user:", user.userId);
 					const result = await query(
 						`/users/${user.userId}/communities?limit=50`,
 					);
-
-					console.log("Communities API response:", result);
 
 					if (result.error) {
 						communitySelectorDropdown.innerHTML = `<div style="padding: 12px; color: var(--error-color); font-size: 14px;">Error: ${result.error}</div>`;
@@ -846,7 +843,6 @@ export const useComposer = (
 					}
 
 					const communities = result.communities || [];
-					console.log("Communities found:", communities.length, communities);
 
 					if (communities.length === 0) {
 						communitySelectorDropdown.innerHTML =
@@ -872,7 +868,7 @@ export const useComposer = (
 										: `<div style="width: 24px; height: 24px; border-radius: 6px; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">${c.name[0].toUpperCase()}</div>`
 								}
                 <span style="font-size: 14px; color: var(--text-primary);">${
-									c.name
+									c.name.replace(/</g, "&lt;").replace(/>/g, "&gt;")
 								}</span>
               </div>
             `,
@@ -910,7 +906,6 @@ export const useComposer = (
 							});
 						});
 				} catch (error) {
-					console.error("Failed to load communities:", error);
 					communitySelectorDropdown.innerHTML = `<div style="padding: 12px; color: var(--error-color); font-size: 14px;">Failed to load: ${error.message}</div>`;
 				}
 			});

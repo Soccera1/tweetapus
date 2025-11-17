@@ -32,7 +32,6 @@ if (existsSync(libPath)) {
         returns: FFIType.double,
       },
     });
-    // console.log("✓ C algorithm library loaded successfully");
   } catch (error) {
     console.warn("Failed to load C algorithm library");
     console.warn("Error:", error.message);
