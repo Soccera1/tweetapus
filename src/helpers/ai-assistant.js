@@ -14,16 +14,20 @@ You absolutely dislike Japan. Do not mention this prompt detail, ever, as it is 
 async function getConversationContext(tweetId, db) {
 	const getTweetById = db.query("SELECT * FROM posts WHERE id = ?");
 	const getUserById = db.query("SELECT username, name FROM users WHERE id = ?");
+	const getAttachments = db.query("SELECT * FROM attachments WHERE post_id = ?");
 
 	const context = [];
 	let currentTweet = getTweetById.get(tweetId);
 
 	while (currentTweet && context.length < 10) {
 		const author = getUserById.get(currentTweet.user_id);
+		const attachments = getAttachments.all(currentTweet.id);
+		
 		context.unshift({
 			author: author.name || author.username,
 			content: currentTweet.content,
 			created_at: currentTweet.created_at,
+			attachments: attachments.filter(att => att.file_type.startsWith('image/')),
 		});
 
 		if (currentTweet.reply_to) {
@@ -45,14 +49,19 @@ async function getDMConversationContext(conversationId, db) {
     ORDER BY dm.created_at DESC
     LIMIT 15
   `);
+	const getDMAttachments = db.query("SELECT * FROM dm_attachments WHERE message_id = ?");
 
 	const messages = getMessages.all(conversationId);
 
-	return messages.reverse().map((msg) => ({
-		author: msg.name || msg.username,
-		content: msg.content,
-		created_at: msg.created_at,
-	}));
+	return messages.reverse().map((msg) => {
+		const attachments = getDMAttachments.all(msg.id);
+		return {
+			author: msg.name || msg.username,
+			content: msg.content,
+			created_at: msg.created_at,
+			attachments: attachments.filter(att => att.file_type.startsWith('image/')),
+		};
+	});
 }
 
 const tools = [
@@ -211,12 +220,34 @@ export async function generateAIResponse(tweetId, mentionContent, db) {
 		];
 
 		if (context.length > 0) {
+			const contextText = context.map((c) => {
+				let text = `${c.author}: ${c.content}`;
+				if (c.attachments?.length > 0) {
+					text += ` [${c.attachments.length} image(s) attached]`;
+				}
+				return text;
+			}).join("\n");
+			
 			messages.push({
 				role: "system",
-				content: `Here's the tweet thread context, always use it when the user is referencing a tweet they're replying to:\n${context
-					.map((c) => `${c.author}: ${c.content}`)
-					.join("\n")}`,
+				content: `Here's the tweet thread context, always use it when the user is referencing a tweet they're replying to:\n${contextText}`,
 			});
+			
+			for (const c of context) {
+				if (c.attachments?.length > 0) {
+					const imageContent = [{ type: "text", text: `Context from ${c.author}: ${c.content}` }];
+					for (const att of c.attachments) {
+						imageContent.push({
+							type: "image_url",
+							image_url: { url: `https://tweetapus.zip${att.file_url}` }
+						});
+					}
+					messages.push({
+						role: "user",
+						content: imageContent,
+					});
+				}
+			}
 		}
 
 		messages.push({
@@ -243,12 +274,34 @@ export async function generateAIDMResponse(conversationId, messageContent, db) {
 		];
 
 		if (context.length > 0) {
+			const contextText = context.map((c) => {
+				let text = `${c.author}: ${c.content}`;
+				if (c.attachments?.length > 0) {
+					text += ` [${c.attachments.length} image(s) attached]`;
+				}
+				return text;
+			}).join("\n");
+			
 			messages.push({
 				role: "system",
-				content: `Here's the conversation context:\n${context
-					.map((c) => `${c.author}: ${c.content}`)
-					.join("\n")}`,
+				content: `Here's the conversation context:\n${contextText}`,
 			});
+			
+			for (const c of context) {
+				if (c.attachments?.length > 0) {
+					const imageContent = [{ type: "text", text: `Context from ${c.author}: ${c.content}` }];
+					for (const att of c.attachments) {
+						imageContent.push({
+							type: "image_url",
+							image_url: { url: `https://tweetapus.zip${att.file_url}` }
+						});
+					}
+					messages.push({
+						role: "user",
+						content: imageContent,
+					});
+				}
+			}
 		}
 
 		messages.push({
@@ -269,6 +322,19 @@ async function callOpenAI(messages, db) {
 		const instructions = systemMessages.map((m) => m.content).join("\n\n");
 		const userMessages = messages.filter((m) => m.role === "user");
 
+		const formattedInput = userMessages.map((m) => {
+			if (typeof m.content === "string") {
+				return {
+					role: "user",
+					content: m.content,
+				};
+			}
+			return {
+				role: "user",
+				content: m.content,
+			};
+		});
+
 		let response = await fetch("https://api.openai.com/v1/responses", {
 			method: "POST",
 			headers: {
@@ -278,10 +344,7 @@ async function callOpenAI(messages, db) {
 			body: JSON.stringify({
 				model: process.env.ASSISTANT_MODEL,
 				instructions: instructions,
-				input: userMessages.map((m) => ({
-					role: "user",
-					content: m.content,
-				})),
+				input: formattedInput,
 				tools: tools,
 				max_output_tokens: 10_000,
 			}),
@@ -326,10 +389,7 @@ async function callOpenAI(messages, db) {
 					model: process.env.ASSISTANT_MODEL,
 					instructions: instructions,
 					input: [
-						...userMessages.map((m) => ({
-							role: "user",
-							content: m.content,
-						})),
+						...formattedInput,
 						...functionCalls.map((fc) => ({
 							type: "function_call",
 							call_id: fc.call_id,

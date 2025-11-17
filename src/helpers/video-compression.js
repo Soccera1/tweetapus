@@ -11,7 +11,6 @@ export async function compressVideo(inputPath, outputPath, options = {}) {
 
 	try {
 		const originalStats = await fs.stat(inputPath);
-		const originalSize = originalStats.size;
 
 		return new Promise((resolve, reject) => {
 			const command = ffmpeg(inputPath)
@@ -33,12 +32,7 @@ export async function compressVideo(inputPath, outputPath, options = {}) {
 						resolve({
 							success: true,
 							outputPath,
-							originalSize,
-							compressedSize,
-							compressionRatio: (
-								((originalSize - compressedSize) / originalSize) *
-								100
-							).toFixed(1),
+							compressedSize
 						});
 					} catch (error) {
 						reject({

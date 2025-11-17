@@ -17,6 +17,18 @@ function hash(str) {
 
 export default async (url, options = {}) => {
 	const token = localStorage.getItem("authToken");
+
+	if (
+		options.body &&
+		!(options.body instanceof FormData) &&
+		(options.body.startsWith("{") || options.body.startsWith("["))
+	) {
+		options.headers = {
+			...(options.headers || {}),
+			"Content-Type": "application/json",
+		};
+	}
+
 	try {
 		const res = await fetch(`/api${url}`, {
 			...options,
@@ -24,7 +36,6 @@ export default async (url, options = {}) => {
 				...(options.headers || {}),
 				Authorization: `Bearer ${token}`,
 				"X-Request-Token": hash(token || "public"),
-				"Content-Type": options.body ? "application/json" : undefined,
 			},
 		});
 

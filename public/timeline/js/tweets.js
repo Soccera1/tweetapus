@@ -864,6 +864,7 @@ export const createTweetElement = (tweet, config = {}) => {
 	tweetHeaderAvatarEl.alt = tweet.author.name || tweet.author.username;
 	tweetHeaderAvatarEl.classList.add("tweet-header-avatar");
 	tweetHeaderAvatarEl.loading = "lazy";
+	tweetHeaderAvatarEl.draggable = false;
 
 	if (
 		tweet.author.avatar_radius !== null &&

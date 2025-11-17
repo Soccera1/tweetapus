@@ -1189,6 +1189,12 @@ nav {
       width: 40px;
       border-radius: 50%;
       cursor: pointer;
+      transition: transform 0.2s, opacity .2s;
+
+      &:active {
+        opacity: .8;
+        transform: scale(0.98);
+      }
     }
 
     .tweet-header-info {

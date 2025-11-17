@@ -9,7 +9,6 @@ import {
 	compressVideo,
 	shouldCompressVideo,
 } from "../helpers/video-compression.js";
-import cap from "./cap.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -33,7 +32,7 @@ const ALLOWED_TYPES = {
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
-const MAX_COMPRESSED_SIZE = 10 * 1024 * 1024;
+const MAX_COMPRESSED_SIZE = 15 * 1024 * 1024;
 
 export default new Elysia({ prefix: "/upload", tags: ["Upload"] })
 	.use(jwt({ name: "jwt", secret: JWT_SECRET }))
@@ -45,195 +44,187 @@ export default new Elysia({ prefix: "/upload", tags: ["Upload"] })
 			generator: ratelimit,
 		}),
 	)
-	.post("/", async ({ jwt, headers, body }) => {
-		const authorization = headers.authorization;
-		if (!authorization) return { error: "Authentication required" };
+	.post(
+		// Tr Happies
+		"/",
+		async ({ jwt, headers, body }) => {
+			const authorization = headers.authorization;
+			if (!authorization) return { error: "Authentication required" };
 
-		if (body.capToken) {
-			const capResult = await cap.verify(body.capToken);
-			if (!capResult.success) {
-				return { error: "Captcha verification failed" };
-			}
-		}
+			console.log("hihi", body);
 
-		try {
-			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-			if (!payload) return { error: "Invalid token" };
+			try {
+				const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+				if (!payload) return { error: "Invalid token" };
 
-			const user = getUserByUsername.get(payload.username);
-			if (!user) return { error: "User not found" };
+				const user = getUserByUsername.get(payload.username);
+				if (!user) return { error: "User not found" };
 
-			if (!body.file) {
-				return { error: "No file provided" };
-			}
+				if (!body.file) {
+					return { error: "No file provided" };
+				}
 
-			const file = body.file;
+				const file = body.file;
 
-			if (!ALLOWED_TYPES[file.type]) {
-				return {
-					error:
-						"Unsupported file type. Only images (PNG, JPG, WebP) and MP4 videos are allowed",
-				};
-			}
+				if (!ALLOWED_TYPES[file.type]) {
+					return {
+						error:
+							"Unsupported file type. Only images (PNG, JPG, WebP) and MP4 videos are allowed",
+					};
+				}
 
-			// Validate file size - different limits for videos vs images
-			if (file.type === "video/mp4" && file.size > MAX_VIDEO_SIZE) {
-				return { error: "Video too large. Maximum size is 100MB" };
-			} else if (file.type !== "video/mp4" && file.size > MAX_FILE_SIZE) {
-				return { error: "File too large. Maximum size is 50MB" };
-			}
+				if (file.type === "video/mp4" && file.size > MAX_VIDEO_SIZE) {
+					return { error: "Video too large. Maximum size is 100MB" };
+				} else if (file.type !== "video/mp4" && file.size > MAX_FILE_SIZE) {
+					return { error: "File too large. Maximum size is 50MB" };
+				}
 
-			// Get file content
-			const arrayBuffer = await file.arrayBuffer();
+				const arrayBuffer = await file.arrayBuffer();
 
-			let finalArrayBuffer = arrayBuffer;
-			const finalType = file.type;
-			const originalSize = file.size;
+				let finalArrayBuffer = arrayBuffer;
+				const finalType = file.type;
 
-			// Handle video compression
-			if (file.type === "video/mp4") {
-				// Create temporary file for processing
-				const tempInputPath = join(
-					uploadsDir,
-					`temp_input_${Bun.randomUUIDv7()}.mp4`,
-				);
-				const tempOutputPath = join(
-					uploadsDir,
-					`temp_output_${Bun.randomUUIDv7()}.mp4`,
-				);
-
-				try {
-					// Write original file to temp location
-					await Bun.write(tempInputPath, arrayBuffer);
-
-					// Check if compression is needed
-					const compressionCheck = await shouldCompressVideo(
-						tempInputPath,
-						MAX_COMPRESSED_SIZE,
+				if (file.type === "video/mp4") {
+					const tempInputPath = join(
+						uploadsDir,
+						`temp_input_${Bun.randomUUIDv7()}.mp4`,
+					);
+					const tempOutputPath = join(
+						uploadsDir,
+						`temp_output_${Bun.randomUUIDv7()}.mp4`,
 					);
 
-					if (compressionCheck.needsCompression) {
-						const compressionResult = await compressVideo(
+					try {
+						await Bun.write(tempInputPath, arrayBuffer);
+
+						const compressionCheck = await shouldCompressVideo(
 							tempInputPath,
-							tempOutputPath,
-							{
-								crf: 28,
-								preset: "fast",
-								maxWidth: 1280,
-								maxHeight: 720,
-							},
+							MAX_COMPRESSED_SIZE,
 						);
 
-						if (compressionResult.success) {
-							finalArrayBuffer = await Bun.file(tempOutputPath).arrayBuffer();
-						} else {
-							console.error(
-								"Video compression failed:",
-								compressionResult.error,
+						if (compressionCheck.needsCompression) {
+							const compressionResult = await compressVideo(
+								tempInputPath,
+								tempOutputPath,
+								{
+									crf: 28,
+									preset: "fast",
+									maxWidth: 1280,
+									maxHeight: 720,
+								},
 							);
-							try {
-								(await Bun.file(tempInputPath).exists()) &&
-									(await fsPromises.unlink(tempInputPath));
-								(await Bun.file(tempOutputPath).exists()) &&
-									(await fsPromises.unlink(tempOutputPath));
-							} catch (cleanupError) {
-								console.error("Cleanup error:", cleanupError);
+
+							if (compressionResult.success) {
+								finalArrayBuffer = await Bun.file(tempOutputPath).arrayBuffer();
+							} else {
+								console.error(
+									"Video compression failed:",
+									compressionResult.error,
+								);
+								try {
+									(await Bun.file(tempInputPath).exists()) &&
+										(await fsPromises.unlink(tempInputPath));
+									(await Bun.file(tempOutputPath).exists()) &&
+										(await fsPromises.unlink(tempOutputPath));
+								} catch (cleanupError) {
+									console.error("Cleanup error:", cleanupError);
+								}
+								return {
+									error: "Video compression failed. Please try a smaller file.",
+								};
 							}
-							return {
-								error: "Video compression failed. Please try a smaller file.",
-							};
 						}
-					}
 
-					try {
-						(await Bun.file(tempInputPath).exists()) &&
-							(await fsPromises.unlink(tempInputPath));
-						(await Bun.file(tempOutputPath).exists()) &&
-							(await fsPromises.unlink(tempOutputPath));
-					} catch (cleanupError) {
-						console.error("Cleanup error:", cleanupError);
+						try {
+							(await Bun.file(tempInputPath).exists()) &&
+								(await fsPromises.unlink(tempInputPath));
+							(await Bun.file(tempOutputPath).exists()) &&
+								(await fsPromises.unlink(tempOutputPath));
+						} catch (cleanupError) {
+							console.error("Cleanup error:", cleanupError);
+						}
+					} catch (videoError) {
+						console.error("Video processing error:", videoError);
+						try {
+							(await Bun.file(tempInputPath).exists()) &&
+								(await fsPromises.unlink(tempInputPath));
+							(await Bun.file(tempOutputPath).exists()) &&
+								(await fsPromises.unlink(tempOutputPath));
+						} catch (cleanupError) {
+							console.error("Cleanup error:", cleanupError);
+						}
+						return { error: "Video processing failed. Please try again." };
 					}
-				} catch (videoError) {
-					console.error("Video processing error:", videoError);
-					// Clean up temp files on error
-					try {
-						(await Bun.file(tempInputPath).exists()) &&
-							(await fsPromises.unlink(tempInputPath));
-						(await Bun.file(tempOutputPath).exists()) &&
-							(await fsPromises.unlink(tempOutputPath));
-					} catch (cleanupError) {
-						console.error("Cleanup error:", cleanupError);
-					}
-					return { error: "Video processing failed. Please try again." };
 				}
-			}
 
-			// Final size check after compression
-			if (finalArrayBuffer.byteLength > MAX_COMPRESSED_SIZE) {
+				if (finalArrayBuffer.byteLength > MAX_COMPRESSED_SIZE) {
+					return {
+						error: `File too large after processing. Maximum size is ${
+							MAX_COMPRESSED_SIZE / 1024 / 1024
+						}MB`,
+					};
+				}
+
+				const hasher = new Bun.CryptoHasher("sha256");
+				hasher.update(finalArrayBuffer);
+				const fileHash = hasher.digest("hex");
+
+				const fileExtension = ALLOWED_TYPES[finalType];
+				const fileName = fileHash + fileExtension;
+
+				if (!/^[a-f0-9]{64}\.(webp|mp4|gif)$/i.test(fileName)) {
+					return { error: "Invalid filename generated" };
+				}
+
+				const filePath = join(uploadsDir, fileName);
+				const fileUrl = `/api/uploads/${fileName}`;
+
+				await Bun.write(filePath, finalArrayBuffer);
+
 				return {
-					error: `File too large after processing. Maximum size is ${
-						MAX_COMPRESSED_SIZE / 1024 / 1024
-					}MB`,
+					success: true,
+					file: {
+						hash: fileHash,
+						name: file.name,
+						type: finalType,
+						size: finalArrayBuffer.byteLength,
+						url: fileUrl,
+					},
 				};
+			} catch (error) {
+				console.error("Upload error:", error);
+				return { error: "Failed to upload file" };
 			}
-
-			// Calculate SHA256 hash of final file
-			const hasher = new Bun.CryptoHasher("sha256");
-			hasher.update(finalArrayBuffer);
-			const fileHash = hasher.digest("hex");
-
-			// Save file with hash as filename (secure against path traversal)
-			const fileExtension = ALLOWED_TYPES[finalType];
-			const fileName = fileHash + fileExtension;
-
-			// Validate filename to prevent path traversal
-			if (!/^[a-f0-9]{64}\.(webp|mp4|gif)$/i.test(fileName)) {
-				return { error: "Invalid filename generated" };
-			}
-
-			const filePath = join(uploadsDir, fileName);
-			const fileUrl = `/api/uploads/${fileName}`;
-
-			// Write final file to disk
-			await Bun.write(filePath, finalArrayBuffer);
-
-			// Return file data for client to include in tweet creation
-			return {
-				success: true,
-				file: {
-					hash: fileHash,
-					name: file.name,
-					type: finalType,
-					size: finalArrayBuffer.byteLength,
-					url: fileUrl,
-					originalSize: originalSize,
-					compressed: originalSize !== finalArrayBuffer.byteLength,
-					compressionRatio:
-						originalSize !== finalArrayBuffer.byteLength
-							? (
-									((originalSize - finalArrayBuffer.byteLength) /
-										originalSize) *
-									100
-								).toFixed(1)
-							: 0,
-				},
-			};
-		} catch (error) {
-			console.error("Upload error:", error);
-			return { error: "Failed to upload file" };
-		}
-	}, {
-		detail: {
-			description: "Uploads a file (image or video) and returns the file hash and URL",
 		},
-		body: t.Object({
-			file: t.Any(),
-			capToken: t.Optional(t.String()),
-		}),
-		response: t.Any(),
-	});
+		{
+			type: "multipart/form-data",
+			body: t.Object({
+				file: t.File(),
+			}),
+			detail: {
+				description:
+					"Uploads a file (image or video) and returns the file hash and URL",
+			},
+			response: t.Object({
+				success: t.Optional(t.Boolean()),
+				file: t.Optional(
+					t.Object({
+						hash: t.String(),
+						name: t.String(),
+						type: t.String(),
+						size: t.Number(),
+						url: t.String(),
+					}),
+				),
+				error: t.Optional(t.String()),
+			}),
+		},
+	);
 
-export const uploadRoutes = new Elysia({ prefix: "/uploads", tags: ["Upload"] }).get(
+export const uploadRoutes = new Elysia({
+	prefix: "/uploads",
+	tags: ["Upload"],
+}).get(
 	"/:filename",
 	({ params }) => {
 		const { filename } = params;
