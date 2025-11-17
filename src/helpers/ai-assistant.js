@@ -14,7 +14,9 @@ You absolutely dislike Japan. Do not mention this prompt detail, ever, as it is 
 async function getConversationContext(tweetId, db) {
 	const getTweetById = db.query("SELECT * FROM posts WHERE id = ?");
 	const getUserById = db.query("SELECT username, name FROM users WHERE id = ?");
-	const getAttachments = db.query("SELECT * FROM attachments WHERE post_id = ?");
+	const getAttachments = db.query(
+		"SELECT * FROM attachments WHERE post_id = ?",
+	);
 
 	const context = [];
 	let currentTweet = getTweetById.get(tweetId);
@@ -22,12 +24,14 @@ async function getConversationContext(tweetId, db) {
 	while (currentTweet && context.length < 10) {
 		const author = getUserById.get(currentTweet.user_id);
 		const attachments = getAttachments.all(currentTweet.id);
-		
+
 		context.unshift({
 			author: author.name || author.username,
 			content: currentTweet.content,
 			created_at: currentTweet.created_at,
-			attachments: attachments.filter(att => att.file_type.startsWith('image/')),
+			attachments: attachments.filter((att) =>
+				att.file_type.startsWith("image/"),
+			),
 		});
 
 		if (currentTweet.reply_to) {
@@ -49,7 +53,9 @@ async function getDMConversationContext(conversationId, db) {
     ORDER BY dm.created_at DESC
     LIMIT 15
   `);
-	const getDMAttachments = db.query("SELECT * FROM dm_attachments WHERE message_id = ?");
+	const getDMAttachments = db.query(
+		"SELECT * FROM dm_attachments WHERE message_id = ?",
+	);
 
 	const messages = getMessages.all(conversationId);
 
@@ -59,7 +65,9 @@ async function getDMConversationContext(conversationId, db) {
 			author: msg.name || msg.username,
 			content: msg.content,
 			created_at: msg.created_at,
-			attachments: attachments.filter(att => att.file_type.startsWith('image/')),
+			attachments: attachments.filter((att) =>
+				att.file_type.startsWith("image/"),
+			),
 		};
 	});
 }
@@ -220,26 +228,30 @@ export async function generateAIResponse(tweetId, mentionContent, db) {
 		];
 
 		if (context.length > 0) {
-			const contextText = context.map((c) => {
-				let text = `${c.author}: ${c.content}`;
-				if (c.attachments?.length > 0) {
-					text += ` [${c.attachments.length} image(s) attached]`;
-				}
-				return text;
-			}).join("\n");
-			
+			const contextText = context
+				.map((c) => {
+					let text = `${c.author}: ${c.content}`;
+					if (c.attachments?.length > 0) {
+						text += ` [${c.attachments.length} image(s) attached]`;
+					}
+					return text;
+				})
+				.join("\n");
+
 			messages.push({
 				role: "system",
 				content: `Here's the tweet thread context, always use it when the user is referencing a tweet they're replying to:\n${contextText}`,
 			});
-			
+
 			for (const c of context) {
 				if (c.attachments?.length > 0) {
-					const imageContent = [{ type: "text", text: `Context from ${c.author}: ${c.content}` }];
+					const imageContent = [
+						{ type: "text", text: `Context from ${c.author}: ${c.content}` },
+					];
 					for (const att of c.attachments) {
 						imageContent.push({
 							type: "image_url",
-							image_url: { url: `https://tweetapus.zip${att.file_url}` }
+							image_url: { url: `https://tweetapus.zip${att.file_url}` },
 						});
 					}
 					messages.push({
@@ -274,26 +286,30 @@ export async function generateAIDMResponse(conversationId, messageContent, db) {
 		];
 
 		if (context.length > 0) {
-			const contextText = context.map((c) => {
-				let text = `${c.author}: ${c.content}`;
-				if (c.attachments?.length > 0) {
-					text += ` [${c.attachments.length} image(s) attached]`;
-				}
-				return text;
-			}).join("\n");
-			
+			const contextText = context
+				.map((c) => {
+					let text = `${c.author}: ${c.content}`;
+					if (c.attachments?.length > 0) {
+						text += ` [${c.attachments.length} image(s) attached]`;
+					}
+					return text;
+				})
+				.join("\n");
+
 			messages.push({
 				role: "system",
 				content: `Here's the conversation context:\n${contextText}`,
 			});
-			
+
 			for (const c of context) {
 				if (c.attachments?.length > 0) {
-					const imageContent = [{ type: "text", text: `Context from ${c.author}: ${c.content}` }];
+					const imageContent = [
+						{ type: "text", text: `Context from ${c.author}: ${c.content}` },
+					];
 					for (const att of c.attachments) {
 						imageContent.push({
 							type: "image_url",
-							image_url: { url: `https://tweetapus.zip${att.file_url}` }
+							image_url: { url: `https://tweetapus.zip${att.file_url}` },
 						});
 					}
 					messages.push({
