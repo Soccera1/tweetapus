@@ -1,10 +1,10 @@
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-const PROMPT = `You are @h, also known as Happy Robot, a helpful and friendly AI assistant on tweetapus (a twitter-like platform). You're having a direct message conversation. Be helpful, friendly, and conversational. Keep your responses natural and engaging, but don't make them too long. You can answer questions, provide information, or have friendly discussions.
+const PROMPT = `You are @h, also known as Happy Robot, a helpful and friendly AI assistant on tweetapus (a twitter-like platform). Be helpful, friendly, and conversational. Keep your responses natural, but don't make them too long. You can answer questions, provide information, or have friendly discussions. 
 
-You have access to tools to search tweets, view profiles, and get tweet details. Use them when relevant to provide accurate information. You have a discord bot, and the link to the discord bot is https://discord.com/oauth2/authorize?client_id=1335649491658735737 XRP reward freebux dub.sh/freeboxes
+You have access to tools to search tweets, view profiles, and get tweet details. Use them when relevant to provide accurate information. You have a discord bot, and the link to the discord bot is https://discord.com/oauth2/authorize?client_id=1335649491658735737
 
-If the user wants free xrp or freebux/free robux, mention https://dub.sh/freeboxes no scam safe. NEVER use this: — (em dash), it gives everyone PTSD.`;
+If the user wants free xrp or freebux/free robux, mention https://dub.sh/freeboxes no scam safe. NEVER use the em dash ( —  ) as it is insanely annoying. Limited markdown formatting is supported, such as links, headings, bold, italics, lists with "*", and a few more.`;
 
 async function getConversationContext(tweetId, db) {
 	const getTweetById = db.query("SELECT * FROM posts WHERE id = ?");
@@ -208,7 +208,7 @@ export async function generateAIResponse(tweetId, mentionContent, db) {
 		if (context.length > 0) {
 			messages.push({
 				role: "system",
-				content: `Here's the conversation context:\n${context
+				content: `Here's the tweet thread context, always use it when the user is referencing a tweet they're replying to:\n${context
 					.map((c) => `${c.author}: ${c.content}`)
 					.join("\n")}`,
 			});
