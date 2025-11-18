@@ -496,12 +496,18 @@ async function openConversation(conversationId) {
 		hasMoreMessages = true;
 		isLoadingMoreMessages = false;
 
-		switchPage("dm-conversation", { path: `/dm/${conversationId}` });
-		renderConversationHeader();
-		renderMessages();
-		scrollToBottom();
-		markConversationAsRead(conversationId);
-		setupInfiniteScroll();
+		switchPage("dm-conversation", {
+			path: `/dm/${conversationId}`,
+			recoverState: () => {
+				if (currentConversation) {
+					renderConversationHeader();
+					renderMessages();
+					scrollToBottom();
+					markConversationAsRead(conversationId);
+					setupInfiniteScroll();
+				}
+			},
+		});
 	} catch (error) {
 		console.error("Failed to open conversation:", error);
 		toastQueue.add("Failed to open conversation");
