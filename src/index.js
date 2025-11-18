@@ -117,7 +117,13 @@ cleanupExpiredMessages();
 
 new Elysia()
 	.use(compression)
-	.use(staticPlugin())
+	.use(
+		staticPlugin({
+			headers: {
+				"Cache-Control": "public, max-age=86400",
+			},
+		}),
+	)
 	.use(
 		openapi({
 			path: "/api",

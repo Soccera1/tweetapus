@@ -19,8 +19,10 @@
 		const endpoint =
 			extension.fileEndpoint ||
 			`/api/extensions/${encodeURIComponent(extension.install_dir || extension.id)}/file`;
-		const v = extension.bundleHash ? `&v=${extension.bundleHash}` : "";
-		return `${endpoint}?path=${encodeURIComponent(relativePath)}${v}`;
+		const versionParam = extension.bundleHash
+			? `&v=${extension.bundleHash}`
+			: "";
+		return `${endpoint}?path=${encodeURIComponent(relativePath)}${versionParam}`;
 	};
 
 	const markReady = () => {
@@ -86,10 +88,9 @@
 			}
 			const payload = await response.json();
 			state.entries = Array.isArray(payload.extensions)
-				? payload.extensions.filter((entry) => {
-						if (!entry?.id || !entry?.rootFile) return false;
-						return true;
-					})
+				? payload.extensions.filter((entry) =>
+						Boolean(entry?.id && entry?.rootFile),
+					)
 				: [];
 			state.entries.forEach(injectExtensionAssets);
 			markReady();

@@ -93,7 +93,7 @@ export default new Elysia({
 	.use(
 		rateLimit({
 			duration: 10_000,
-			max: 30,
+			max: 50,
 			scoping: "scoped",
 			generator: ratelimit,
 		}),

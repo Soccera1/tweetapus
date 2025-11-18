@@ -67,8 +67,8 @@ function getPasskeyByCredId(credId) {
 export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 	.use(
 		rateLimit({
-			duration: 10_000,
-			max: 30,
+			duration: 30_000,
+			max: 5,
 			scoping: "scoped",
 			generator: ratelimit,
 		}),

@@ -1154,12 +1154,11 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 				return { error: "You cannot enable notifications for yourself" };
 			}
 
-			const followStatus = getFollowStatus.get(
-				currentUser.id,
-				targetUser.id,
-			);
+			const followStatus = getFollowStatus.get(currentUser.id, targetUser.id);
 			if (!followStatus) {
-				return { error: "You must follow this user to update notification settings" };
+				return {
+					error: "You must follow this user to update notification settings",
+				};
 			}
 
 			const notify = body?.notify;

@@ -1742,7 +1742,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 											a.created_at || new Date().toISOString(),
 										);
 									}
-								} catch (e) {
+								} catch {
 									console.error(
 										"Failed to clone attachments for post",
 										cp.origId,
@@ -2562,7 +2562,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				}
 
 				return response;
-			} catch (err) {
+			} catch {
 				console.error("Error in PATCH /admin/users/:id:", err);
 				return { error: "Internal server error" };
 			}
@@ -3523,13 +3523,18 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 			const dirents = await fs.readdir(extensionsInstallDir, {
 				withFileTypes: true,
 			});
-			const managedDirs = new Set(
-				managed.map((r) => r.install_dir).filter(Boolean),
-			);
+			// Keep a quick lookup for managed records by install_dir.
+			const managedByDir = new Map(managed.map((r) => [r.install_dir, r]));
 			for (const d of dirents) {
 				if (!d.isDirectory()) continue;
 				const name = d.name;
-				if (managedDirs.has(name)) continue;
+				// If a managed record has the same install_dir, normally this
+				// would be the managed record we already included. However,
+				// in some de-import edge cases the managed DB row might not
+				// actually match the ext.json inside ext/<name>. If the ext
+				// manifest id differs from the managed record's id, prefer
+				// to show the manual entry as a reconstructed manual item.
+				const managedRecord = managedByDir.get(name);
 				const manifestPath = join(extensionsInstallDir, name, "ext.json");
 				let content;
 				try {
@@ -3541,6 +3546,13 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				try {
 					json = JSON.parse(content);
 				} catch {
+					continue;
+				}
+				// If the manifest has an id that matches a managed DB row, skip manual entry.
+				// Otherwise, treat this as a new manual extension with its directory as the id.
+				if (managedRecord && json?.id && json.id === managedRecord.id) {
+					// This directory corresponds to a managed DB row already
+					// included above — skip it.
 					continue;
 				}
 				try {
@@ -3568,7 +3580,50 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 						settings_schema: payload.settings_schema || [],
 					});
 				} catch {
-					// skip invalid manifest
+					// Provide a tolerant fallback for slightly malformed ext.json files
+					try {
+						const fileEndpoint = `/api/extensions/${encodeURIComponent(name)}/file`;
+						const rootCandidate =
+							json?.root_file ??
+							json?.rootFile ??
+							json?.main ??
+							json?.entry ??
+							"src/index.js";
+						// Ensure root candidate looks like a src/ JS file
+						if (
+							typeof rootCandidate === "string" &&
+							rootCandidate.startsWith("src/") &&
+							rootCandidate.endsWith(".js")
+						) {
+							manual.push({
+								id: name,
+								name: json?.name || name,
+								version: json?.version || "0.0.0",
+								author: json?.author ?? null,
+								summary: json?.summary ?? null,
+								description: json?.description ?? null,
+								website: json?.website ?? null,
+								changelog_url: json?.changelog_url ?? null,
+								root_file: rootCandidate,
+								entry_type: json?.entry_type ?? json?.entryType ?? "module",
+								styles: Array.isArray(json?.styles)
+									? json.styles.filter(Boolean)
+									: [],
+								capabilities: Array.isArray(json?.capabilities)
+									? json.capabilities
+									: [],
+								targets: Array.isArray(json?.targets) ? json.targets : [],
+								bundle_hash: null,
+								fileEndpoint,
+								enabled: false,
+								managed: false,
+								install_dir: name,
+								settings_schema: Array.isArray(json?.settings)
+									? json.settings
+									: [],
+							});
+						}
+					} catch {}
 				}
 			}
 		} catch {
@@ -4053,9 +4108,8 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 		}
 
 		extensionQueries.delete.run(params.id);
-		// By default do NOT remove files unless explicitly requested via query param
-		// This lets admins remove DB records but keep the ext/<dir> folder for
-		// re-importing later. To remove files too, call DELETE ?remove_files=1
+		const manifest = parseJsonField(record.manifest_json, {});
+		const dirName = sanitizeDirectorySegment(manifest?.install_dir ?? "");
 		const removeFiles =
 			(query &&
 				(query.remove_files === "1" || query.remove_files === "true")) ||
@@ -4067,71 +4121,109 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				const legacyDir = join(legacyExtensionsDir, params.id);
 				if (legacyDir !== primaryDir) {
 					await fs.rm(legacyDir, { recursive: true, force: true });
-				} else {
-					// If not removing files, attempt to preserve manual presence by migrating
-					// managed settings back to the install directory name and cleaning up ext.json.
-					try {
-						const manifest = parseJsonField(record.manifest_json, {});
-						const dirName = sanitizeDirectorySegment(
-							manifest?.install_dir ?? "",
-						);
-						if (dirName) {
-							// Migrate settings back to manual key if they exist under managed id
-							try {
-								const managedSettingsRow = extensionSettingsQueries.get.get(
-									record.id,
-								);
-								if (managedSettingsRow?.settings) {
-									extensionSettingsQueries.upsert.run(
-										dirName,
-										managedSettingsRow.settings,
-									);
-									db.query(
-										"DELETE FROM extension_settings WHERE extension_id = ?",
-									).run(record.id);
-								}
-							} catch (e) {
-								console.error(
-									"Failed to migrate settings back to manual id",
-									e,
-								);
-							}
-							// Attempt to rewrite ext.json to remove the managed id so the manual discovery
-							// recognizes it by its install directory name rather than a UUID.
-							try {
-								const manifestPath = join(
-									extensionsInstallDir,
-									dirName,
-									"ext.json",
-								);
-								const content = await fs.readFile(manifestPath, "utf8");
-								const json = JSON.parse(content);
-								// Remove the managed id if present
-								if (json && (json.id || json.install_dir)) {
-									delete json.id;
-									json.install_dir = dirName;
-									await fs.writeFile(
-										manifestPath,
-										JSON.stringify(json, null, 2),
-									);
-								}
-							} catch (e) {
-								// not critical if writing the manifest fails; log and continue
-								console.error("Failed to update ext.json after de-import", e);
-							}
-						}
-					} catch (e) {
-						console.error("Failed to finalize de-import migration", e);
-					}
 				}
 			} catch (error) {
 				console.error("Failed to remove extension directory", error);
+			}
+			try {
+				db.query("DELETE FROM extension_settings WHERE extension_id = ?").run(
+					record.id,
+				);
+			} catch (error) {
+				console.error("Failed to drop managed extension settings", error);
+			}
+		} else if (dirName) {
+			try {
+				const managedSettingsRow = extensionSettingsQueries.get.get(record.id);
+				if (managedSettingsRow?.settings) {
+					extensionSettingsQueries.upsert.run(
+						dirName,
+						managedSettingsRow.settings,
+					);
+				}
+				db.query("DELETE FROM extension_settings WHERE extension_id = ?").run(
+					record.id,
+				);
+			} catch (error) {
+				console.error(
+					"Failed to migrate extension settings to manual id",
+					error,
+				);
+			}
+			try {
+				const manifestPath = join(extensionsInstallDir, dirName, "ext.json");
+				const content = await fs.readFile(manifestPath, "utf8");
+				let json;
+				try {
+					json = JSON.parse(content);
+				} catch {
+					json = {};
+				}
+				const manualManifest =
+					typeof json.original === "object" && json.original
+						? json.original
+						: json;
+				const nextManifest = {
+					...manualManifest,
+					install_dir: dirName,
+				};
+				delete nextManifest.id;
+				await fs.writeFile(manifestPath, JSON.stringify(nextManifest, null, 2));
+			} catch (error) {
+				console.error("Failed to update ext.json after de-import", error);
+			}
+		} else {
+			try {
+				db.query("DELETE FROM extension_settings WHERE extension_id = ?").run(
+					record.id,
+				);
+			} catch (error) {
+				console.error("Failed to clean up extension settings", error);
 			}
 		}
 
 		logModerationAction(user.id, "delete_extension", "extension", params.id, {
 			name: record.name,
 		});
+
+		// If we preserved files (de-import), return the manual descriptor to the client
+		if (!removeFiles && dirName) {
+			const manifestPath = join(extensionsInstallDir, dirName, "ext.json");
+			let content = null;
+			try {
+				content = await fs.readFile(manifestPath, "utf8");
+				const json = JSON.parse(content);
+				const payload = buildManifestPayload(json);
+				const fileEndpoint = `/api/extensions/${encodeURIComponent(dirName)}/file`;
+				return {
+					success: true,
+					manual: {
+						id: dirName,
+						name: payload.name || dirName,
+						version: payload.version || "0.0.0",
+						author: payload.author || null,
+						summary: payload.summary || null,
+						description: payload.description || null,
+						website: payload.website || null,
+						changelog_url: payload.changelog_url || null,
+						root_file: payload.root_file,
+						entry_type: payload.entry_type,
+						styles: payload.styles || [],
+						capabilities: payload.capabilities || [],
+						targets: payload.targets || [],
+						bundle_hash: null,
+						fileEndpoint,
+						enabled: false,
+						managed: false,
+						install_dir: dirName,
+						settings_schema: payload.settings_schema || [],
+					},
+				};
+			} catch {
+				// Best effort: if we can't build a manifest to return, still report success
+				return { success: true };
+			}
+		}
 
 		return { success: true };
 	})

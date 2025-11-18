@@ -252,8 +252,8 @@ const parseManualManifest = (manifest, dirName) => {
 	) {
 		return null;
 	}
-	// Use the directory name as the canonical identifier for manual installs.
-	// This keeps the manual entry stable across import/de-import cycles.
+	// Use the directory name as the canonical identifier for manual installs
+	// to ensure the manual extension's id stays stable across import/de-import.
 	const safeId = dirName;
 	const name = sanitizeShortText(manifest.name, 80) || safeId;
 	const version = sanitizeShortText(manifest.version, 32) || "0.0.0";
@@ -278,7 +278,9 @@ const parseManualManifest = (manifest, dirName) => {
 		manifest.schema ??
 		manifest["settings-schema"];
 	return {
-		// Keep the 'id' referencing the install directory (manual namespace)
+		// expose the id as the install directory name so the frontend and
+		// admin APIs consistently reference manual entries by directory
+		// rather than an embedded manifest id.
 		id: safeId,
 		name,
 		version,
@@ -317,7 +319,42 @@ const discoverManualExtensions = async (managedInstallDirs = new Set()) => {
 			} catch {
 				continue;
 			}
-			const descriptor = parseManualManifest(parsed, dirName);
+			let descriptor = parseManualManifest(parsed, dirName);
+			if (!descriptor) {
+				// tolerant fallback: attempt to build a minimal descriptor
+				const rootCandidate =
+					parsed?.root_file ??
+					parsed?.rootFile ??
+					parsed?.main ??
+					parsed?.entry ??
+					"src/index.js";
+				if (
+					typeof rootCandidate === "string" &&
+					rootCandidate.startsWith("src/") &&
+					rootCandidate.endsWith(".js")
+				) {
+					descriptor = {
+						id: dirName,
+						name: parsed?.name || dirName,
+						version: parsed?.version || "0.0.0",
+						author: parsed?.author || null,
+						summary: parsed?.summary || null,
+						description: parsed?.description || null,
+						website: parsed?.website || null,
+						changelogUrl: parsed?.changelog_url || parsed?.changelogUrl || null,
+						rootFile: rootCandidate,
+						entryType: parsed?.entry_type || parsed?.entryType || "module",
+						styles: Array.isArray(parsed?.styles) ? parsed.styles : [],
+						capabilities: Array.isArray(parsed?.capabilities)
+							? parsed.capabilities
+							: [],
+						targets: Array.isArray(parsed?.targets) ? parsed.targets : [],
+						settingsSchema: Array.isArray(parsed?.settings)
+							? parsed.settings
+							: [],
+					};
+				}
+			}
 			if (!descriptor) continue;
 			const hasher = new Bun.CryptoHasher("sha256");
 			hasher.update(manifestText);
