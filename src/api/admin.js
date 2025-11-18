@@ -3545,6 +3545,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				}
 				try {
 					const payload = buildManifestPayload(json);
+					const fileEndpoint = `/api/extensions/${encodeURIComponent(name)}/file`;
 					manual.push({
 						id: name,
 						name: payload.name || name,
@@ -3560,6 +3561,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 						capabilities: payload.capabilities || [],
 						targets: payload.targets || [],
 						bundle_hash: null,
+						fileEndpoint,
 						enabled: false,
 						managed: false,
 						install_dir: name,
@@ -3912,6 +3914,23 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 			return { error: "Failed to import extension" };
 		}
 
+		// If manual settings exist under the directory name, migrate them to the new managed id
+		try {
+			const manualSettings = extensionSettingsQueries.get.get(dir);
+			if (manualSettings?.settings) {
+				extensionSettingsQueries.upsert.run(
+					extensionId,
+					manualSettings.settings,
+				);
+				// remove manual settings so future reads use the managed id
+				db.query("DELETE FROM extension_settings WHERE extension_id = ?").run(
+					dir,
+				);
+			}
+		} catch (e) {
+			console.error("Failed to migrate manual extension settings", e);
+		}
+
 		// Optionally enrich the ext.json on disk with install metadata
 		try {
 			const enriched = { id: extensionId, install_dir: dir, ...manifest };
@@ -4048,6 +4067,62 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				const legacyDir = join(legacyExtensionsDir, params.id);
 				if (legacyDir !== primaryDir) {
 					await fs.rm(legacyDir, { recursive: true, force: true });
+				} else {
+					// If not removing files, attempt to preserve manual presence by migrating
+					// managed settings back to the install directory name and cleaning up ext.json.
+					try {
+						const manifest = parseJsonField(record.manifest_json, {});
+						const dirName = sanitizeDirectorySegment(
+							manifest?.install_dir ?? "",
+						);
+						if (dirName) {
+							// Migrate settings back to manual key if they exist under managed id
+							try {
+								const managedSettingsRow = extensionSettingsQueries.get.get(
+									record.id,
+								);
+								if (managedSettingsRow?.settings) {
+									extensionSettingsQueries.upsert.run(
+										dirName,
+										managedSettingsRow.settings,
+									);
+									db.query(
+										"DELETE FROM extension_settings WHERE extension_id = ?",
+									).run(record.id);
+								}
+							} catch (e) {
+								console.error(
+									"Failed to migrate settings back to manual id",
+									e,
+								);
+							}
+							// Attempt to rewrite ext.json to remove the managed id so the manual discovery
+							// recognizes it by its install directory name rather than a UUID.
+							try {
+								const manifestPath = join(
+									extensionsInstallDir,
+									dirName,
+									"ext.json",
+								);
+								const content = await fs.readFile(manifestPath, "utf8");
+								const json = JSON.parse(content);
+								// Remove the managed id if present
+								if (json && (json.id || json.install_dir)) {
+									delete json.id;
+									json.install_dir = dirName;
+									await fs.writeFile(
+										manifestPath,
+										JSON.stringify(json, null, 2),
+									);
+								}
+							} catch (e) {
+								// not critical if writing the manifest fails; log and continue
+								console.error("Failed to update ext.json after de-import", e);
+							}
+						}
+					} catch (e) {
+						console.error("Failed to finalize de-import migration", e);
+					}
 				}
 			} catch (error) {
 				console.error("Failed to remove extension directory", error);

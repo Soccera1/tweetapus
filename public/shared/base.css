@@ -329,6 +329,78 @@ img {
   font-size: 13px;
 }
 
+.vibe-selector-btn {
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.vibe-selector-btn:hover {
+  background: var(--bg-overlay-light);
+}
+
+.vibe-selector-btn:active {
+  transform: scale(0.98);
+}
+
+.vibe-modal.modal {
+  /* DOn't let the cursor be stuck gonna fix xeet 🔔 XRP NOTIFICATIONs rn XRPxʀᴘ ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴ*/
+  max-width: 400px;
+  width: 90%;
+  display: block;
+}
+
+.vibe-options-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 16px;
+}
+
+.vibe-option-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border: 2px solid var(--border-primary);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.vibe-option-item:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+}
+
+.vibe-option-item.selected {
+  background: rgba(var(--primary-rgb), 0.1);
+  border-color: var(--primary);
+}
+
+.vibe-emoji {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.vibe-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
 @font-face {
   font-family: "chirp";
   src: url("/public/shared/assets/fonts/chirp.woff2") format("woff2");

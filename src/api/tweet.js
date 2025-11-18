@@ -1,4 +1,3 @@
-
 import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
@@ -516,6 +515,7 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 				community_only,
 				spoiler_flags,
 				interactive_card,
+				ai_vibe,
 			} = body;
 			const tweetContent = typeof content === "string" ? content : "";
 			const trimmedContent = tweetContent.trim();
@@ -715,7 +715,7 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 				replyRestriction,
 				targetArticleId,
 				community_id || null,
-				community_only || false
+				community_only || false,
 			);
 
 			if (reply_to) {
@@ -800,10 +800,12 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 				if (aiUser) {
 					(async () => {
 						try {
+							const vibe = ai_vibe || "normal";
 							const aiResponse = await generateAIResponse(
 								tweetId,
 								trimmedContent,
 								db,
+								vibe,
 							);
 							if (aiResponse) {
 								const aiTweetId = Bun.randomUUIDv7().split("-").pop();

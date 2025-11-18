@@ -543,6 +543,67 @@ export const useComposer = (
 		}
 	});
 
+	let selectedVibe = "normal";
+
+	const VIBES = [
+		{ id: "normal", label: "Normal", emoji: "🤖" },
+		{ id: "friendly", label: "Friendly", emoji: "😊" },
+		{ id: "coder", label: "Coder", emoji: "💻" },
+		{ id: "angry", label: "Angry", emoji: "😤" },
+		{ id: "cute", label: "Cute", emoji: "🥺" },
+		{ id: "happyphone", label: "HappyPhone", emoji: "📱" },
+	];
+
+	const updateVibeButton = () => {
+		const vibeBtn = element.querySelector("#vibe-btn");
+		if (!vibeBtn) return;
+
+		const currentVibe = VIBES.find((v) => v.id === selectedVibe);
+		if (currentVibe) {
+			vibeBtn.textContent = `${currentVibe.emoji} ${currentVibe.label} vibe`;
+		}
+	};
+
+	const showVibeModal = () => {
+		const modal = document.createElement("div");
+		modal.className = "modal-overlay";
+		modal.innerHTML = `
+			<div class="modal vibe-modal">
+				<div class="modal-header">
+					<h3>Choose @h's vibe</h3>
+					<button type="button" class="modal-close">×</button>
+				</div>
+				<div class="vibe-options-list">
+					${VIBES.map(
+						(vibe) => `
+						<button type="button" class="vibe-option-item${vibe.id === selectedVibe ? " selected" : ""}" data-vibe="${vibe.id}">
+							<span class="vibe-emoji">${vibe.emoji}</span>
+							<span class="vibe-label">${vibe.label}</span>
+						</button>
+					`,
+					).join("")}
+				</div>
+			</div>
+		`;
+
+		const closeModal = () => modal.remove();
+
+		modal.querySelector(".modal-close").addEventListener("click", closeModal);
+		modal.addEventListener("click", (e) => {
+			if (e.target === modal) closeModal();
+		});
+
+		modal.querySelectorAll(".vibe-option-item").forEach((btn) => {
+			btn.addEventListener("click", () => {
+				selectedVibe = btn.dataset.vibe;
+				updateVibeButton();
+				closeModal();
+			});
+		});
+
+		document.body.appendChild(modal);
+	};
+
 	const handleDragOver = (e) => {
 		e.preventDefault();
 		textarea.classList.add("drag-over");
@@ -727,6 +788,28 @@ export const useComposer = (
 			);
 		});
 	}
+
+	const vibeBtn = element.querySelector("#vibe-btn");
+	if (vibeBtn) {
+		vibeBtn.style.display = "none";
+		vibeBtn.addEventListener("click", (e) => {
+			e.preventDefault();
+			showVibeModal();
+		});
+	}
+
+	const checkForHMention = () => {
+		if (!vibeBtn) return;
+		const text = textarea.value;
+		const hasHMention = /@h\b/i.test(text);
+		vibeBtn.style.display = hasHMention ? "block" : "none";
+	};
+
+	textarea.addEventListener("input", () => {
+		checkForHMention();
+	});
+
+	checkForHMention();
 
 	if (scheduleBtn && scheduleModal && scheduleModalClose) {
 		if (replyTo) {
@@ -1258,6 +1341,10 @@ export const useComposer = (
 				community_only: communityOnly,
 			};
 
+			if (content.match(/@h\b/i) && selectedVibe !== "normal") {
+				requestBody.ai_vibe = selectedVibe;
+			}
+
 			const spoilerFlags = [];
 			document
 				.querySelectorAll(".attachment-preview-item")
@@ -1304,6 +1391,8 @@ export const useComposer = (
 			selectedGif = null;
 			attachmentPreview.innerHTML = "";
 			interactiveCard = null;
+			selectedVibe = "normal";
+			updateVibeButton();
 			if (cardToggleBtn) {
 				cardToggleBtn.style.color = "";
 			}
@@ -1405,6 +1494,9 @@ export const createComposer = async ({
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="12 6 12 12 16 14"/>
                   </svg>
+                </button>
+                <button type="button" id="vibe-btn" class="vibe-selector-btn" title="Choose @h's vibe">
+                  🤖 Normal vibe
                 </button>
               </div>
               <div class="compose-submit">

@@ -16,7 +16,11 @@
 
 	const buildFileUrl = (extension, relativePath) => {
 		if (!relativePath) return null;
-		return `${extension.fileEndpoint}?path=${encodeURIComponent(relativePath)}&v=${extension.bundleHash}`;
+		const endpoint =
+			extension.fileEndpoint ||
+			`/api/extensions/${encodeURIComponent(extension.install_dir || extension.id)}/file`;
+		const v = extension.bundleHash ? `&v=${extension.bundleHash}` : "";
+		return `${endpoint}?path=${encodeURIComponent(relativePath)}${v}`;
 	};
 
 	const markReady = () => {
@@ -38,6 +42,7 @@
 
 	const injectExtensionAssets = (extension) => {
 		if (!extension || !extension.id || !extension.rootFile) return;
+		if (extension.enabled === false) return;
 		const safeId = extension.id;
 		const stylePaths = Array.isArray(extension.styles) ? extension.styles : [];
 		stylePaths.forEach((stylePath) => {
@@ -83,8 +88,7 @@
 			state.entries = Array.isArray(payload.extensions)
 				? payload.extensions.filter((entry) => {
 						if (!entry?.id || !entry?.rootFile) return false;
-						if (entry?.managed === false) return false;
-						return entry?.enabled !== false;
+						return true;
 					})
 				: [];
 			state.entries.forEach(injectExtensionAssets);

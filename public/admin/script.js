@@ -5764,6 +5764,7 @@ class AdminPanel {
 							targets: e.targets || [],
 							bundle_hash: e.bundleHash || e.bundle_hash || null,
 							enabled: !!e.enabled,
+							settings_schema: e.settingsSchema || e.settings_schema || [],
 							managed: false,
 							install_dir: e.installDir || e.install_dir || null,
 						}));
@@ -6124,10 +6125,9 @@ class AdminPanel {
 					: Array.isArray(ext.settingsSchema)
 						? ext.settingsSchema
 						: [];
-				const settingsButton =
-					schema.length && ext.managed !== false
-						? `<button type="button" class="btn btn-sm btn-outline-info" data-extension-action="settings" data-extension-id="${ext.id}">Settings</button>`
-						: "";
+				const settingsButton = schema.length
+					? `<button type="button" class="btn btn-sm btn-outline-info" data-extension-action="settings" data-extension-id="${ext.id}">Settings</button>`
+					: "";
 				return `
           <div class="border rounded p-3 mb-3">
             <div class="d-flex align-items-start justify-content-between">
@@ -6223,7 +6223,33 @@ class AdminPanel {
 			this.showSuccess(
 				removeFilesFlag ? "Extension deleted" : "Extension de-imported",
 			);
-			this.loadExtensionsManager();
+			if (!removeFilesFlag && targetExtension?.install_dir) {
+				const dir = targetExtension.install_dir;
+				const fallbackSchema = Array.isArray(targetExtension.settings_schema)
+					? targetExtension.settings_schema
+					: Array.isArray(targetExtension.settingsSchema)
+						? targetExtension.settingsSchema
+						: [];
+				const manualRecord = {
+					...targetExtension,
+					id: dir,
+					install_dir: dir,
+					managed: false,
+					enabled: false,
+					settings_schema: fallbackSchema,
+				};
+				this.extensionsData = [
+					manualRecord,
+					...(this.extensionsData || []).filter((ext) => {
+						if (ext.id === targetExtension.id) return false;
+						if (ext.install_dir && ext.install_dir === dir) return false;
+						return true;
+					}),
+				];
+				this.renderExtensionsList(this.extensionsData);
+			} else {
+				this.loadExtensionsManager();
+			}
 		} catch (error) {
 			console.error("Failed to delete extension", error);
 			this.showError(error.message || "Failed to delete extension");

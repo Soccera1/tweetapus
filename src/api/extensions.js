@@ -252,8 +252,9 @@ const parseManualManifest = (manifest, dirName) => {
 	) {
 		return null;
 	}
-	const baseId = sanitizeShortText(manifest.id, 80) || dirName;
-	const safeId = sanitizeDirSegment(baseId) || dirName;
+	// Use the directory name as the canonical identifier for manual installs.
+	// This keeps the manual entry stable across import/de-import cycles.
+	const safeId = dirName;
 	const name = sanitizeShortText(manifest.name, 80) || safeId;
 	const version = sanitizeShortText(manifest.version, 32) || "0.0.0";
 	const author = sanitizeShortText(manifest.author, 120);
@@ -277,6 +278,7 @@ const parseManualManifest = (manifest, dirName) => {
 		manifest.schema ??
 		manifest["settings-schema"];
 	return {
+		// Keep the 'id' referencing the install directory (manual namespace)
 		id: safeId,
 		name,
 		version,
