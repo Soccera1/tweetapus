@@ -1,3 +1,4 @@
+
 import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
@@ -132,8 +133,8 @@ const getTweetRepliesBefore = db.query(`
 `);
 
 const createTweet = db.query(`
-	INSERT INTO posts (id, user_id, content, reply_to, source, poll_id, quote_tweet_id, reply_restriction, article_id, community_id, community_only, posted_as_id) 
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	INSERT INTO posts (id, user_id, content, reply_to, source, poll_id, quote_tweet_id, reply_restriction, article_id, community_id, community_only) 
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	RETURNING *
 `);
 
@@ -714,8 +715,7 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 				replyRestriction,
 				targetArticleId,
 				community_id || null,
-				community_only || false,
-				postedAsUserId,
+				community_only || false
 			);
 
 			if (reply_to) {
