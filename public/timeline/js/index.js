@@ -40,6 +40,8 @@ window.onunhandledrejection = (event) => {
   }
 };
 
+let timelineScrollPosition = 0;
+
 (async () => {
   if (!authToken) {
     // If there's no auth token, ensure any loader UI is hidden so the
@@ -213,14 +215,22 @@ window.onunhandledrejection = (event) => {
   document
     .getElementById("notificationsBtn")
     ?.addEventListener("click", async () => {
+      timelineScrollPosition = window.scrollY;
       const { openNotifications } = await import("./notifications.js");
-      openNotifications();
+      openNotifications(true);
     });
 })();
 
+export function getTimelineScroll() {
+  return timelineScrollPosition;
+}
+
 addRoute(
   (pathname) => pathname === "/" || !pathname,
-  () => showPage("timeline")
+  () => {
+    showPage("timeline");
+    setTimeout(() => window.scrollTo(0, timelineScrollPosition), 0);
+  }
 );
 
 addRoute(

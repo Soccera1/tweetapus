@@ -130,10 +130,26 @@ let _user;
 		});
 	});
 
-	document.getElementById("homeBtn").addEventListener("click", () => {
-		switchPage("timeline", {
-			path: "/",
-		});
+	document.getElementById("homeBtn").addEventListener("click", async () => {
+		const isAlreadyHome = location.pathname === "/";
+		
+		if (isAlreadyHome) {
+			switchPage("timeline", {
+				path: "/",
+				noScroll: true,
+			});
+			setTimeout(() => window.scrollTo(0, 0), 0);
+		} else {
+			const indexModule = await import("./index.js");
+			const savedScroll = indexModule.getTimelineScroll?.() || 0;
+			
+			switchPage("timeline", {
+				path: "/",
+				noScroll: true,
+			});
+			
+			setTimeout(() => window.scrollTo(0, savedScroll), 0);
+		}
 	});
 
 	document.querySelector(".loader").style.opacity = "0";
