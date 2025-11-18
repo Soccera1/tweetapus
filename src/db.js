@@ -635,6 +635,14 @@ CREATE TABLE IF NOT EXISTS account_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_account_sessions_user_id ON account_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_account_sessions_account_type ON account_sessions(account_type);
+
+CREATE TABLE IF NOT EXISTS extension_settings (
+  extension_id TEXT PRIMARY KEY,
+  settings TEXT NOT NULL DEFAULT '{}',
+  updated_at TIMESTAMP DEFAULT (datetime('now', 'utc'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_extension_settings_updated_at ON extension_settings(updated_at);
 `,
 ).run();
 

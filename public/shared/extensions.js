@@ -59,7 +59,8 @@
 		const scriptUrl = buildFileUrl(extension, extension.rootFile);
 		if (!scriptUrl) return;
 		const script = document.createElement("script");
-		script.type = extension.entryType === "script" ? "text/javascript" : "module";
+		script.type =
+			extension.entryType === "script" ? "text/javascript" : "module";
 		script.src = scriptUrl;
 		script.dataset.tweetapusExtension = safeId;
 		script.dataset.extPath = extension.rootFile;
@@ -80,7 +81,9 @@
 			}
 			const payload = await response.json();
 			state.entries = Array.isArray(payload.extensions)
-				? payload.extensions.filter((entry) => entry?.id && entry?.rootFile)
+				? payload.extensions.filter(
+						(entry) => entry?.id && entry?.rootFile && entry?.managed !== false,
+					)
 				: [];
 			state.entries.forEach(injectExtensionAssets);
 			markReady();

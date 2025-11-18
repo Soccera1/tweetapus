@@ -409,6 +409,18 @@ const extensionQueries = {
 	getById: db.prepare("SELECT * FROM extensions WHERE id = ?"),
 };
 
+const extensionSettingsQueries = {
+	get: db.prepare(
+		"SELECT settings FROM extension_settings WHERE extension_id = ?",
+	),
+	upsert: db.prepare(`
+		INSERT INTO extension_settings (extension_id, settings)
+		VALUES (?, ?)
+		ON CONFLICT(extension_id)
+		DO UPDATE SET settings = excluded.settings, updated_at = datetime('now','utc')
+	`),
+};
+
 const sanitizeStringValue = (value, max = 255) => {
 	if (typeof value !== "string") return null;
 	const trimmed = value.trim();
@@ -509,6 +521,126 @@ const parseStylesArray = (value) => {
 	return Array.from(unique);
 };
 
+const allowedSettingTypes = new Set([
+	"text",
+	"textarea",
+	"number",
+	"select",
+	"toggle",
+]);
+
+const sanitizeSettingsKey = (value) => {
+	if (typeof value !== "string") return null;
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	const normalized = trimmed.replace(/[^A-Za-z0-9._-]/g, "_");
+	return normalized.slice(0, 64);
+};
+
+const parseSettingsOptions = (value) => {
+	if (!Array.isArray(value)) return [];
+	const options = [];
+	const seen = new Set();
+	for (const raw of value) {
+		if (typeof raw !== "object" || !raw) continue;
+		const optionValue = sanitizeStringValue(
+			raw.value ?? raw.id ?? raw.key ?? raw.name,
+			120,
+		);
+		if (!optionValue || seen.has(optionValue)) continue;
+		const label =
+			sanitizeStringValue(raw.label ?? raw.name ?? raw.title, 120) ||
+			optionValue;
+		options.push({ value: optionValue, label });
+		seen.add(optionValue);
+		if (options.length >= 24) break;
+	}
+	return options;
+};
+
+const parseExtensionSettingsSchema = (value) => {
+	if (!Array.isArray(value)) return [];
+	const schema = [];
+	const keys = new Set();
+	for (const entry of value) {
+		if (typeof entry !== "object" || !entry) continue;
+		const key = sanitizeSettingsKey(entry.key ?? entry.name ?? entry.id);
+		if (!key || keys.has(key)) continue;
+		let type =
+			typeof entry.type === "string" ? entry.type.trim().toLowerCase() : "text";
+		if (!allowedSettingTypes.has(type)) {
+			type = "text";
+		}
+		const label =
+			sanitizeStringValue(entry.label ?? entry.name ?? key, 80) || key;
+		const description = sanitizeStringValue(
+			entry.description ?? entry.help ?? entry.subtitle,
+			240,
+		);
+		const placeholder = sanitizeStringValue(entry.placeholder, 160);
+		const field = { key, type, label };
+		if (description) field.description = description;
+		if (placeholder && (type === "text" || type === "textarea")) {
+			field.placeholder = placeholder;
+		}
+		if (type === "number") {
+			const min = Number(entry.min ?? entry.minimum);
+			const max = Number(entry.max ?? entry.maximum);
+			const step = Number(entry.step ?? entry.increment ?? 1);
+			if (Number.isFinite(min)) field.min = min;
+			if (Number.isFinite(max)) field.max = max;
+			if (Number.isFinite(step) && step > 0) field.step = step;
+			const defaultValue = Number(
+				entry.default ?? entry.value ?? entry.initial,
+			);
+			if (Number.isFinite(defaultValue)) field.default = defaultValue;
+		} else if (type === "select") {
+			const options = parseSettingsOptions(
+				entry.options ?? entry.choices ?? entry.values,
+			);
+			if (!options.length) continue;
+			field.options = options;
+			const defaultValue = sanitizeStringValue(
+				entry.default ?? entry.value ?? entry.initial ?? options[0]?.value,
+				120,
+			);
+			if (defaultValue) field.default = defaultValue;
+		} else if (type === "toggle") {
+			const rawDefault = entry.default ?? entry.value ?? entry.initial;
+			const boolDefault =
+				rawDefault === true ||
+				rawDefault === 1 ||
+				rawDefault === "1" ||
+				rawDefault === "true";
+			field.default = boolDefault;
+		} else if (type === "textarea") {
+			const maxLength = Number(entry.maxLength ?? entry.max_length);
+			if (Number.isFinite(maxLength) && maxLength > 0) {
+				field.maxLength = Math.min(Math.max(32, maxLength), 2000);
+			}
+			const defaultValue = sanitizeStringValue(
+				entry.default ?? entry.value ?? entry.initial,
+				field.maxLength || 512,
+			);
+			if (defaultValue) field.default = defaultValue;
+		} else {
+			const maxLength = Number(entry.maxLength ?? entry.max_length);
+			if (Number.isFinite(maxLength) && maxLength > 0) {
+				field.maxLength = Math.min(Math.max(16, maxLength), 512);
+			}
+			const defaultValue = sanitizeStringValue(
+				entry.default ?? entry.value ?? entry.initial,
+				field.maxLength || 256,
+			);
+			if (defaultValue) field.default = defaultValue;
+		}
+		schema.push(field);
+		keys.add(key);
+		if (schema.length >= 24) break;
+	}
+	return schema;
+};
+
 const buildManifestPayload = (raw) => {
 	const source = typeof raw === "object" && raw ? raw : {};
 	const manifest = {};
@@ -561,6 +693,13 @@ const buildManifestPayload = (raw) => {
 		source.targets ?? source["applies-to"],
 		12,
 	);
+	const schemaRaw =
+		source.settings ??
+		source.settings_schema ??
+		source.preferences ??
+		source.schema ??
+		source["settings-schema"];
+	manifest.settings_schema = parseExtensionSettingsSchema(schemaRaw);
 	return manifest;
 };
 
@@ -573,27 +712,59 @@ const parseJsonField = (value, fallback) => {
 	}
 };
 
-const formatExtensionRecord = (record) => ({
-	id: record.id,
-	name: record.name,
-	version: record.version,
-	author: record.author,
-	summary: record.summary,
-	description: record.description,
-	website: record.website,
-	changelog_url: record.changelog_url,
-	root_file: record.root_file,
-	entry_type: record.entry_type,
-	styles: parseJsonField(record.styles, []),
-	capabilities: parseJsonField(record.capabilities, []),
-	targets: parseJsonField(record.targets, []),
-	bundle_hash: record.bundle_hash,
-	enabled: !!record.enabled,
-	created_at: record.created_at,
-	updated_at: record.updated_at,
-	managed: true,
-	install_dir: parseJsonField(record.manifest_json, {})?.install_dir || null,
-});
+const formatExtensionRecord = (record) => {
+	const manifest = parseJsonField(record.manifest_json, {}) || {};
+	const installDir = sanitizeDirectorySegment(manifest?.install_dir ?? "");
+	const schemaSource =
+		manifest?.settings ??
+		manifest?.settings_schema ??
+		manifest?.preferences ??
+		manifest?.schema ??
+		[];
+	return {
+		id: record.id,
+		name: record.name,
+		version: record.version,
+		author: record.author,
+		summary: record.summary,
+		description: record.description,
+		website: record.website,
+		changelog_url: record.changelog_url,
+		root_file: record.root_file,
+		entry_type: record.entry_type,
+		styles: parseJsonField(record.styles, []),
+		capabilities: parseJsonField(record.capabilities, []),
+		targets: parseJsonField(record.targets, []),
+		bundle_hash: record.bundle_hash,
+		enabled: !!record.enabled,
+		created_at: record.created_at,
+		updated_at: record.updated_at,
+		managed: true,
+		install_dir: installDir || null,
+		settings_schema: parseExtensionSettingsSchema(schemaSource),
+	};
+};
+
+const resolveExtensionSettingsTarget = async (rawId) => {
+	const managed = extensionQueries.getById.get(rawId);
+	if (managed) {
+		return {
+			type: "managed",
+			settingsKey: managed.id,
+		};
+	}
+	const dirName = sanitizeDirectorySegment(rawId || "");
+	if (!dirName) return null;
+	try {
+		await fs.access(join(extensionsInstallDir, dirName, "ext.json"));
+		return {
+			type: "manual",
+			settingsKey: dirName,
+		};
+	} catch {
+		return null;
+	}
+};
 
 const sanitizeSvgMarkup = (svgText) => {
 	if (typeof svgText !== "string") return null;
@@ -1744,8 +1915,8 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 	.get(
 		"/posts",
 		async ({ query }) => {
-			const page = parseInt(query.page) || 1;
-			const limit = parseInt(query.limit) || 20;
+			const page = parseInt(query.page, 10) || 1;
+			const limit = parseInt(query.limit, 10) || 20;
 			const search = query.search || "";
 			const offset = (page - 1) * limit;
 
@@ -3392,6 +3563,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 						enabled: false,
 						managed: false,
 						install_dir: name,
+						settings_schema: payload.settings_schema || [],
 					});
 				} catch {
 					// skip invalid manifest
@@ -3403,6 +3575,58 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 
 		return { extensions: [...managed, ...manual] };
 	})
+
+	.get("/extensions/:id/settings", async ({ params, set }) => {
+		const target = await resolveExtensionSettingsTarget(params.id);
+		if (!target) {
+			set.status = 404;
+			return { error: "Extension not found" };
+		}
+		const row = extensionSettingsQueries.get.get(target.settingsKey);
+		let settings = {};
+		if (row?.settings) {
+			try {
+				settings = JSON.parse(row.settings) || {};
+			} catch {
+				settings = {};
+			}
+		}
+		return { settings };
+	})
+
+	.put(
+		"/extensions/:id/settings",
+		async ({ params, body, user, set }) => {
+			const target = await resolveExtensionSettingsTarget(params.id);
+			if (!target) {
+				set.status = 404;
+				return { error: "Extension not found" };
+			}
+			if (typeof body !== "object" || body === null || Array.isArray(body)) {
+				set.status = 400;
+				return { error: "Settings payload must be an object" };
+			}
+			const serialized = JSON.stringify(body);
+			if (serialized.length > 20000) {
+				set.status = 400;
+				return { error: "Settings payload is too large" };
+			}
+			extensionSettingsQueries.upsert.run(target.settingsKey, serialized);
+			logModerationAction(
+				user.id,
+				"update_extension_settings",
+				"extension",
+				target.settingsKey,
+				{
+					keys: Object.keys(body || {}),
+				},
+			);
+			return { success: true };
+		},
+		{
+			body: t.Record(t.String(), t.Any()),
+		},
+	)
 
 	.post("/extensions", async ({ body, user, set }) => {
 		const packageFile = body?.package;

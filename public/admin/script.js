@@ -50,6 +50,7 @@ class AdminPanel {
 		this.extensionsData = [];
 		this.extensionConfirmModal = null;
 		this.extensionConfirmResolver = null;
+		// extension-specific settings modal removed — extensions should implement their own UI
 
 		this.init();
 	}
@@ -5883,16 +5884,16 @@ class AdminPanel {
             </div>
             ${capabilityBadges}
             ${targetBadges}
-                <div class="d-flex gap-2 mt-3">
-							${
-								ext.managed === false
-									? `<button type="button" class="btn btn-sm btn-outline-primary" data-extension-action="import" data-extension-id="${ext.id}">Import</button>
-										 <button type="button" class="btn btn-sm btn-outline-secondary" data-extension-action="export" data-extension-id="${ext.id}">Convert to .tweeta</button>`
-									: `<button type="button" class="btn btn-sm ${ext.enabled ? "btn-outline-warning" : "btn-outline-success"}" data-extension-action="toggle" data-extension-id="${ext.id}" data-extension-enabled="${ext.enabled ? "true" : "false"}">${ext.enabled ? "Disable" : "Enable"}</button>
-										 <button type="button" class="btn btn-sm btn-outline-secondary" data-extension-action="export" data-extension-id="${ext.id}">Convert to .tweeta</button>
-										 <button type="button" class="btn btn-sm btn-outline-danger" data-extension-action="delete" data-extension-id="${ext.id}">Delete</button>`
-							}
-                </div>
+				<div class="d-flex flex-wrap gap-2 mt-3">
+					${
+						ext.managed === false
+							? `<button type="button" class="btn btn-sm btn-outline-primary" data-extension-action="import" data-extension-id="${ext.id}">Import</button>
+								 <button type="button" class="btn btn-sm btn-outline-secondary" data-extension-action="export" data-extension-id="${ext.id}">Convert to .tweeta</button>`
+							: `<button type="button" class="btn btn-sm ${ext.enabled ? "btn-outline-warning" : "btn-outline-success"}" data-extension-action="toggle" data-extension-id="${ext.id}" data-extension-enabled="${ext.enabled ? "true" : "false"}">${ext.enabled ? "Disable" : "Enable"}</button>
+								 <button type="button" class="btn btn-sm btn-outline-secondary" data-extension-action="export" data-extension-id="${ext.id}">Convert to .tweeta</button>
+								 <button type="button" class="btn btn-sm btn-outline-danger" data-extension-action="delete" data-extension-id="${ext.id}">Delete</button>`
+					}
+				</div>
           </div>
         `;
 			})
