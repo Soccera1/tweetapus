@@ -3,6 +3,7 @@ import {
 	removeSkeletons,
 	showSkeletons,
 } from "../../shared/skeleton-utils.js";
+import { updateTabIndicator } from "../../shared/tab-indicator.js";
 import toastQueue from "../../shared/toasts.js";
 import query from "./api.js";
 import {
@@ -129,6 +130,15 @@ let timelineScrollPosition = 0;
 	};
 
 	const feedLinks = document.querySelectorAll("h1 a");
+	const tabContainer = document.querySelector(".timeline h1");
+	
+	if (tabContainer) {
+		const activeTab = tabContainer.querySelector(".active");
+		if (activeTab) {
+			updateTabIndicator(tabContainer, activeTab);
+		}
+	}
+
 	feedLinks.forEach((link) => {
 		link.addEventListener("click", async (e) => {
 			e.preventDefault();
@@ -137,6 +147,10 @@ let timelineScrollPosition = 0;
 				l.classList.remove("active");
 			});
 			link.classList.add("active");
+			
+			if (tabContainer) {
+				updateTabIndicator(tabContainer, link);
+			}
 
 			const tab = link.dataset.tab || "home";
 			if (tab === "articles") {

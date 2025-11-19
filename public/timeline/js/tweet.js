@@ -1,3 +1,8 @@
+import {
+	createTweetSkeleton,
+	removeSkeletons,
+	showSkeletons,
+} from "../../shared/skeleton-utils.js";
 import toastQueue from "../../shared/toasts.js";
 import { createComposer } from "./composer.js";
 import switchPage, { addRoute } from "./pages.js";
@@ -79,13 +84,22 @@ export default async function openTweet(
 
 			page.appendChild(composer);
 
+			const repliesContainer = document.createElement("div");
+			repliesContainer.className = "tweet-replies-container";
+			page.appendChild(repliesContainer);
+
+			let skeletons = [];
 			if (!threadPostsCache || !repliesCache) {
+				skeletons = showSkeletons(repliesContainer, createTweetSkeleton, 3);
+
 				const apiOutput = await query(`/tweets/${tweet.id}`);
 				tweet = apiOutput.tweet;
 				threadPostsCache = apiOutput.threadPosts;
 				repliesCache = apiOutput.replies;
 				hasMoreReplies = apiOutput?.hasMoreReplies || false;
 				tweet.extendedStats = apiOutput.extendedStats;
+
+				removeSkeletons(skeletons);
 			}
 
 			if (!tweet) {
@@ -121,9 +135,6 @@ export default async function openTweet(
 				page.style.opacity = "";
 			}
 
-			const repliesContainer = document.createElement("div");
-			repliesContainer.className = "tweet-replies-container";
-
 			repliesCache.forEach((reply) => {
 				const replyEl = createTweetElement(reply, {
 					clickToOpen: true,
@@ -148,10 +159,18 @@ export default async function openTweet(
 				if (scrollPosition >= threshold) {
 					isLoadingMoreReplies = true;
 
+					const loadMoreSkeletons = showSkeletons(
+						repliesContainer,
+						createTweetSkeleton,
+						3,
+					);
+
 					try {
 						const apiOutput = await query(
 							`/tweets/${tweet.id}?before=${oldestReplyId}&limit=20`,
 						);
+
+						removeSkeletons(loadMoreSkeletons);
 
 						if (apiOutput.replies && apiOutput.replies.length > 0) {
 							apiOutput.replies.forEach((reply) => {
@@ -166,6 +185,7 @@ export default async function openTweet(
 							hasMoreReplies = apiOutput.hasMoreReplies || false;
 						}
 					} catch (error) {
+						removeSkeletons(loadMoreSkeletons);
 						console.error("Error loading more replies:", error);
 					} finally {
 						isLoadingMoreReplies = false;

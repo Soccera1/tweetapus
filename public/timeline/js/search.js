@@ -1,3 +1,4 @@
+import { updateTabIndicator } from "../../shared/tab-indicator.js";
 import query from "./api.js";
 import { createTweetElement } from "./tweets.js";
 
@@ -185,12 +186,24 @@ export const searchQuery = async (q) => {
 export const initializeSearchPage = () => {
   if (isInitialized) return;
   isInitialized = true;
+  
+  const filterContainer = document.querySelector(".search-filters");
+  if (filterContainer) {
+    const activeFilter = filterContainer.querySelector(".active");
+    if (activeFilter) {
+      updateTabIndicator(filterContainer, activeFilter);
+    }
+  }
 
   filterBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
       filterBtns.forEach((b) => { b.classList.remove("active") });
       btn.classList.add("active");
       currentFilter = btn.dataset.filter;
+      
+      if (filterContainer) {
+        updateTabIndicator(filterContainer, btn);
+      }
 
       const query = searchPageInput.value.trim();
       if (query) {

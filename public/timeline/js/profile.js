@@ -13,6 +13,7 @@ import {
 	removeSkeletons,
 	showSkeletons,
 } from "../../shared/skeleton-utils.js";
+import { updateTabIndicator } from "../../shared/tab-indicator.js";
 import toastQueue from "../../shared/toasts.js";
 import { createModal, createPopup } from "../../shared/ui-utils.js";
 import query from "./api.js";
@@ -46,17 +47,24 @@ export default async function openProfile(username) {
 		path: `/@${username}`,
 		recoverState: async () => {
 			const profileContainer = document.getElementById("profileContainer");
-			profileContainer.style.display = "none";
+			profileContainer.style.display = "flex";
+			profileContainer.style.justifyContent = "center";
+			profileContainer.style.alignItems = "center";
+			profileContainer.style.minHeight = "400px";
 
-			const skeletons = showSkeletons(
-				profileContainer,
-				createProfileSkeleton,
-				1,
-			);
+			const spinner = document.createElement("div");
+			spinner.className = "spinner";
+			spinner.style.cssText = "width: 40px; height: 40px; border: 4px solid var(--border-primary); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;";
+			profileContainer.innerHTML = "";
+			profileContainer.appendChild(spinner);
 
 			const data = await query(`/profile/${username}`);
 
-			removeSkeletons(skeletons);
+			spinner.remove();
+			profileContainer.style.display = "";
+			profileContainer.style.justifyContent = "";
+			profileContainer.style.alignItems = "";
+			profileContainer.style.minHeight = "";
 
 			if (data.error) {
 				if (data.error === "User is suspended") {
@@ -1028,6 +1036,13 @@ const renderProfile = (data) => {
 		'.profile-tab-btn[data-tab="posts"]',
 	);
 	if (postTabBtn) postTabBtn.classList.add("active");
+	
+	const tabContainer = document.querySelector(".profile-tab-nav");
+	if (tabContainer && postTabBtn) {
+		setTimeout(() => {
+			updateTabIndicator(tabContainer, postTabBtn);
+		}, 50);
+	}
 
 	const affiliatesTabBtn = document.querySelector(
 		'.profile-tab-btn[data-tab="affiliates"]',
@@ -2042,6 +2057,11 @@ document.querySelectorAll(".profile-tab-btn").forEach((btn) => {
 			b.classList.remove("active");
 		});
 		btn.classList.add("active");
+		
+		const tabContainer = document.querySelector(".profile-tab-nav");
+		if (tabContainer) {
+			updateTabIndicator(tabContainer, btn);
+		}
 
 		switchTab(btn.dataset.tab);
 	});

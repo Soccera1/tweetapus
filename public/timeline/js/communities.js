@@ -5,6 +5,7 @@ import {
 	convertToWebPAvatar,
 	convertToWebPBanner,
 } from "../../shared/image-utils.js";
+import { updateTabIndicator } from "../../shared/tab-indicator.js";
 import toastQueue from "../../shared/toasts.js";
 import { createPopup } from "../../shared/ui-utils.js";
 import api from "./api.js";
@@ -108,6 +109,16 @@ export function initializeCommunitiesPage() {
 
 	initialized = true;
 	loadCommunities();
+	
+	const tabContainer = document.querySelector(".communities-tabs");
+	if (tabContainer) {
+		const activeTab = tabContainer.querySelector(".active");
+		if (activeTab) {
+			setTimeout(() => {
+				updateTabIndicator(tabContainer, activeTab);
+			}, 50);
+		}
+	}
 
 	document.querySelectorAll(".communities-tab").forEach((btn) => {
 		btn.addEventListener("click", () => {
@@ -117,6 +128,10 @@ export function initializeCommunitiesPage() {
 				b.classList.remove("active");
 			});
 			btn.classList.add("active");
+			
+			if (tabContainer) {
+				updateTabIndicator(tabContainer, btn);
+			}
 
 			document
 				.getElementById("communitiesList")
@@ -444,6 +459,8 @@ export async function loadCommunityDetail(communityId) {
 	});
 
 	const tabButtons = document.querySelectorAll(".community-detail-tab");
+	const detailTabContainer = document.querySelector(".community-detail-tabs");
+	
 	const tabClickHandler = (btn) => () => {
 		const tab = btn.dataset.tab;
 
@@ -451,6 +468,10 @@ export async function loadCommunityDetail(communityId) {
 			b.classList.remove("active");
 		});
 		btn.classList.add("active");
+		
+		if (detailTabContainer) {
+			updateTabIndicator(detailTabContainer, btn);
+		}
 
 		document
 			.getElementById("aboutContent")
@@ -474,7 +495,6 @@ export async function loadCommunityDetail(communityId) {
 		else if (tab === "requests") showRequestsTab();
 		else if (tab === "settings") showSettingsTab();
 
-		// Add/remove a container-level class so Tweets-specific styles can be targeted
 		const container = document.querySelector(".community-detail-content");
 		if (container) {
 			container.classList.toggle("tab-tweets-active", tab === "tweets");
@@ -487,15 +507,20 @@ export async function loadCommunityDetail(communityId) {
 		btn.addEventListener("click", btn._handler);
 	});
 
-	// Reset tab UI to a known default (About) to avoid stale state when
-	// switching between communities without a full page refresh.
 	tabButtons.forEach((b) => {
 		b.classList.remove("active");
 	});
 	const aboutBtn = document.querySelector(
 		'.community-detail-tab[data-tab="about"]',
 	);
-	if (aboutBtn) aboutBtn.classList.add("active");
+	if (aboutBtn) {
+		aboutBtn.classList.add("active");
+		if (detailTabContainer) {
+			setTimeout(() => {
+				updateTabIndicator(detailTabContainer, aboutBtn);
+			}, 50);
+		}
+	}
 
 	// Ensure content panes reflect the same default state (show About,
 	// hide others) and clear tweet content to avoid showing the previous
