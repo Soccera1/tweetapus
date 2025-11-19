@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
+#include <stdint.h>
 
 #define MAX_AGE_HOURS 48
 #define FRESH_TWEET_HOURS 6
@@ -79,6 +80,20 @@ static double calculate_engagement_quality(
     }
     
     return quality_score;
+}
+
+static double calculate_age_diversity_boost(int like_count, int retweet_count, int reply_count, int quote_count, double age_hours) {
+    int total_engagement = like_count + retweet_count + reply_count + quote_count;
+    double engagement_density = (double)total_engagement / (age_hours + 1.0);
+    if (age_hours <= FRESH_TWEET_HOURS) return 1.0;
+    if (age_hours > MAX_AGE_HOURS) return 0.95; /* older than max age should be slightly penalized */
+
+    /* Slight boost for sustained engagement on older tweets */
+    if (engagement_density > 0.6) {
+        double boost = 1.05 + fmin(0.2, (engagement_density - 0.6) * 0.08);
+        return boost;
+    }
+    return 1.0;
 }
 
 static double calculate_virality_boost(int like_count, int retweet_count, double age_hours) {
@@ -321,6 +336,20 @@ double calculate_score(
         random_multiplier *= (1.0 + random_factor * 0.5);
     }
     
+    /* stronger content sensitivity to avoid repeating identical tweets */
+    if (content_repeats > 0) {
+        /* additional nonlinear downscale when the same content is repeated */
+        content_penalty *= 1.0 / (1.0 + (double)content_repeats * 0.85);
+        if (content_penalty < 0.03) content_penalty = 0.03;
+    }
+
+    /* Slightly tighten author penalty for better diversity */
+    author_penalty = 1.0 / (1.0 + (double)author_repeats * 1.1);
+    if (author_penalty < 0.10) author_penalty = 0.10;
+
+    /* Age diversity: favor slightly older content that still attracts engagement */
+    double age_diversity = calculate_age_diversity_boost(like_count, retweet_count, reply_count, quote_count, age_hours);
+
     double final_score = base_score * 
                         time_decay * 
                         engagement_quality * 
@@ -343,6 +372,9 @@ double calculate_score(
         final_score += random_component;
     }
     
+    /* apply age diversity multiplier after all other penalties */
+    final_score *= age_diversity;
+
     if (final_score < 0.0) final_score = 0.0;
     
     return final_score;
@@ -350,12 +382,26 @@ double calculate_score(
 
 static int compare_tweets(const void *a, const void *b) {
     if (a == NULL || b == NULL) return 0;
-    
+
     const Tweet *tweet_a = (const Tweet *)a;
     const Tweet *tweet_b = (const Tweet *)b;
-    
+
+    if (tweet_a == NULL || tweet_b == NULL) return 0;
+
     if (tweet_b->score > tweet_a->score) return 1;
     if (tweet_b->score < tweet_a->score) return -1;
+
+    /* tie break: prefer more recent tweets */
+    if (tweet_b->created_at > tweet_a->created_at) return 1;
+    if (tweet_b->created_at < tweet_a->created_at) return -1;
+
+    /* final tie: compare ids if possible */
+    if (tweet_a->id && tweet_b->id) {
+        int c = strcmp(tweet_a->id, tweet_b->id);
+        if (c < 0) return -1;
+        if (c > 0) return 1;
+    }
+
     return 0;
 }
 
@@ -368,6 +414,24 @@ void rank_tweets(Tweet *tweets, size_t count) {
         seeded = 1;
     }
 
+    /* build duplicate counts by tweet id to detect same item repeated in input */
+    unsigned int *dup_counts = (unsigned int *)calloc(count, sizeof(unsigned int));
+    if (!dup_counts) {
+        /* allocation failed; proceed without deduplication */
+        dup_counts = NULL;
+    } else {
+        for (size_t i = 0; i < count; i++) {
+            const char *ida = tweets[i].id;
+            if (!ida) continue;
+            for (size_t j = i + 1; j < count; j++) {
+                if (tweets[j].id && strcmp(ida, tweets[j].id) == 0) {
+                    dup_counts[i]++;
+                    dup_counts[j]++;
+                }
+            }
+        }
+    }
+
     for (size_t i = 0; i < count; i++) {
         double base_score = calculate_score(
             tweets[i].created_at,
@@ -378,7 +442,7 @@ void rank_tweets(Tweet *tweets, size_t count) {
             tweets[i].has_media,
             tweets[i].hours_since_seen,
             tweets[i].author_repeats,
-            tweets[i].content_repeats,
+            tweets[i].content_repeats + (dup_counts ? (int)dup_counts[i] : 0),
             tweets[i].novelty_factor,
             tweets[i].random_factor,
             tweets[i].all_seen_flag,
@@ -404,7 +468,7 @@ void rank_tweets(Tweet *tweets, size_t count) {
             tweets[i].has_media,
             tweets[i].hours_since_seen,
             tweets[i].author_repeats,
-            tweets[i].content_repeats,
+            tweets[i].content_repeats + (dup_counts ? (int)dup_counts[i] : 0),
             tweets[i].novelty_factor,
             tweets[i].random_factor,
             tweets[i].all_seen_flag,
@@ -419,6 +483,36 @@ void rank_tweets(Tweet *tweets, size_t count) {
     }
 
     qsort(tweets, count, sizeof(Tweet), compare_tweets);
+
+    /* ensure top N are not exact duplicates of one another; swap duplicates out when possible */
+    size_t topN = (count < 10) ? count : 10;
+    if (dup_counts && topN > 1) {
+        for (size_t i = 0; i < topN; i++) {
+            for (size_t j = i + 1; j < topN; j++) {
+                if (!tweets[i].id || !tweets[j].id) continue;
+                if (strcmp(tweets[i].id, tweets[j].id) == 0) {
+                    /* find replacement beyond topN */
+                    size_t k = topN;
+                    while (k < count) {
+                        if (!tweets[k].id) { k++; continue; }
+                        int conflict = 0;
+                        for (size_t m = 0; m < topN; m++) {
+                            if (tweets[m].id && strcmp(tweets[m].id, tweets[k].id) == 0) { conflict = 1; break; }
+                        }
+                        if (!conflict) break;
+                        k++;
+                    }
+                    if (k < count) {
+                        Tweet tmp = tweets[j];
+                        tweets[j] = tweets[k];
+                        tweets[k] = tmp;
+                    }
+                }
+            }
+        }
+    }
+
+    if (dup_counts) free(dup_counts);
 }
 
 char *process_timeline(const char *json_input) {

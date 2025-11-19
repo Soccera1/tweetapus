@@ -456,9 +456,6 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 				post_count: counts.post_count,
 			};
 
-			// If this user is affiliated with another user, include a small
-			// profile blob for the affiliating user so the client can render
-			// "Affiliated with @userA" UI without an extra request.
 			if (profile.affiliate_with) {
 				try {
 					const aff = getUserById.get(profile.affiliate_with);

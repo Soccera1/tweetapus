@@ -226,11 +226,6 @@ export default new Elysia({ prefix: "/articles", tags: ["Articles"] })
 			detail: {
 				description: "Publishes an article",
 			},
-			response: t.Object({
-				success: t.Optional(t.Boolean()),
-				article: t.Optional(t.Object()),
-				error: t.Optional(t.String()),
-			}),
 		},
 	)
 	.get(
@@ -284,116 +279,111 @@ export default new Elysia({ prefix: "/articles", tags: ["Articles"] })
 			const result = {
 				articles: attachArticleExtras(articles, attachmentsMap, userMap),
 			};
-			
+
 			if (articles.length === 10) {
 				result.next = articles[articles.length - 1].created_at;
 			}
-			
+
 			return result;
 		},
 		{
 			detail: {
 				description: "Fetches a list of articles",
 			},
-			response: t.Object({
-				articles: t.Array(t.Object()),
-				next: t.Optional(t.String()),
-				error: t.Optional(t.String()),
-			}),
 		},
 	)
-	.get("/:id", async ({ jwt, headers, params }) => {
-		const authorization = headers.authorization;
-		if (!authorization) return { error: "Authentication required" };
+	.get(
+		"/:id",
+		async ({ jwt, headers, params }) => {
+			const authorization = headers.authorization;
+			if (!authorization) return { error: "Authentication required" };
 
-		try {
-			const payload = await jwt.verify(authorization.replace("Bearer ", ""));
-			if (!payload) return { error: "Invalid token" };
-		} catch (error) {
-			console.error("Article fetch auth error:", error);
-			return { error: "Authentication failed" };
-		}
-
-		const article = getArticleById.get(params.id);
-		if (!article) {
-			return { error: "Article not found" };
-		}
-
-		const author = getUserById.get(article.user_id);
-		if (!author) {
-			return { error: "Author not found" };
-		}
-
-		// Hide articles authored by shadowbanned users unless viewer is owner or admin
-		const currentUser = getUserByUsername.get(payload.username);
-		if (
-			author.shadowbanned &&
-			!(currentUser && (currentUser.admin || currentUser.id === author.id))
-		) {
-			return { error: "Article not found" };
-		}
-
-		const attachments = db
-			.query("SELECT * FROM attachments WHERE post_id = ?")
-			.all(article.id);
-
-		const replies = db
-			.query(
-				"SELECT * FROM posts WHERE reply_to = ? ORDER BY created_at ASC LIMIT 100",
-			)
-			.all(article.id);
-
-		const replyUserIds = [...new Set(replies.map((reply) => reply.user_id))];
-		const replyUsers = replyUserIds.length
-			? db
-					.query(
-						`SELECT * FROM users WHERE id IN (${replyUserIds
-							.map(() => "?")
-							.join(",")})`,
-					)
-					.all(...replyUserIds)
-			: [];
-		const replyUserMap = new Map(replyUsers.map((u) => [u.id, u]));
-
-		const replyAttachments = getAttachmentsForPostIds(
-			replies.map((reply) => reply.id),
-		);
-		const replyAttachmentMap = new Map();
-		replyAttachments.forEach((attachment) => {
-			if (!replyAttachmentMap.has(attachment.post_id)) {
-				replyAttachmentMap.set(attachment.post_id, []);
+			try {
+				const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+				if (!payload) return { error: "Invalid token" };
+			} catch (error) {
+				console.error("Article fetch auth error:", error);
+				return { error: "Authentication failed" };
 			}
-			replyAttachmentMap.get(attachment.post_id).push(attachment);
-		});
 
-		const serializedReplies = replies.map((reply) => ({
-			...reply,
-			author: serializeUser(replyUserMap.get(reply.user_id)),
-			attachments: replyAttachmentMap.get(reply.id) || [],
-		}));
+			const article = getArticleById.get(params.id);
+			if (!article) {
+				return { error: "Article not found" };
+			}
 
-		return {
-			article: {
-				...article,
-				author: serializeUser(author),
-				attachments,
-				cover:
-					attachments.find((item) => item.file_type.startsWith("image/")) ||
-					null,
-				excerpt: article.content || buildExcerpt(article.article_body_markdown),
-			},
-			replies: serializedReplies,
-		};
-	}, {
-		detail: {
-			description: "Fetches an article by ID",
+			const author = getUserById.get(article.user_id);
+			if (!author) {
+				return { error: "Author not found" };
+			}
+
+			// Hide articles authored by shadowbanned users unless viewer is owner or admin
+			const currentUser = getUserByUsername.get(payload.username);
+			if (
+				author.shadowbanned &&
+				!(currentUser && (currentUser.admin || currentUser.id === author.id))
+			) {
+				return { error: "Article not found" };
+			}
+
+			const attachments = db
+				.query("SELECT * FROM attachments WHERE post_id = ?")
+				.all(article.id);
+
+			const replies = db
+				.query(
+					"SELECT * FROM posts WHERE reply_to = ? ORDER BY created_at ASC LIMIT 100",
+				)
+				.all(article.id);
+
+			const replyUserIds = [...new Set(replies.map((reply) => reply.user_id))];
+			const replyUsers = replyUserIds.length
+				? db
+						.query(
+							`SELECT * FROM users WHERE id IN (${replyUserIds
+								.map(() => "?")
+								.join(",")})`,
+						)
+						.all(...replyUserIds)
+				: [];
+			const replyUserMap = new Map(replyUsers.map((u) => [u.id, u]));
+
+			const replyAttachments = getAttachmentsForPostIds(
+				replies.map((reply) => reply.id),
+			);
+			const replyAttachmentMap = new Map();
+			replyAttachments.forEach((attachment) => {
+				if (!replyAttachmentMap.has(attachment.post_id)) {
+					replyAttachmentMap.set(attachment.post_id, []);
+				}
+				replyAttachmentMap.get(attachment.post_id).push(attachment);
+			});
+
+			const serializedReplies = replies.map((reply) => ({
+				...reply,
+				author: serializeUser(replyUserMap.get(reply.user_id)),
+				attachments: replyAttachmentMap.get(reply.id) || [],
+			}));
+
+			return {
+				article: {
+					...article,
+					author: serializeUser(author),
+					attachments,
+					cover:
+						attachments.find((item) => item.file_type.startsWith("image/")) ||
+						null,
+					excerpt:
+						article.content || buildExcerpt(article.article_body_markdown),
+				},
+				replies: serializedReplies,
+			};
 		},
-		response: t.Object({
-			article: t.Object(),
-			replies: t.Array(t.Object()),
-			error: t.Optional(t.String()),
-		}),
-		params: t.Object({
-			id: t.String(),
-		}),
-	});
+		{
+			detail: {
+				description: "Fetches an article by ID",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+		},
+	);

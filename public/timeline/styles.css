@@ -368,7 +368,7 @@ nav {
     left: 0;
     height: 3px;
     background-color: var(--primary);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s var(--animation-smooth), width 0.3s var(--animation-smooth);
     border-radius: 10px;
   }
 }
@@ -2443,7 +2443,7 @@ nav {
         left: 0;
         height: 3px;
         background-color: var(--primary);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.3s var(--animation-smooth), width 0.3s var(--animation-smooth);
         border-radius: 10px;
       }
     }
@@ -3875,7 +3875,7 @@ nav {
       left: 0;
       height: 3px;
       background-color: var(--primary);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.3s var(--animation-smooth), width 0.3s var(--animation-smooth);
       border-radius: 10px;
     }
   }
@@ -6183,7 +6183,7 @@ nav {
   left: 0;
   height: 3px;
   background-color: var(--primary);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s var(--animation-smooth), width 0.3s var(--animation-smooth);
   border-radius: 10px;
 }
 
@@ -6457,7 +6457,7 @@ nav {
   left: 0;
   height: 3px;
   background-color: var(--primary);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s var(--animation-smooth), width 0.3s var(--animation-smooth);
   border-radius: 10px;
 }
 

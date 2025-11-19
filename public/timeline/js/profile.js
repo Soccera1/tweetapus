@@ -47,25 +47,23 @@ export default async function openProfile(username) {
 		path: `/@${username}`,
 		recoverState: async () => {
 			const profileContainer = document.getElementById("profileContainer");
-			profileContainer.style.display = "flex";
-			profileContainer.style.justifyContent = "center";
-			profileContainer.style.alignItems = "center";
-			profileContainer.style.minHeight = "400px";
+			profileContainer.style.display = "block";
 
+			const loadingOverlay = document.createElement("div");
+			loadingOverlay.style.cssText =
+				"display: flex; justify-content: center; align-items: center; min-height: 400px; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-primary); z-index: 100;";
 			const spinner = document.createElement("div");
 			spinner.className = "spinner";
 			spinner.style.cssText =
 				"width: 40px; height: 40px; border: 4px solid var(--border-primary); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;";
-			profileContainer.innerHTML = "";
-			profileContainer.appendChild(spinner);
+			loadingOverlay.appendChild(spinner);
+			profileContainer.style.position = "relative";
+			profileContainer.appendChild(loadingOverlay);
 
 			const data = await query(`/profile/${username}`);
 
-			spinner.remove();
-			profileContainer.style.display = "";
-			profileContainer.style.justifyContent = "";
-			profileContainer.style.alignItems = "";
-			profileContainer.style.minHeight = "";
+			loadingOverlay.remove();
+			profileContainer.style.position = "";
 
 			if (data.error) {
 				if (data.error === "User is suspended") {
@@ -203,6 +201,7 @@ const renderAffiliates = () => {
 
 const renderPosts = async (posts, isReplies = false) => {
 	const container = document.getElementById("profilePostsContainer");
+	if (!container) return;
 
 	if (!posts || posts.length === 0) {
 		const emptyMessage = isReplies
@@ -259,6 +258,7 @@ const renderPosts = async (posts, isReplies = false) => {
 
 const renderMediaPosts = async (posts) => {
 	const container = document.getElementById("profilePostsContainer");
+	if (!container) return;
 
 	if (!posts || posts.length === 0) {
 		container.innerHTML = `
@@ -1288,6 +1288,8 @@ document
 
 function setupDmButton(username) {
 	const btn = document.getElementById("profileDmBtn");
+	if (!btn) return;
+	
 	btn.onclick = async () => {
 		try {
 			const pc = document.getElementById("profileContainer");

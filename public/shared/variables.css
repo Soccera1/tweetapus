@@ -44,6 +44,14 @@
   --toast-action-bg: #1e66f5;
   --toast-action-color: #ffffff;
   --toast-content-color: #4c4f69;
+
+
+  --animation-smooth:
+    cubic-bezier(.19, 1, .22, 1);
+  --animation-bounce:
+    cubic-bezier(.15, 1, .75, 1.2);
+  --animation-drawer:
+    cubic-bezier(.32, .72, 0, 1);
 }
 
 * {
