@@ -17,6 +17,7 @@ import reports from "./api/reports.js";
 import scheduled from "./api/scheduled.js";
 import search from "./api/search.js";
 import tenor from "./api/tenor.js";
+import unsplash from "./api/unsplash.js";
 import timeline from "./api/timeline.js";
 import tweet from "./api/tweet.js";
 import upload, { uploadRoutes } from "./api/upload.js";
@@ -237,6 +238,7 @@ export default new Elysia({
 	.use(notifications)
 	.use(dm)
 	.use(tenor)
+	.use(unsplash)
 	.use(scheduled)
 	.use(reports)
 	.use(uploadRoutes);

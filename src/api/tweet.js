@@ -516,6 +516,7 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 				spoiler_flags,
 				interactive_card,
 				ai_vibe,
+				unsplash,
 			} = body;
 			const tweetContent = typeof content === "string" ? content : "";
 			const trimmedContent = tweetContent.trim();
@@ -582,7 +583,8 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 				!gif_url &&
 				!poll &&
 				!interactive_card &&
-				!targetArticleId
+				!targetArticleId &&
+				!unsplash
 			) {
 				return { error: "Tweet content is required" };
 			}
@@ -874,6 +876,38 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 					false,
 				);
 				attachments.push(attachment);
+			}
+
+			if (unsplash) {
+				const attachmentId = Bun.randomUUIDv7();
+				// Store attribution data in file_hash as a JSON string
+				const attributionData = JSON.stringify({
+					user_name: unsplash.photographer_name,
+					user_username: unsplash.photographer_username,
+					user_link: unsplash.photographer_url,
+					download_location: unsplash.download_location
+				});
+				
+				const attachment = saveAttachment.get(
+					attachmentId,
+					tweetId,
+					attributionData, // Storing attribution here
+					"unsplash.jpg",
+					"image/jpeg",
+					0,
+					unsplash.url,
+					false,
+				);
+				attachments.push(attachment);
+				
+				// Trigger download tracking asynchronously
+				if (unsplash.download_location) {
+					fetch(unsplash.download_location, {
+						headers: {
+							"Authorization": `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`
+						}
+					}).catch(err => console.error("Failed to track unsplash download on post:", err));
+				}
 			}
 
 			let articlePreview = null;

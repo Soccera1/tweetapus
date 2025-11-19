@@ -33,6 +33,11 @@ export const useComposer = (
 	const gifSearchInput = element.querySelector("#gif-search-input");
 	const gifResults = element.querySelector("#gif-results");
 	const gifPickerClose = element.querySelector("#gif-picker-close");
+	const unsplashBtn = element.querySelector("#unsplash-btn");
+	const unsplashPicker = element.querySelector("#unsplash-picker");
+	const unsplashSearchInput = element.querySelector("#unsplash-search-input");
+	const unsplashResults = element.querySelector("#unsplash-results");
+	const unsplashPickerClose = element.querySelector("#unsplash-picker-close");
 	const emojiBtn = element.querySelector("#emoji-btn");
 	const replyRestrictionSelect = element.querySelector(
 		"#reply-restriction-select",
@@ -56,6 +61,7 @@ export const useComposer = (
 	let pendingFiles = [];
 	let replyRestriction = "everyone";
 	let selectedGif = null;
+	let selectedUnsplashImage = null;
 	let scheduledFor = null;
 
 	const updateCharacterCount = () => {
@@ -71,6 +77,7 @@ export const useComposer = (
 			const hasExtras =
 				(pendingFiles && pendingFiles.length > 0) ||
 				!!selectedGif ||
+				!!selectedUnsplashImage ||
 				pollEnabled ||
 				!!interactiveCard ||
 				!!article;
@@ -331,9 +338,9 @@ export const useComposer = (
 				);
 				return;
 			}
-			if (selectedGif) {
+			if (selectedGif || selectedUnsplashImage) {
 				toastQueue.add(
-					`<h1>Cannot add files</h1><p>Remove the GIF first to upload files</p>`,
+					`<h1>Cannot add files</h1><p>Remove the GIF or Photo first to upload files</p>`,
 				);
 				return;
 			}
@@ -348,9 +355,9 @@ export const useComposer = (
 				e.target.value = "";
 				return;
 			}
-			if (selectedGif) {
+			if (selectedGif || selectedUnsplashImage) {
 				toastQueue.add(
-					`<h1>Cannot add files</h1><p>Remove the GIF first to upload files</p>`,
+					`<h1>Cannot add files</h1><p>Remove the GIF or Photo first to upload files</p>`,
 				);
 				e.target.value = "";
 				return;
@@ -651,9 +658,9 @@ export const useComposer = (
 				);
 				return;
 			}
-			if (pendingFiles.length > 0) {
+			if (pendingFiles.length > 0 || selectedUnsplashImage) {
 				toastQueue.add(
-					`<h1>Cannot add GIF</h1><p>Remove uploaded files first to select a GIF</p>`,
+					`<h1>Cannot add GIF</h1><p>Remove uploaded files or Photo first to select a GIF</p>`,
 				);
 				return;
 			}
@@ -760,6 +767,140 @@ export const useComposer = (
 			clearTimeout(searchTimeout);
 			searchTimeout = setTimeout(() => {
 				searchGifs(e.target.value);
+			}, 500);
+		});
+	}
+
+	if (unsplashBtn && unsplashPicker && unsplashSearchInput && unsplashResults && unsplashPickerClose) {
+		let searchTimeout;
+
+		unsplashBtn.addEventListener("click", () => {
+			if (cardOnly) {
+				toastQueue.add(
+					`<h1>Photos not available</h1><p>Photos cannot be used in card composer mode</p>`,
+				);
+				return;
+			}
+			if (pendingFiles.length > 0 || selectedGif) {
+				toastQueue.add(
+					`<h1>Cannot add Photo</h1><p>Remove uploaded files or GIF first to select a Photo</p>`,
+				);
+				return;
+			}
+			const isVisible = unsplashPicker.style.display === "block";
+			unsplashPicker.style.display = isVisible ? "none" : "block";
+			if (!isVisible) {
+				unsplashSearchInput.focus();
+				if (unsplashResults.children.length === 0) {
+					searchUnsplash("nature");
+				}
+			}
+		});
+
+		unsplashPickerClose.addEventListener("click", () => {
+			unsplashPicker.style.display = "none";
+		});
+
+		const searchUnsplash = async (q) => {
+			if (!q || q.trim().length === 0) {
+				unsplashResults.innerHTML = "";
+				return;
+			}
+
+			unsplashResults.innerHTML = `
+				<div style="text-align: center; padding: 40px;">
+					<div class="spinner"></div>
+				</div>
+			`;
+
+			try {
+				const { results, error } = await query(
+					`/unsplash/search?q=${encodeURIComponent(q)}&limit=12`,
+				);
+
+				if (error) {
+					unsplashResults.innerHTML = `
+						<div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+							<p>Failed to load images</p>
+						</div>
+					`;
+					return;
+				}
+
+				if (!results || results.length === 0) {
+					unsplashResults.innerHTML = `
+						<div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+							<p>No images found</p>
+						</div>
+					`;
+					return;
+				}
+
+				unsplashResults.innerHTML = "";
+				results.forEach((img) => {
+					const imgEl = document.createElement("div");
+					imgEl.className = "unsplash-item";
+					
+					imgEl.innerHTML = `
+						<img src="${img.thumb}" alt="${img.description}" loading="lazy" />
+						<div class="unsplash-attribution-overlay">
+							<span>Photo by ${img.user.name}</span>
+						</div>
+					`;
+
+					imgEl.addEventListener("click", () => {
+						selectedUnsplashImage = {
+							url: img.url,
+							download_location: img.download_location,
+							photographer_name: img.user.name,
+							photographer_username: img.user.username,
+							photographer_url: img.user.link
+						};
+						
+						pendingFiles = [];
+						selectedGif = null;
+						attachmentPreview.innerHTML = "";
+
+						const previewEl = document.createElement("div");
+						previewEl.className = "attachment-preview-item";
+						previewEl.innerHTML = `
+							<img src="${img.thumb}" alt="Selected Image" />
+							<div class="unsplash-attribution-badge">
+								Photo by ${img.user.name} on Unsplash
+							</div>
+							<button type="button" class="remove-attachment">×</button>
+						`;
+
+						previewEl
+							.querySelector(".remove-attachment")
+							.addEventListener("click", () => {
+								selectedUnsplashImage = null;
+								previewEl.remove();
+								updateCharacterCount();
+							});
+
+						attachmentPreview.appendChild(previewEl);
+						unsplashPicker.style.display = "none";
+						unsplashSearchInput.value = "";
+						updateCharacterCount();
+					});
+
+					unsplashResults.appendChild(imgEl);
+				});
+			} catch (error) {
+				console.error("Unsplash search error:", error);
+				unsplashResults.innerHTML = `
+					<div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+						<p>Failed to load images</p>
+					</div>
+				`;
+			}
+		};
+
+		unsplashSearchInput.addEventListener("input", (e) => {
+			clearTimeout(searchTimeout);
+			searchTimeout = setTimeout(() => {
+				searchUnsplash(e.target.value);
 			}, 500);
 		});
 	}
@@ -1201,6 +1342,7 @@ export const useComposer = (
 		const hasExtras =
 			(pendingFiles && pendingFiles.length > 0) ||
 			!!selectedGif ||
+			!!selectedUnsplashImage ||
 			pollEnabled ||
 			!!interactiveCard ||
 			!!article;
@@ -1276,6 +1418,10 @@ export const useComposer = (
 
 				if (selectedGif) {
 					requestBody.gif_url = selectedGif;
+				}
+
+				if (selectedUnsplashImage) {
+					requestBody.unsplash = selectedUnsplashImage;
 				}
 
 				if (poll) {
@@ -1359,6 +1505,10 @@ export const useComposer = (
 
 			if (selectedGif) {
 				requestBody.gif_url = selectedGif;
+			}
+
+			if (selectedUnsplashImage) {
+				requestBody.unsplash = selectedUnsplashImage;
 			}
 
 			if (poll) {
@@ -1477,6 +1627,9 @@ export const createComposer = async ({
                 <button type="button" id="gif-btn" title="Add GIF">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M144,72V184a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm88-8H176a8,8,0,0,0-8,8V184a8,8,0,0,0,16,0V136h40a8,8,0,0,0,0-16H184V80h48a8,8,0,0,0,0-16ZM96,120H72a8,8,0,0,0,0,16H88v16a24,24,0,0,1-48,0V104A24,24,0,0,1,64,80c11.19,0,21.61,7.74,24.25,18a8,8,0,0,0,15.5-4C99.27,76.62,82.56,64,64,64a40,40,0,0,0-40,40v48a40,40,0,0,0,80,0V128A8,8,0,0,0,96,120Z"></path></svg>
                 </button>
+                <button type="button" id="unsplash-btn" title="Add Photo from Unsplash">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </button>
                 <button type="button" id="emoji-btn" title="Add emoji">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>
                 </button>
@@ -1513,6 +1666,13 @@ export const createComposer = async ({
                 <button type="button" id="gif-picker-close">×</button>
               </div>
               <div id="gif-results"></div>
+            </div>
+            <div id="unsplash-picker" style="display: none;">
+              <div class="unsplash-picker-header">
+                <input type="text" id="unsplash-search-input" placeholder="Search Unsplash…" />
+                <button type="button" id="unsplash-picker-close">×</button>
+              </div>
+              <div id="unsplash-results"></div>
             </div>
             <div id="schedule-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
               <div style="background: var(--bg-primary); border-radius: 12px; padding: 24px; max-width: 400px; width: 90%;">

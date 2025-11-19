@@ -67,6 +67,7 @@ export default new Elysia({ prefix: "/scheduled", tags: ["Scheduling"] })
         files,
         gif_url,
         reply_restriction,
+        unsplash,
       } = body;
 
       if (!content || content.trim().length === 0) {
@@ -100,13 +101,31 @@ export default new Elysia({ prefix: "/scheduled", tags: ["Scheduling"] })
 
       const scheduledPostId = Bun.randomUUIDv7();
 
+      let filesData = files || [];
+      if (unsplash) {
+        const attributionData = JSON.stringify({
+          user_name: unsplash.photographer_name,
+          user_username: unsplash.photographer_username,
+          user_link: unsplash.photographer_url,
+          download_location: unsplash.download_location
+        });
+        
+        filesData.push({
+          hash: attributionData,
+          name: "unsplash.jpg",
+          type: "image/jpeg",
+          size: 0,
+          url: unsplash.url
+        });
+      }
+
       const scheduledPost = createScheduledPost.get(
         scheduledPostId,
         user.id,
         content.trim(),
         scheduledDate.toISOString(),
         poll ? JSON.stringify(poll) : null,
-        files ? JSON.stringify(files) : null,
+        filesData.length > 0 ? JSON.stringify(filesData) : null,
         gif_url || null,
         reply_restriction || "everyone"
       );
@@ -236,6 +255,22 @@ const processScheduledPosts = async () => {
             file.size,
             file.url
           );
+
+          // Trigger Unsplash download tracking
+          if (file.name === "unsplash.jpg" && file.hash) {
+            try {
+              const attribution = JSON.parse(file.hash);
+              if (attribution && attribution.download_location) {
+                fetch(attribution.download_location, {
+                  headers: {
+                    "Authorization": `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`
+                  }
+                }).catch(err => console.error("Failed to track unsplash download on scheduled post:", err));
+              }
+            } catch (e) {
+              console.error("Failed to parse Unsplash attribution for tracking", e);
+            }
+          }
         });
       }
 

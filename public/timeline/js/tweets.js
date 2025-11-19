@@ -1419,6 +1419,23 @@ export const createTweetElement = (tweet, config = {}) => {
 				img.alt = attachment.file_name;
 				img.loading = "lazy";
 
+				// Check for Unsplash attribution
+				if (attachment.file_name === "unsplash.jpg" && attachment.file_hash) {
+					try {
+						const attribution = JSON.parse(attachment.file_hash);
+						if (attribution && attribution.user_name) {
+							const attributionEl = document.createElement("div");
+							attributionEl.className = "unsplash-attribution-badge";
+							attributionEl.innerHTML = `
+								Photo by <a href="${attribution.user_link}?utm_source=tweetapus&utm_medium=referral" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">${attribution.user_name}</a> on <a href="https://unsplash.com/?utm_source=tweetapus&utm_medium=referral" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">Unsplash</a>
+							`;
+							attachmentEl.appendChild(attributionEl);
+						}
+					} catch (e) {
+						console.error("Failed to parse Unsplash attribution", e);
+					}
+				}
+
 				if (attachment.is_spoiler) {
 					attachmentEl.classList.add("spoiler");
 					const spoilerOverlay = document.createElement("div");
