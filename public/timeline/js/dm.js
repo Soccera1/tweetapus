@@ -5,7 +5,6 @@ import query from "./api.js";
 import { authToken } from "./auth.js";
 import switchPage, { addRoute } from "./pages.js";
 
-// Load custom emojis once and keep a simple name->url map for rendering
 const dmEmojiMap = {};
 (async () => {
 	try {
@@ -16,7 +15,6 @@ const dmEmojiMap = {};
 			if (e?.name && e?.file_url) dmEmojiMap[e.name] = e.file_url;
 		}
 	} catch (_err) {
-		// ignore
 	}
 })();
 

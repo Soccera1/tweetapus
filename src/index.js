@@ -311,6 +311,29 @@ new Elysia()
 			: file("./public/account-v2/index.html");
 	})
 	.use(api)
+	.head(
+		"/public/shared/assets/js/emoji-picker-element/data.json",
+		({ set }) => {
+			set.headers = {
+				"access-control-allow-origin": "*",
+				"access-control-expose-headers": "*",
+				"cache-control": "public, max-age=604800, s-maxage=43200",
+				"content-type": "application/json; charset=utf-8",
+				date: "Wed, 19 Nov 2025 14:59:33 GMT",
+				etag: '"ok1"',
+				"timing-allow-origin": "*",
+			};
+
+			return null;
+		},
+		{
+			detail: {
+				description:
+					"Returns static emoji data file headers. Always returns the same headers.",
+			},
+			tags: ["Emojis"],
+		},
+	)
 	.listen({ port: process.env.PORT || 3000, idleTimeout: 255 }, () => {
 		console.log(
 			`\x1b[38;2;29;161;242m __    _                     _
