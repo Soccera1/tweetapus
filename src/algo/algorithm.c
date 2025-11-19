@@ -121,15 +121,15 @@ static double calculate_age_diversity_boost(int like_count, int retweet_count, i
 
 static inline double content_repeat_penalty(int content_repeats) {
     if (content_repeats <= 0) return 1.0;
-    double penalty = pow(0.6, (double)content_repeats);
-    if (penalty < 0.02) penalty = 0.02;
+    double penalty = pow(0.55, (double)content_repeats);
+    if (penalty < 0.01) penalty = 0.01;
     return penalty;
 }
 
 static inline double author_repeat_penalty(int author_repeats) {
     if (author_repeats <= 0) return 1.0;
-    double penalty = pow(0.78, (double)author_repeats);
-    if (penalty < 0.08) penalty = 0.08;
+    double penalty = pow(0.72, (double)author_repeats);
+    if (penalty < 0.05) penalty = 0.05;
     return penalty;
 }
 
@@ -719,6 +719,41 @@ void rank_tweets(Tweet *tweets, size_t count) {
             for (size_t i = 0; i < count; i++) copy[i] = tweets[final_idx[i]];
             for (size_t i = 0; i < count; i++) tweets[i] = copy[i];
             free(copy);
+        }
+    }
+
+    /* enforce forced older count if needed: try swapping in older candidates */
+    if (forced_old_needed > 0) {
+        size_t current_older = 0;
+        for (size_t i = 0; i < top_limit; i++) {
+            double age_hours = (double)(now_ts - (time_t)tweets[i].created_at) / 3600.0;
+            if (age_hours >= 24.0) current_older++;
+        }
+        if (current_older < forced_old_needed) {
+            for (size_t k = top_limit; k < count && current_older < forced_old_needed; k++) {
+                double candidate_age = (double)(now_ts - (time_t)tweets[k].created_at) / 3600.0;
+                if (candidate_age < 24.0) continue; /* want day+ */
+                /* ensure candidate doesn't duplicate any top ids */
+                int conflict = 0;
+                if (tweets[k].id) {
+                    for (size_t t = 0; t < top_limit; t++) {
+                        if (tweets[t].id && strcmp(tweets[t].id, tweets[k].id) == 0) { conflict = 1; break; }
+                    }
+                }
+                if (conflict) continue;
+                /* swap candidate in for a fresh top item */
+                size_t youngest_idx = SIZE_MAX; double youngest_age = 1e9;
+                for (size_t t = 0; t < top_limit; t++) {
+                    double age_hours = (double)(now_ts - (time_t)tweets[t].created_at) / 3600.0;
+                    if (age_hours < youngest_age) { youngest_age = age_hours; youngest_idx = t; }
+                }
+                if (youngest_idx != SIZE_MAX) {
+                    Tweet tmp = tweets[youngest_idx];
+                    tweets[youngest_idx] = tweets[k];
+                    tweets[k] = tmp;
+                    current_older++;
+                }
+            }
         }
     }
 

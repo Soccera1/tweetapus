@@ -27,10 +27,13 @@ let currentReplies = [];
 let currentMedia = [];
 let currentUsername = null;
 let currentAffiliates = [];
+let isLoadingPosts = false;
 let isLoadingReplies = false;
 let isLoadingMedia = false;
+let hasMorePosts = true;
 let hasMoreReplies = true;
 let hasMoreMedia = true;
+let postsObserver = null;
 let repliesObserver = null;
 let mediaObserver = null;
 let avatarChangedForTweet = false;
@@ -255,10 +258,15 @@ const renderPosts = async (posts, isReplies = false) => {
 		sentinel.className = "scroll-sentinel";
 		sentinel.style.height = "1px";
 		container.appendChild(sentinel);
+	} else if (!isReplies && hasMorePosts) {
+		const sentinel = document.createElement("div");
+		sentinel.className = "scroll-sentinel";
+		sentinel.style.height = "1px";
+		container.appendChild(sentinel);
 	}
 };
 
-const renderMediaPosts = async (posts) => {
+const renderMediaGrid = async (posts) => {
 	const container = document.getElementById("profilePostsContainer");
 	if (!container) return;
 
@@ -275,16 +283,59 @@ const renderMediaPosts = async (posts) => {
 	container.innerHTML = "";
 
 	for (const post of posts) {
-		const tweetElement = createTweetElement(post, {
-			clickToOpen: true,
-		});
-		container.appendChild(tweetElement);
+		const attachments = post.attachments || [];
+		const mediaAttachments = attachments.filter(att => att.type === "image" || att.type === "video");
+		
+		if (mediaAttachments.length === 0) continue;
+
+		for (const attachment of mediaAttachments) {
+			const mediaItem = document.createElement("div");
+			mediaItem.className = "media-grid-item";
+			mediaItem.style.cursor = "pointer";
+
+			if (attachment.type === "image") {
+				const img = document.createElement("img");
+				img.src = attachment.url;
+				img.alt = "Media";
+				img.loading = "lazy";
+				img.style.cssText = "width: 100%; height: 100%; object-fit: cover; display: block;";
+				mediaItem.appendChild(img);
+			} else if (attachment.type === "video") {
+				const video = document.createElement("video");
+				video.src = attachment.url;
+				video.style.cssText = "width: 100%; height: 100%; object-fit: cover; display: block;";
+				video.muted = true;
+				video.loop = true;
+				video.playsInline = true;
+				
+				const playIcon = document.createElement("div");
+				playIcon.style.cssText = "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 48px; height: 48px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none;";
+				playIcon.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>';
+				
+				mediaItem.style.position = "relative";
+				mediaItem.appendChild(video);
+				mediaItem.appendChild(playIcon);
+				
+				mediaItem.addEventListener("mouseenter", () => video.play().catch(() => {}));
+				mediaItem.addEventListener("mouseleave", () => {
+					video.pause();
+					video.currentTime = 0;
+				});
+			}
+
+			mediaItem.addEventListener("click", async () => {
+				const { default: openTweet } = await import("./tweet.js");
+				openTweet(post.id);
+			});
+
+			container.appendChild(mediaItem);
+		}
 	}
 
 	if (hasMoreMedia) {
 		const sentinel = document.createElement("div");
 		sentinel.className = "scroll-sentinel";
-		sentinel.style.height = "1px";
+		sentinel.style.cssText = "grid-column: 1 / -1; height: 1px;";
 		container.appendChild(sentinel);
 	}
 };
@@ -385,16 +436,59 @@ const loadMoreMedia = async () => {
 	if (sentinel) sentinel.remove();
 
 	for (const post of media) {
-		const tweetElement = createTweetElement(post, {
-			clickToOpen: true,
-		});
-		container.appendChild(tweetElement);
+		const attachments = post.attachments || [];
+		const mediaAttachments = attachments.filter(att => att.type === "image" || att.type === "video");
+		
+		if (mediaAttachments.length === 0) continue;
+
+		for (const attachment of mediaAttachments) {
+			const mediaItem = document.createElement("div");
+			mediaItem.className = "media-grid-item";
+			mediaItem.style.cursor = "pointer";
+
+			if (attachment.type === "image") {
+				const img = document.createElement("img");
+				img.src = attachment.url;
+				img.alt = "Media";
+				img.loading = "lazy";
+				img.style.cssText = "width: 100%; height: 100%; object-fit: cover; display: block;";
+				mediaItem.appendChild(img);
+			} else if (attachment.type === "video") {
+				const video = document.createElement("video");
+				video.src = attachment.url;
+				video.style.cssText = "width: 100%; height: 100%; object-fit: cover; display: block;";
+				video.muted = true;
+				video.loop = true;
+				video.playsInline = true;
+				
+				const playIcon = document.createElement("div");
+				playIcon.style.cssText = "position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 48px; height: 48px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none;";
+				playIcon.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>';
+				
+				mediaItem.style.position = "relative";
+				mediaItem.appendChild(video);
+				mediaItem.appendChild(playIcon);
+				
+				mediaItem.addEventListener("mouseenter", () => video.play().catch(() => {}));
+				mediaItem.addEventListener("mouseleave", () => {
+					video.pause();
+					video.currentTime = 0;
+				});
+			}
+
+			mediaItem.addEventListener("click", async () => {
+				const { default: openTweet } = await import("./tweet.js");
+				openTweet(post.id);
+			});
+
+			container.appendChild(mediaItem);
+		}
 	}
 
 	if (hasMoreMedia) {
 		const newSentinel = document.createElement("div");
 		newSentinel.className = "scroll-sentinel";
-		newSentinel.style.height = "1px";
+		newSentinel.style.cssText = "grid-column: 1 / -1; height: 1px;";
 		container.appendChild(newSentinel);
 	}
 
@@ -402,6 +496,81 @@ const loadMoreMedia = async () => {
 
 	if (hasMoreMedia) {
 		setupMediaInfiniteScroll();
+	}
+};
+
+const loadMorePosts = async () => {
+	if (isLoadingPosts || !hasMorePosts || !currentUsername) return;
+
+	isLoadingPosts = true;
+
+	const lastPost = currentPosts[currentPosts.length - 1];
+	if (!lastPost) {
+		isLoadingPosts = false;
+		return;
+	}
+
+	const { error, posts } = await query(
+		`/profile/${currentUsername}/posts?before=${lastPost.id}&limit=10`,
+	);
+
+	if (error) {
+		toastQueue.add(`<h1>${escapeHTML(error)}</h1>`);
+		isLoadingPosts = false;
+		return;
+	}
+
+	if (!posts || posts.length === 0) {
+		hasMorePosts = false;
+		isLoadingPosts = false;
+		return;
+	}
+
+	currentPosts = [...currentPosts, ...posts];
+
+	if (posts.length < 10) {
+		hasMorePosts = false;
+	}
+
+	const container = document.getElementById("profilePostsContainer");
+	const sentinel = container.querySelector(".scroll-sentinel");
+	if (sentinel) sentinel.remove();
+
+	for (const post of posts) {
+		const tweetElement = createTweetElement(post, {
+			clickToOpen: true,
+		});
+
+		if (post.content_type === "retweet") {
+			const retweetIndicator = document.createElement("div");
+			retweetIndicator.className = "retweet-indicator";
+			retweetIndicator.innerHTML = `
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M17 1l4 4-4 4"></path>
+					<path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+					<path d="M7 23l-4-4 4-4"></path>
+					<path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+				</svg>
+				<span>${
+					currentProfile?.profile?.name || currentProfile?.profile?.username
+				} retweeted</span>
+			`;
+			tweetElement.insertBefore(retweetIndicator, tweetElement.firstChild);
+		}
+		container.appendChild(tweetElement);
+	}
+
+	if (hasMorePosts) {
+		const newSentinel = document.createElement("div");
+		newSentinel.className = "scroll-sentinel";
+		newSentinel.style.height = "1px";
+		container.appendChild(newSentinel);
+	}
+
+	isLoadingPosts = false;
+
+	if (hasMorePosts) {
+		setupPostsInfiniteScroll();
 	}
 };
 
@@ -453,12 +622,40 @@ const setupMediaInfiniteScroll = () => {
 	});
 };
 
+const setupPostsInfiniteScroll = () => {
+	if (postsObserver) {
+		postsObserver.disconnect();
+	}
+
+	requestAnimationFrame(() => {
+		const sentinel = document.querySelector(".scroll-sentinel");
+		if (!sentinel || !hasMorePosts) return;
+
+		postsObserver = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting && !isLoadingPosts && hasMorePosts) {
+					loadMorePosts();
+				}
+			},
+			{
+				rootMargin: "200px",
+			},
+		);
+
+		postsObserver.observe(sentinel);
+	});
+};
+
 const switchTab = async (tabName) => {
 	const postsContainer = document.getElementById("profilePostsContainer");
 	const affiliatesContainer = document.getElementById(
 		"profileAffiliatesContainer",
 	);
 
+	if (postsObserver) {
+		postsObserver.disconnect();
+		postsObserver = null;
+	}
 	if (repliesObserver) {
 		repliesObserver.disconnect();
 		repliesObserver = null;
@@ -473,7 +670,9 @@ const switchTab = async (tabName) => {
 
 	if (tabName === "posts") {
 		if (postsContainer) postsContainer.classList.remove("hidden");
+		postsContainer.classList.remove("media-grid");
 		renderPosts(currentPosts, false);
+		setupPostsInfiniteScroll();
 	} else if (tabName === "replies") {
 		if (postsContainer) postsContainer.classList.remove("hidden");
 		if (currentReplies.length === 0 && currentUsername) {
@@ -499,6 +698,7 @@ const switchTab = async (tabName) => {
 		setupRepliesInfiniteScroll();
 	} else if (tabName === "media") {
 		if (postsContainer) postsContainer.classList.remove("hidden");
+		postsContainer.classList.add("media-grid");
 		if (currentMedia.length === 0 && currentUsername) {
 			document.getElementById("profilePostsContainer").innerHTML = "";
 			hasMoreMedia = true;
@@ -518,7 +718,7 @@ const switchTab = async (tabName) => {
 			}
 		}
 
-		renderMediaPosts(currentMedia);
+		renderMediaGrid(currentMedia);
 		setupMediaInfiniteScroll();
 	} else if (tabName === "affiliates") {
 		if (affiliatesContainer) affiliatesContainer.classList.remove("hidden");
@@ -1023,6 +1223,7 @@ const renderProfile = (data) => {
 	currentPosts = posts;
 	currentReplies = [];
 	currentMedia = [];
+	hasMorePosts = posts && posts.length >= 20;
 	hasMoreReplies = true;
 	hasMoreMedia = true;
 	currentAffiliates = Array.isArray(data.affiliates)
@@ -2576,7 +2777,7 @@ async function showFollowersList(username, type) {
 				followerItem.dataset.username = user.username;
 
 				const avatar = document.createElement("img");
-				avatar.src = user.avatar || "/avatars/default.png";
+				avatar.src = user.avatar || "/public/shared/assets/default-avatar.svg";
 				avatar.alt = user.name;
 				avatar.className = "follower-avatar";
 				const radius =

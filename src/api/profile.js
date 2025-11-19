@@ -119,6 +119,30 @@ const getUserMediaPaginated = db.prepare(`
   LIMIT ?
 `);
 
+const getUserPostsPaginated = db.prepare(`
+  SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with
+  FROM posts 
+  JOIN users ON posts.user_id = users.id 
+  WHERE posts.user_id = ? AND posts.reply_to IS NULL AND users.suspended = 0 AND posts.id < ?
+  ORDER BY posts.created_at DESC
+  LIMIT ?
+`);
+
+const getUserRetweetsPaginated = db.prepare(`
+  SELECT 
+    original_posts.*,
+    original_users.username, original_users.name, original_users.avatar, original_users.verified, original_users.gold, original_users.avatar_radius, original_users.affiliate, original_users.affiliate_with,
+    retweets.created_at as retweet_created_at,
+    retweets.post_id as original_post_id,
+    retweets.id as retweet_id
+  FROM retweets
+  JOIN posts original_posts ON retweets.post_id = original_posts.id
+  JOIN users original_users ON original_posts.user_id = original_users.id
+  WHERE retweets.user_id = ? AND retweets.id < ?
+  ORDER BY retweets.created_at DESC
+  LIMIT ?
+`);
+
 const getUserPosts = db.prepare(`
   SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with
   FROM posts 
@@ -963,6 +987,150 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 		} catch (error) {
 			console.error("Media fetch error:", error);
 			return { error: "Failed to fetch media" };
+		}
+	})
+	.get("/:username/posts", async ({ params, query: queryParams, headers, jwt }) => {
+		try {
+			const { username } = params;
+			const user = getUserByUsername.get(username);
+			if (!user) {
+				return { error: "User not found" };
+			}
+
+			const before = queryParams.before;
+			const limit = parseInt(queryParams.limit || "10", 10);
+
+			let userPosts = [];
+			let userRetweets = [];
+
+			if (before) {
+				userPosts = getUserPostsPaginated.all(user.id, before, limit);
+				userRetweets = getUserRetweetsPaginated.all(user.id, before, limit);
+			} else {
+				return { error: "before parameter required" };
+			}
+
+			const allContent = [
+				...userPosts.map((post) => ({
+					...post,
+					content_type: "post",
+					sort_date: new Date(post.created_at),
+				})),
+				...userRetweets.map((retweet) => ({
+					...retweet,
+					content_type: "retweet",
+					sort_date: new Date(retweet.retweet_created_at),
+					retweet_created_at: retweet.retweet_created_at,
+				})),
+			].sort((a, b) => b.sort_date - a.sort_date).slice(0, limit);
+
+			let currentUserId = null;
+			const authorization = headers.authorization;
+			if (authorization) {
+				try {
+					const payload = await jwt.verify(authorization.replace("Bearer ", ""));
+					if (payload) {
+						const currentUser = getUserByUsername.get(payload.username);
+						if (currentUser) currentUserId = currentUser.id;
+					}
+				} catch {}
+			}
+
+			const affiliateIds = new Set();
+			for (const item of allContent) {
+				if (item.affiliate && item.affiliate_with) {
+					affiliateIds.add(item.affiliate_with);
+				}
+			}
+			const affiliateProfilesMap = new Map();
+			if (affiliateIds.size > 0) {
+				const affiliateProfiles = db.query(`
+					SELECT id, username, name, avatar, verified, gold, avatar_radius 
+					FROM users WHERE id IN (${[...affiliateIds].map(() => "?").join(",")})
+				`).all(...affiliateIds);
+				for (const aff of affiliateProfiles) {
+					affiliateProfilesMap.set(aff.id, aff);
+				}
+			}
+
+			for (const item of allContent) {
+				const author = {
+					username: item.username,
+					name: item.name,
+					avatar: item.avatar,
+					verified: item.verified || false,
+					gold: item.gold || false,
+					avatar_radius: item.avatar_radius || null,
+					affiliate: item.affiliate || false,
+					affiliate_with: item.affiliate_with || null,
+				};
+				if (author.affiliate && author.affiliate_with && affiliateProfilesMap.has(author.affiliate_with)) {
+					author.affiliate_with_profile = affiliateProfilesMap.get(author.affiliate_with);
+				}
+				item.author = author;
+			}
+
+			const allPostIds = allContent.map((p) => p.id);
+			const attachmentsMap = new Map();
+			const factChecksMap = new Map();
+
+			if (allPostIds.length > 0) {
+				const attachments = db.query(`
+					SELECT * FROM attachments WHERE post_id IN (${allPostIds.map(() => "?").join(",")})
+				`).all(...allPostIds);
+				for (const att of attachments) {
+					if (!attachmentsMap.has(att.post_id)) attachmentsMap.set(att.post_id, []);
+					attachmentsMap.get(att.post_id).push(att);
+				}
+
+				const factChecks = db.query(`
+					SELECT fc.*, u.username as admin_username, u.name as admin_name
+					FROM fact_checks fc
+					JOIN users u ON fc.created_by = u.id
+					WHERE fc.post_id IN (${allPostIds.map(() => "?").join(",")})
+				`).all(...allPostIds);
+				for (const fc of factChecks) {
+					factChecksMap.set(fc.post_id, fc);
+				}
+			}
+
+			const posts = allContent.map((post) => ({
+				...post,
+				poll: getPollDataForPost(post.id, currentUserId),
+				quoted_tweet: getQuotedPostData(post.quote_tweet_id, currentUserId),
+				attachments: attachmentsMap.get(post.id) || [],
+				liked_by_user: false,
+				retweeted_by_user: false,
+				fact_check: factChecksMap.get(post.id) || null,
+				interactive_card: getCardDataForTweet(post.id),
+			}));
+
+			if (currentUserId && posts.length > 0) {
+				try {
+					const postIds = posts.map((p) => p.id);
+					const likesQuery = db.query(`
+						SELECT post_id FROM likes WHERE user_id = ? AND post_id IN (${postIds.map(() => "?").join(",")})
+					`);
+					const retweetsQuery = db.query(`
+						SELECT post_id FROM retweets WHERE user_id = ? AND post_id IN (${postIds.map(() => "?").join(",")})
+					`);
+					const likedPosts = likesQuery.all(currentUserId, ...postIds);
+					const retweetedPosts = retweetsQuery.all(currentUserId, ...postIds);
+					const likedPostsSet = new Set(likedPosts.map((like) => like.post_id));
+					const retweetedPostsSet = new Set(retweetedPosts.map((retweet) => retweet.post_id));
+					posts.forEach((post) => {
+						post.liked_by_user = likedPostsSet.has(post.id);
+						post.retweeted_by_user = retweetedPostsSet.has(post.id);
+					});
+				} catch (e) {
+					console.warn("Failed to fetch likes/retweets:", e);
+				}
+			}
+
+			return { posts };
+		} catch (error) {
+			console.error("Posts fetch error:", error);
+			return { error: "Failed to fetch posts" };
 		}
 	})
 	.put("/:username", async ({ params, jwt, headers, body }) => {
