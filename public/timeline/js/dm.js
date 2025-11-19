@@ -1,6 +1,11 @@
 import { showEmojiPickerPopup } from "../../shared/emoji-picker.js";
 import { openImageFullscreen } from "../../shared/image-viewer.js";
 import toastQueue from "../../shared/toasts.js";
+import {
+	createDMConversationSkeleton,
+	showSkeletons,
+	removeSkeletons,
+} from "../../shared/skeleton-utils.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
 import switchPage, { addRoute } from "./pages.js";
@@ -339,8 +344,19 @@ async function loadConversations() {
 		return;
 	}
 
+	const listElement = document.getElementById("dmConversationsList");
+	if (!listElement) return;
+
+	const skeletons = showSkeletons(
+		listElement,
+		createDMConversationSkeleton,
+		3,
+	);
+
 	try {
 		const data = await query("/dm/conversations");
+
+		removeSkeletons(skeletons);
 
 		if (data.error) {
 			toastQueue.add("An error occurred");
@@ -350,6 +366,7 @@ async function loadConversations() {
 		currentConversations = data.conversations || [];
 		renderConversationsList();
 	} catch (error) {
+		removeSkeletons(skeletons);
 		console.error("Failed to load conversations:", error);
 		toastQueue.add("Failed to load conversations");
 	}

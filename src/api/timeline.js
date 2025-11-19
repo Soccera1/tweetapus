@@ -52,7 +52,8 @@ const enrichUsersWithCommunityTags = (users) => {
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const getTimelinePosts = db.query(`
-  SELECT posts.* FROM posts 
+  SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with, users.selected_community_tag
+  FROM posts 
   JOIN users ON posts.user_id = users.id
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
   LEFT JOIN follows ON (posts.user_id = follows.following_id AND follows.follower_id = ?)
@@ -63,7 +64,8 @@ const getTimelinePosts = db.query(`
 `);
 
 const getTimelinePostsBefore = db.query(`
-  SELECT posts.* FROM posts 
+  SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with, users.selected_community_tag
+  FROM posts 
   JOIN users ON posts.user_id = users.id
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
   LEFT JOIN follows ON (posts.user_id = follows.following_id AND follows.follower_id = ?)
@@ -75,7 +77,8 @@ const getTimelinePostsBefore = db.query(`
 `);
 
 const getFollowingTimelinePosts = db.query(`
-  SELECT posts.* FROM posts 
+  SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with, users.selected_community_tag
+  FROM posts 
   JOIN follows ON posts.user_id = follows.following_id
   JOIN users ON posts.user_id = users.id
   LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
@@ -389,7 +392,7 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 
 			const cKey = normalizeContent(p.content || "");
 			if (cKey) contentCounts.set(cKey, (contentCounts.get(cKey) || 0) + 1);
-			p._normalized_content = cKey; // keep for debugging later
+			p._normalized_content = cKey;
 		});
 
 		if (user.use_c_algorithm && isAlgorithmAvailable()) {
@@ -417,24 +420,9 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 					.all(...postIds);
 				const factCheckSet = new Set(allFactChecks.map((fc) => fc.post_id));
 
-				const userIds = [...new Set(posts.map((p) => p.user_id))];
-				const userPlaceholders = userIds.map(() => "?").join(",");
-				const postUsers = db
-					.query(
-						`SELECT id, verified, gold, follower_count FROM users WHERE id IN (${userPlaceholders})`,
-					)
-					.all(...userIds);
-				const userDataMap = new Map(postUsers.map((u) => [u.id, u]));
-
 				posts.forEach((post) => {
 					post.attachments = attachmentMap.get(post.id) || [];
 					post.has_community_note = factCheckSet.has(post.id);
-					const userData = userDataMap.get(post.user_id);
-					if (userData) {
-						post.verified = userData.verified;
-						post.gold = userData.gold;
-						post.follower_count = userData.follower_count;
-					}
 				});
 			}
 
@@ -449,21 +437,49 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 			}
 		}
 
-		const userIds = [...new Set(posts.map((post) => post.user_id))];
-
-		const placeholders = userIds.map(() => "?").join(",");
-		const getUsersQuery = db.query(
-			`SELECT * FROM users WHERE id IN (${placeholders})`,
-		);
-
-		const users = getUsersQuery.all(...userIds);
-
-		enrichUsersWithAffiliateProfiles(users);
-		enrichUsersWithCommunityTags(users);
-
 		const userMap = {};
-		users.forEach((user) => {
-			userMap[user.id] = user;
+		posts.forEach((post) => {
+			const author = {
+				id: post.user_id,
+				username: post.username,
+				name: post.name,
+				avatar: post.avatar,
+				verified: post.verified || false,
+				gold: post.gold || false,
+				avatar_radius: post.avatar_radius || null,
+				affiliate: post.affiliate || false,
+				affiliate_with: post.affiliate_with || null,
+				selected_community_tag: post.selected_community_tag || null,
+			};
+			
+			if (author.affiliate && author.affiliate_with) {
+				const affiliateProfile = db
+					.query(
+						"SELECT id, username, name, avatar, verified, gold, avatar_radius FROM users WHERE id = ?",
+					)
+					.get(author.affiliate_with);
+				if (affiliateProfile) {
+					author.affiliate_with_profile = affiliateProfile;
+				}
+			}
+
+			if (author.selected_community_tag) {
+				const community = db
+					.query(
+						"SELECT id, name, tag_enabled, tag_emoji, tag_text FROM communities WHERE id = ?",
+					)
+					.get(author.selected_community_tag);
+				if (community && community.tag_enabled) {
+					author.community_tag = {
+						community_id: community.id,
+						community_name: community.name,
+						emoji: community.tag_emoji,
+						text: community.tag_text,
+					};
+				}
+			}
+
+			userMap[post.user_id] = author;
 		});
 
 		const rawTopReplies = posts
@@ -705,24 +721,9 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 					.all(...postIds);
 				const factCheckSet = new Set(allFactChecks.map((fc) => fc.post_id));
 
-				const userIds = [...new Set(posts.map((p) => p.user_id))];
-				const userPlaceholders = userIds.map(() => "?").join(",");
-				const postUsers = db
-					.query(
-						`SELECT id, verified, gold, follower_count FROM users WHERE id IN (${userPlaceholders})`,
-					)
-					.all(...userIds);
-				const userDataMap = new Map(postUsers.map((u) => [u.id, u]));
-
 				posts.forEach((post) => {
 					post.attachments = attachmentMap.get(post.id) || [];
 					post.has_community_note = factCheckSet.has(post.id);
-					const userData = userDataMap.get(post.user_id);
-					if (userData) {
-						post.verified = userData.verified;
-						post.gold = userData.gold;
-						post.follower_count = userData.follower_count;
-					}
 				});
 			}
 
@@ -754,21 +755,49 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 			}
 		}
 
-		const userIds = [...new Set(posts.map((post) => post.user_id))];
-
-		const placeholders = userIds.map(() => "?").join(",");
-		const getUsersQuery = db.query(
-			`SELECT * FROM users WHERE id IN (${placeholders})`,
-		);
-
-		const users = getUsersQuery.all(...userIds);
-
-		enrichUsersWithAffiliateProfiles(users);
-		enrichUsersWithCommunityTags(users);
-
 		const userMap = {};
-		users.forEach((user) => {
-			userMap[user.id] = user;
+		posts.forEach((post) => {
+			const author = {
+				id: post.user_id,
+				username: post.username,
+				name: post.name,
+				avatar: post.avatar,
+				verified: post.verified || false,
+				gold: post.gold || false,
+				avatar_radius: post.avatar_radius || null,
+				affiliate: post.affiliate || false,
+				affiliate_with: post.affiliate_with || null,
+				selected_community_tag: post.selected_community_tag || null,
+			};
+			
+			if (author.affiliate && author.affiliate_with) {
+				const affiliateProfile = db
+					.query(
+						"SELECT id, username, name, avatar, verified, gold, avatar_radius FROM users WHERE id = ?",
+					)
+					.get(author.affiliate_with);
+				if (affiliateProfile) {
+					author.affiliate_with_profile = affiliateProfile;
+				}
+			}
+
+			if (author.selected_community_tag) {
+				const community = db
+					.query(
+						"SELECT id, name, tag_enabled, tag_emoji, tag_text FROM communities WHERE id = ?",
+					)
+					.get(author.selected_community_tag);
+				if (community && community.tag_enabled) {
+					author.community_tag = {
+						community_id: community.id,
+						community_name: community.name,
+						emoji: community.tag_emoji,
+						text: community.tag_text,
+					};
+				}
+			}
+
+			userMap[post.user_id] = author;
 		});
 
 		const rawTopReplies = posts

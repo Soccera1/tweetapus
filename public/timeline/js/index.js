@@ -1,4 +1,9 @@
 import toastQueue from "../../shared/toasts.js";
+import {
+	createTweetSkeleton,
+	showSkeletons,
+	removeSkeletons,
+} from "../../shared/skeleton-utils.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
 import { createComposer } from "./composer.js";
@@ -79,11 +84,18 @@ let timelineScrollPosition = 0;
 				? `${endpoint}?before=${oldestTweetId}&limit=${BATCH_SIZE}`
 				: `${endpoint}?limit=${BATCH_SIZE}`;
 
+		let skeletons = [];
+		if (!append) {
+			getTweetsContainer().innerHTML = "";
+			skeletons = showSkeletons(getTweetsContainer(), createTweetSkeleton, 5);
+		}
+
 		try {
 			const { timeline } = await query(url);
 
+			removeSkeletons(skeletons);
+
 			if (!append) {
-				getTweetsContainer().innerHTML = "";
 				oldestTweetId = null;
 				hasMoreTweets = true;
 			}

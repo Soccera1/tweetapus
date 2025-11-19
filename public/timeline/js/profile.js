@@ -8,6 +8,12 @@ import {
 } from "../../shared/image-utils.js";
 import { showReportModal } from "../../shared/report-modal.js";
 import toastQueue from "../../shared/toasts.js";
+import {
+	createProfileSkeleton,
+	createTweetSkeleton,
+	showSkeletons,
+	removeSkeletons,
+} from "../../shared/skeleton-utils.js";
 import { createModal, createPopup } from "../../shared/ui-utils.js";
 import query from "./api.js";
 import getUser, { authToken } from "./auth.js";
@@ -39,8 +45,18 @@ export default async function openProfile(username) {
 	switchPage("profile", {
 		path: `/@${username}`,
 		recoverState: async () => {
-			document.getElementById("profileContainer").style.display = "none";
+			const profileContainer = document.getElementById("profileContainer");
+			profileContainer.style.display = "none";
+
+			const skeletons = showSkeletons(
+				profileContainer,
+				createProfileSkeleton,
+				1,
+			);
+
 			const data = await query(`/profile/${username}`);
+
+			removeSkeletons(skeletons);
 
 			if (data.error) {
 				if (data.error === "User is suspended") {
@@ -775,7 +791,9 @@ const renderProfile = (data) => {
 	if (usernameEl) {
 		usernameEl.textContent = `@${profile.username}`;
 		const existingLabels = usernameEl.querySelectorAll(".profile-label");
-		existingLabels.forEach((l) => { l.remove() });
+		existingLabels.forEach((l) => {
+			l.remove();
+		});
 		if (!suspended) {
 			if (profile.label_type) {
 				const labelEl = document.createElement("span");
@@ -1003,9 +1021,9 @@ const renderProfile = (data) => {
 		affiliatesContainer.classList.add("hidden");
 	}
 
-	document
-		.querySelectorAll(".profile-tab-btn")
-		.forEach((btn) => { btn.classList.remove("active") });
+	document.querySelectorAll(".profile-tab-btn").forEach((btn) => {
+		btn.classList.remove("active");
+	});
 	const postTabBtn = document.querySelector(
 		'.profile-tab-btn[data-tab="posts"]',
 	);
@@ -1362,9 +1380,9 @@ const showEditModal = () => {
 	modalEl.setAttribute("role", "dialog");
 	modalEl.setAttribute("aria-modal", "true");
 	modalEl.setAttribute("aria-hidden", "false");
-	document
-		.querySelectorAll(".main-content, nav")
-		.forEach((el) => { el.setAttribute("aria-hidden", "true") });
+	document.querySelectorAll(".main-content, nav").forEach((el) => {
+		el.setAttribute("aria-hidden", "true");
+	});
 
 	setTimeout(() => {
 		const firstInput = document.getElementById("editDisplayName");
@@ -1383,9 +1401,9 @@ const closeEditModal = () => {
 	modalEl.classList.remove("show");
 
 	modalEl.setAttribute("aria-hidden", "true");
-	document
-		.querySelectorAll(".main-content, nav")
-		.forEach((el) => { el.removeAttribute("aria-hidden") });
+	document.querySelectorAll(".main-content, nav").forEach((el) => {
+		el.removeAttribute("aria-hidden");
+	});
 
 	if (modalEl._escHandler) {
 		document.removeEventListener("keydown", modalEl._escHandler);
@@ -2020,9 +2038,9 @@ document.querySelector(".back-button").addEventListener("click", (e) => {
 
 document.querySelectorAll(".profile-tab-btn").forEach((btn) => {
 	btn.addEventListener("click", () => {
-		document
-			.querySelectorAll(".profile-tab-btn")
-			.forEach((b) => { b.classList.remove("active") });
+		document.querySelectorAll(".profile-tab-btn").forEach((b) => {
+			b.classList.remove("active");
+		});
 		btn.classList.add("active");
 
 		switchTab(btn.dataset.tab);
@@ -2166,318 +2184,292 @@ export const handleProfileDropdown = (e) => {
 					},
 					{
 						id: "request-affiliate",
-							icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18.6471 15.3333V18.6667M18.6471 18.6667L18.6471 22M18.6471 18.6667H22M18.6471 18.6667H15.2941M3 22C3 17.7044 6.69722 14.2222 11.258 14.2222C12.0859 14.2222 12.8854 14.3369 13.6394 14.5505M16.4118 6.44444C16.4118 8.89904 14.4102 10.8889 11.9412 10.8889C9.47214 10.8889 7.47059 8.89904 7.47059 6.44444C7.47059 3.98985 9.47214 2 11.9412 2C14.4102 2 16.4118 3.98985 16.4118 6.44444Z"></path></svg>`,
-							title: `Invite to be your affiliate`,
-							onClick: async () => {
-								try {
-									const result = await query(
-										`/profile/${currentProfile.profile.username}/affiliate`,
-										{ method: "POST" },
-									);
-									if (result?.success) {
-										toastQueue.add(
-											`<h1>Request sent</h1><p>Your affiliate request has been sent.</p>`,
-										);
-									} else {
-										toastQueue.add(
-											`<h1>Failed</h1><p>${
-												result.error || "Failed to send request"
-											}</p>`,
-										);
-									}
-								} catch (err) {
-									console.error("Affiliate request error:", err);
-									toastQueue.add(
-										`<h1>Network error</h1><p>Please try again</p>`,
-									);
-								}
-							},
-						},
-					];
-
-					const items = [...baseItems];
-
-					if (
-						currentUser &&
-						currentProfile &&
-						currentProfile.profile &&
-						currentUser.id !== currentProfile.profile.id
-					) {
-						const checkResp = await query(
-							`/blocking/check/${currentProfile.profile.id}`,
-						);
-						const isBlocked = checkResp?.blocked || false;
-
-						items.push({
-							id: isBlocked ? "unblock-user" : "block-user",
-							icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
-							title: isBlocked ? `Unblock` : `Block`,
-							onClick: async () => {
-								try {
-									const action = isBlocked ? "Unblock" : "Block";
-									if (
-										!confirm(
-											`Do you want to ${action} @${currentProfile.profile.username}?`,
-										)
-									)
-										return;
-
-									const endpoint = isBlocked
-										? "/blocking/unblock"
-										: "/blocking/block";
-									const result = await query(endpoint, {
-										method: "POST",
-										headers: { "Content-Type": "application/json" },
-										body: JSON.stringify({ userId: currentProfile.profile.id }),
-									});
-
-									if (result.success) {
-										toastQueue.add(
-											`<h1>${
-												isBlocked ? "User unblocked" : "User blocked"
-											}</h1>`,
-										);
-									} else {
-										toastQueue.add(
-											`<h1>${
-												result.error || "Failed to update block status"
-											}</h1>`,
-										);
-									}
-								} catch (err) {
-									console.error("Block/unblock error:", err);
-									toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-								}
-							},
-						});
-
-						items.push({
-							id: "report-user",
-							icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flag-icon lucide-flag"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></svg>`,
-							title: `Report`,
-							onClick: () => {
-								showReportModal({
-									type: "user",
-									id: currentProfile.profile.id,
-									username: currentProfile.profile.username,
-								});
-							},
-						});
-					}
-
-					createPopup({
-						triggerElement: triggerEl,
-						items,
-					});
-					if (
-						currentUser &&
-						currentProfile &&
-						currentProfile.profile &&
-						currentUser.id === currentProfile.profile.id
-					) {
-						const openAffModal = async () => {
+						icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18.6471 15.3333V18.6667M18.6471 18.6667L18.6471 22M18.6471 18.6667H22M18.6471 18.6667H15.2941M3 22C3 17.7044 6.69722 14.2222 11.258 14.2222C12.0859 14.2222 12.8854 14.3369 13.6394 14.5505M16.4118 6.44444C16.4118 8.89904 14.4102 10.8889 11.9412 10.8889C9.47214 10.8889 7.47059 8.89904 7.47059 6.44444C7.47059 3.98985 9.47214 2 11.9412 2C14.4102 2 16.4118 3.98985 16.4118 6.44444Z"></path></svg>`,
+						title: `Invite to be your affiliate`,
+						onClick: async () => {
 							try {
-								const res = await query(`/profile/affiliate-requests`, {
-									headers: { Authorization: `Bearer ${authToken}` },
-								});
-
-								if (res.error) {
+								const result = await query(
+									`/profile/${currentProfile.profile.username}/affiliate`,
+									{ method: "POST" },
+								);
+								if (result?.success) {
 									toastQueue.add(
-										`<h1>Error</h1><p>${escapeHTML(res.error)}</p>`,
+										`<h1>Request sent</h1><p>Your affiliate request has been sent.</p>`,
 									);
-									return;
-								}
-
-								const requests = res.requests || [];
-								const content = document.createElement("div");
-								content.className = "affiliate-requests-list";
-
-								if (requests.length === 0) {
-									const empty = document.createElement("div");
-									empty.textContent = "No pending affiliate requests";
-									content.appendChild(empty);
 								} else {
-									requests.forEach((r) => {
-										const item = document.createElement("div");
-										item.className = "affiliate-request-item";
-
-										const avatar = document.createElement("img");
-										avatar.src =
-											r.avatar || "/public/shared/default-avatar.svg";
-										avatar.alt = r.name || r.username;
-										avatar.style.width = "40px";
-										avatar.style.height = "40px";
-										avatar.style.borderRadius = "6px";
-										avatar.style.objectFit = "cover";
-										avatar.style.marginRight = "10px";
-
-										const info = document.createElement("div");
-										info.style.flex = "1";
-										const title = document.createElement("div");
-										title.textContent = r.name || r.username;
-										const uname = document.createElement("div");
-										uname.textContent = `@${r.username}`;
-										uname.style.opacity = "0.7";
-										info.appendChild(title);
-										info.appendChild(uname);
-
-										const actions = document.createElement("div");
-
-										const approveBtn = document.createElement("button");
-										approveBtn.textContent = "Approve";
-										approveBtn.className = "profile-btn profile-btn-primary";
-										approveBtn.style.marginRight = "8px";
-										approveBtn.onclick = async () => {
-											approveBtn.disabled = true;
-											const result = await query(
-												`/profile/affiliate-requests/${r.id}/approve`,
-												{
-													method: "POST",
-													headers: { Authorization: `Bearer ${authToken}` },
-												},
-											);
-											if (result?.success) {
-												const newAffiliate = result.affiliate || {
-													id: r.requester_id,
-													username: r.username,
-													name: r.name,
-													avatar: r.avatar,
-													verified: r.verified,
-													gold: r.gold,
-													avatar_radius: r.avatar_radius,
-													bio: r.bio,
-												};
-												if (!currentProfile.affiliates) {
-													currentProfile.affiliates = [];
-												}
-												const exists = currentProfile.affiliates.some(
-													(aff) => aff.id === newAffiliate.id,
-												);
-												if (!exists) {
-													currentProfile.affiliates.push(newAffiliate);
-												}
-												currentAffiliates = currentProfile.affiliates;
-												renderProfile(currentProfile);
-												item.remove();
-												toastQueue.add(
-													`<h1>Approved</h1><p>Affiliate badge granted</p>`,
-												);
-											} else {
-												toastQueue.add(
-													`<h1>Failed</h1><p>${result.error || "Failed"}</p>`,
-												);
-												approveBtn.disabled = false;
-											}
-										};
-
-										const denyBtn = document.createElement("button");
-										denyBtn.textContent = "Deny";
-										denyBtn.className = "profile-btn";
-										denyBtn.onclick = async () => {
-											denyBtn.disabled = true;
-											const result = await query(
-												`/profile/affiliate-requests/${r.id}/deny`,
-												{
-													method: "POST",
-													headers: { Authorization: `Bearer ${authToken}` },
-												},
-											);
-											if (result?.success) {
-												item.remove();
-												toastQueue.add(`<h1>Denied</h1>`);
-											} else {
-												toastQueue.add(
-													`<h1>Failed</h1><p>${result.error || "Failed"}</p>`,
-												);
-												denyBtn.disabled = false;
-											}
-										};
-
-										actions.appendChild(approveBtn);
-										actions.appendChild(denyBtn);
-
-										item.style.display = "flex";
-										item.style.alignItems = "center";
-										item.style.justifyContent = "space-between";
-										item.style.marginBottom = "8px";
-										const left = document.createElement("div");
-										left.style.display = "flex";
-										left.style.alignItems = "center";
-										left.appendChild(avatar);
-										left.appendChild(info);
-										item.appendChild(left);
-										item.appendChild(actions);
-
-										content.appendChild(item);
-									});
-								}
-
-								createModal({
-									title: "Affiliate Requests",
-									content,
-									className: "modal-overlay",
-								});
-							} catch (err) {
-								console.error("Error loading affiliate requests:", err);
-								toastQueue.add(`<h1>Error</h1><p>Please try again</p>`);
-							}
-						};
-
-						if (currentProfile.profile.affiliate) {
-							items.push({
-								id: "remove-affiliate-badge",
-								icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l7-7-7-7"/></svg>`,
-								title: "Remove affiliate badge",
-								onClick: async () => {
-									const result = await query(
-										`/profile/${currentProfile.profile.username}/affiliate`,
-										{ method: "DELETE" },
+									toastQueue.add(
+										`<h1>Failed</h1><p>${
+											result.error || "Failed to send request"
+										}</p>`,
 									);
-									if (result?.success) {
-										currentProfile.profile.affiliate = false;
-										currentProfile.profile.affiliate_with = null;
-										delete currentProfile.profile.affiliate_with_profile;
-										renderProfile(currentProfile);
-										toastQueue.add(`<h1>Affiliate badge removed</h1>`);
-									} else {
-										toastQueue.add(
-											`<h1>Failed</h1><p>${
-												result?.error || "Unable to update affiliate badge"
-											}</p>`,
-										);
-									}
-								},
+								}
+							} catch (err) {
+								console.error("Affiliate request error:", err);
+								toastQueue.add(`<h1>Network error</h1><p>Please try again</p>`);
+							}
+						},
+					},
+				];
+
+				const items = [...baseItems];
+
+				if (
+					currentUser &&
+					currentProfile &&
+					currentProfile.profile &&
+					currentUser.id !== currentProfile.profile.id
+				) {
+					const checkResp = await query(
+						`/blocking/check/${currentProfile.profile.id}`,
+					);
+					const isBlocked = checkResp?.blocked || false;
+
+					items.push({
+						id: isBlocked ? "unblock-user" : "block-user",
+						icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+						title: isBlocked ? `Unblock` : `Block`,
+						onClick: async () => {
+							try {
+								const action = isBlocked ? "Unblock" : "Block";
+								if (
+									!confirm(
+										`Do you want to ${action} @${currentProfile.profile.username}?`,
+									)
+								)
+									return;
+
+								const endpoint = isBlocked
+									? "/blocking/unblock"
+									: "/blocking/block";
+								const result = await query(endpoint, {
+									method: "POST",
+									headers: { "Content-Type": "application/json" },
+									body: JSON.stringify({ userId: currentProfile.profile.id }),
+								});
+
+								if (result.success) {
+									toastQueue.add(
+										`<h1>${isBlocked ? "User unblocked" : "User blocked"}</h1>`,
+									);
+								} else {
+									toastQueue.add(
+										`<h1>${
+											result.error || "Failed to update block status"
+										}</h1>`,
+									);
+								}
+							} catch (err) {
+								console.error("Block/unblock error:", err);
+								toastQueue.add(`<h1>Network error. Please try again.</h1>`);
+							}
+						},
+					});
+
+					items.push({
+						id: "report-user",
+						icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flag-icon lucide-flag"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></svg>`,
+						title: `Report`,
+						onClick: () => {
+							showReportModal({
+								type: "user",
+								id: currentProfile.profile.id,
+								username: currentProfile.profile.username,
 							});
-						}
-
-						items.push({
-							id: "manage-affiliates",
-							icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18.6471 15.3333V18.6667M18.6471 18.6667L18.6471 22M18.6471 18.6667H22M18.6471 18.6667H15.2941M3 22C3 17.7044 6.69722 14.2222 11.258 14.2222C12.0859 14.2222 12.8854 14.3369 13.6394 14.5505M16.4118 6.44444C16.4118 8.89904 14.4102 10.8889 11.9412 10.8889C9.47214 10.8889 7.47059 8.89904 7.47059 6.44444C7.47059 3.98985 9.47214 2 11.9412 2C14.4102 2 16.4118 3.98985 16.4118 6.44444Z"></path></svg>`,
-							title: "Manage affiliate requests",
-							onClick: openAffModal,
-						});
-					}
-				} catch (err) {
-					console.error("Error building profile dropdown:", err);
-					createPopup({
-						triggerElement: triggerEl,
-						items: [
-							{
-								title: "Copy link",
-								icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
-
-								action: () => {
-									const profileUrl = `${location.origin}/@${currentUsername}`;
-
-									navigator.clipboard.writeText(profileUrl);
-								},
-							},
-						],
+						},
 					});
 				}
-			})
-			.catch((err) => {
-				console.error("Error fetching current user for dropdown:", err);
+
+				createPopup({
+					triggerElement: triggerEl,
+					items,
+				});
+				if (
+					currentUser &&
+					currentProfile &&
+					currentProfile.profile &&
+					currentUser.id === currentProfile.profile.id
+				) {
+					const openAffModal = async () => {
+						try {
+							const res = await query(`/profile/affiliate-requests`, {
+								headers: { Authorization: `Bearer ${authToken}` },
+							});
+
+							if (res.error) {
+								toastQueue.add(`<h1>Error</h1><p>${escapeHTML(res.error)}</p>`);
+								return;
+							}
+
+							const requests = res.requests || [];
+							const content = document.createElement("div");
+							content.className = "affiliate-requests-list";
+
+							if (requests.length === 0) {
+								const empty = document.createElement("div");
+								empty.textContent = "No pending affiliate requests";
+								content.appendChild(empty);
+							} else {
+								requests.forEach((r) => {
+									const item = document.createElement("div");
+									item.className = "affiliate-request-item";
+
+									const avatar = document.createElement("img");
+									avatar.src = r.avatar || "/public/shared/default-avatar.svg";
+									avatar.alt = r.name || r.username;
+									avatar.style.width = "40px";
+									avatar.style.height = "40px";
+									avatar.style.borderRadius = "6px";
+									avatar.style.objectFit = "cover";
+									avatar.style.marginRight = "10px";
+
+									const info = document.createElement("div");
+									info.style.flex = "1";
+									const title = document.createElement("div");
+									title.textContent = r.name || r.username;
+									const uname = document.createElement("div");
+									uname.textContent = `@${r.username}`;
+									uname.style.opacity = "0.7";
+									info.appendChild(title);
+									info.appendChild(uname);
+
+									const actions = document.createElement("div");
+
+									const approveBtn = document.createElement("button");
+									approveBtn.textContent = "Approve";
+									approveBtn.className = "profile-btn profile-btn-primary";
+									approveBtn.style.marginRight = "8px";
+									approveBtn.onclick = async () => {
+										approveBtn.disabled = true;
+										const result = await query(
+											`/profile/affiliate-requests/${r.id}/approve`,
+											{
+												method: "POST",
+												headers: { Authorization: `Bearer ${authToken}` },
+											},
+										);
+										if (result?.success) {
+											const newAffiliate = result.affiliate || {
+												id: r.requester_id,
+												username: r.username,
+												name: r.name,
+												avatar: r.avatar,
+												verified: r.verified,
+												gold: r.gold,
+												avatar_radius: r.avatar_radius,
+												bio: r.bio,
+											};
+											if (!currentProfile.affiliates) {
+												currentProfile.affiliates = [];
+											}
+											const exists = currentProfile.affiliates.some(
+												(aff) => aff.id === newAffiliate.id,
+											);
+											if (!exists) {
+												currentProfile.affiliates.push(newAffiliate);
+											}
+											currentAffiliates = currentProfile.affiliates;
+											renderProfile(currentProfile);
+											item.remove();
+											toastQueue.add(
+												`<h1>Approved</h1><p>Affiliate badge granted</p>`,
+											);
+										} else {
+											toastQueue.add(
+												`<h1>Failed</h1><p>${result.error || "Failed"}</p>`,
+											);
+											approveBtn.disabled = false;
+										}
+									};
+
+									const denyBtn = document.createElement("button");
+									denyBtn.textContent = "Deny";
+									denyBtn.className = "profile-btn";
+									denyBtn.onclick = async () => {
+										denyBtn.disabled = true;
+										const result = await query(
+											`/profile/affiliate-requests/${r.id}/deny`,
+											{
+												method: "POST",
+												headers: { Authorization: `Bearer ${authToken}` },
+											},
+										);
+										if (result?.success) {
+											item.remove();
+											toastQueue.add(`<h1>Denied</h1>`);
+										} else {
+											toastQueue.add(
+												`<h1>Failed</h1><p>${result.error || "Failed"}</p>`,
+											);
+											denyBtn.disabled = false;
+										}
+									};
+
+									actions.appendChild(approveBtn);
+									actions.appendChild(denyBtn);
+
+									item.style.display = "flex";
+									item.style.alignItems = "center";
+									item.style.justifyContent = "space-between";
+									item.style.marginBottom = "8px";
+									const left = document.createElement("div");
+									left.style.display = "flex";
+									left.style.alignItems = "center";
+									left.appendChild(avatar);
+									left.appendChild(info);
+									item.appendChild(left);
+									item.appendChild(actions);
+
+									content.appendChild(item);
+								});
+							}
+
+							createModal({
+								title: "Affiliate Requests",
+								content,
+								className: "modal-overlay",
+							});
+						} catch (err) {
+							console.error("Error loading affiliate requests:", err);
+							toastQueue.add(`<h1>Error</h1><p>Please try again</p>`);
+						}
+					};
+
+					if (currentProfile.profile.affiliate) {
+						items.push({
+							id: "remove-affiliate-badge",
+							icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l7-7-7-7"/></svg>`,
+							title: "Remove affiliate badge",
+							onClick: async () => {
+								const result = await query(
+									`/profile/${currentProfile.profile.username}/affiliate`,
+									{ method: "DELETE" },
+								);
+								if (result?.success) {
+									currentProfile.profile.affiliate = false;
+									currentProfile.profile.affiliate_with = null;
+									delete currentProfile.profile.affiliate_with_profile;
+									renderProfile(currentProfile);
+									toastQueue.add(`<h1>Affiliate badge removed</h1>`);
+								} else {
+									toastQueue.add(
+										`<h1>Failed</h1><p>${
+											result?.error || "Unable to update affiliate badge"
+										}</p>`,
+									);
+								}
+							},
+						});
+					}
+
+					items.push({
+						id: "manage-affiliates",
+						icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18.6471 15.3333V18.6667M18.6471 18.6667L18.6471 22M18.6471 18.6667H22M18.6471 18.6667H15.2941M3 22C3 17.7044 6.69722 14.2222 11.258 14.2222C12.0859 14.2222 12.8854 14.3369 13.6394 14.5505M16.4118 6.44444C16.4118 8.89904 14.4102 10.8889 11.9412 10.8889C9.47214 10.8889 7.47059 8.89904 7.47059 6.44444C7.47059 3.98985 9.47214 2 11.9412 2C14.4102 2 16.4118 3.98985 16.4118 6.44444Z"></path></svg>`,
+						title: "Manage affiliate requests",
+						onClick: openAffModal,
+					});
+				}
+			} catch (err) {
+				console.error("Error building profile dropdown:", err);
 				createPopup({
 					triggerElement: triggerEl,
 					items: [
@@ -2493,13 +2485,31 @@ export const handleProfileDropdown = (e) => {
 						},
 					],
 				});
+			}
+		})
+		.catch((err) => {
+			console.error("Error fetching current user for dropdown:", err);
+			createPopup({
+				triggerElement: triggerEl,
+				items: [
+					{
+						title: "Copy link",
+						icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
+
+						action: () => {
+							const profileUrl = `${location.origin}/@${currentUsername}`;
+
+							navigator.clipboard.writeText(profileUrl);
+						},
+					},
+				],
 			});
+		});
 };
 
 document.getElementById("editProfileModal").addEventListener("click", (e) => {
 	if (e.target === e.currentTarget) closeEditModal();
 });
-
 
 async function showFollowersList(username, type) {
 	try {
