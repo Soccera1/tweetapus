@@ -39,3 +39,4 @@ an independent, fully-featured Twitter/X clone built with Bun.
 * extensions
 * captcha for registration
 * and more.
+* news in the search tab, provided by wikipedia
