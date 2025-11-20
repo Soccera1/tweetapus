@@ -59,7 +59,7 @@ export default new Elysia({ prefix: "/trends", tags: ["Trends"] })
 	.use(
 		rateLimit({
 			duration: 10_000,
-			max: 20,
+			max: 50,
 			scoping: "scoped",
 			generator: ratelimit,
 		}),
