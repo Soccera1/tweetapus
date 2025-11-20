@@ -261,7 +261,6 @@ const createAccountContent = () => {
 
 	section.appendChild(communityTagGroup);
 
-
 	const group = document.createElement("div");
 	group.className = "setting-group";
 	const h2 = document.createElement("h2");
@@ -447,7 +446,8 @@ const loadCommunityTagOptions = async () => {
 			const option = document.createElement("div");
 			option.className = "custom-dropdown-option";
 			option.dataset.value = community.id;
-			option.textContent = `${community.tag_emoji || ""} ${community.tag_text || ""} - ${community.name}`.trim();
+			option.textContent =
+				`${community.tag_emoji || ""} ${community.tag_text || ""} - ${community.name}`.trim();
 			communityTagMenu.appendChild(option);
 		});
 
@@ -457,7 +457,8 @@ const loadCommunityTagOptions = async () => {
 				(c) => c.id === user.selected_community_tag,
 			);
 			if (selectedCommunity && selectedCommunity.tag_enabled) {
-				communityTagButton.textContent = `${selectedCommunity.tag_emoji || ""} ${selectedCommunity.tag_text || ""} - ${selectedCommunity.name}`.trim();
+				communityTagButton.textContent =
+					`${selectedCommunity.tag_emoji || ""} ${selectedCommunity.tag_text || ""} - ${selectedCommunity.name}`.trim();
 			} else {
 				communityTagButton.textContent = "None";
 			}
@@ -501,9 +502,7 @@ const loadCommunityTagOptions = async () => {
 					}
 				} catch (error) {
 					console.error("Failed to update community tag:", error);
-					toastQueue.add(
-						"<h1>Error</h1><p>Failed to update community tag</p>",
-					);
+					toastQueue.add("<h1>Error</h1><p>Failed to update community tag</p>");
 				}
 
 				// Close dropdown
@@ -827,7 +826,7 @@ const createDelegatesContent = () => {
 		try {
 			const result = await query("/delegates/invite", {
 				method: "POST",
-				body: JSON.stringify({ username })
+				body: JSON.stringify({ username }),
 			});
 
 			if (result.success) {

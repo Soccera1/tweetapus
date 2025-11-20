@@ -94,7 +94,6 @@ static double calculate_age_diversity_boost(int like_count, int retweet_count, i
     int total_engagement = like_count + retweet_count + reply_count + quote_count;
     double engagement_density = (double)total_engagement / (age_hours + 1.0);
 
-    /* soften extremely new tweets so the feed does not over-index on the absolute latest */
     if (age_hours < 0.25) {
         double early_penalty = 0.92 + age_hours * 0.32;
         if (early_penalty < 0.9) early_penalty = 0.9;
@@ -174,6 +173,101 @@ static double calculate_virality_boost(int like_count, int retweet_count, double
     }
     
     return boost;
+}
+
+static char **recent_top_ids = NULL;
+static size_t recent_top_count = 0;
+
+void set_recent_top_ids(const char **ids, size_t count) {
+    if (recent_top_ids) {
+        for (size_t i = 0; i < recent_top_count; i++) {
+            free(recent_top_ids[i]);
+        }
+        free(recent_top_ids);
+        recent_top_ids = NULL;
+        recent_top_count = 0;
+    }
+    if (!ids || count == 0) return;
+    recent_top_ids = (char **)calloc(count, sizeof(char *));
+    if (!recent_top_ids) { recent_top_count = 0; return; }
+    for (size_t i = 0; i < count; i++) {
+        if (ids[i]) recent_top_ids[i] = strdup(ids[i]); else recent_top_ids[i] = NULL;
+    }
+    recent_top_count = count;
+}
+
+void clear_recent_top_ids(void) {
+    if (!recent_top_ids) return;
+    for (size_t i = 0; i < recent_top_count; i++) {
+        if (recent_top_ids[i]) free(recent_top_ids[i]);
+    }
+    free(recent_top_ids);
+    recent_top_ids = NULL;
+    recent_top_count = 0;
+}
+
+static int is_recent_top_id(const char *id) {
+    if (!id || !recent_top_ids) return 0;
+    for (size_t i = 0; i < recent_top_count; i++) {
+        if (!recent_top_ids[i]) continue;
+        if (strcmp(recent_top_ids[i], id) == 0) return 1;
+    }
+    return 0;
+}
+
+static char **top_seen_cache_ids = NULL;
+static int *top_seen_cache_counts = NULL;
+static size_t top_seen_cache_len = 0;
+static size_t top_seen_cache_cap = 0;
+
+static int top_seen_cache_find(const char *id) {
+    if (!id || !top_seen_cache_ids) return -1;
+    for (size_t i = 0; i < top_seen_cache_len; i++) {
+        if (top_seen_cache_ids[i] && strcmp(top_seen_cache_ids[i], id) == 0) return (int)i;
+    }
+    return -1;
+}
+
+void record_top_shown(const char *id) {
+    if (!id) return;
+    int idx = top_seen_cache_find(id);
+    if (idx >= 0) {
+        top_seen_cache_counts[idx]++;
+        return;
+    }
+    if (top_seen_cache_len >= top_seen_cache_cap) {
+        size_t newcap = (top_seen_cache_cap == 0) ? 16 : top_seen_cache_cap * 2;
+        char **new_ids = (char **)realloc(top_seen_cache_ids, sizeof(char *) * newcap);
+        int *new_counts = (int *)realloc(top_seen_cache_counts, sizeof(int) * newcap);
+        if (!new_ids || !new_counts) return;
+        top_seen_cache_ids = new_ids;
+        top_seen_cache_counts = new_counts;
+        for (size_t i = top_seen_cache_cap; i < newcap; i++) top_seen_cache_ids[i] = NULL;
+        for (size_t i = top_seen_cache_cap; i < newcap; i++) top_seen_cache_counts[i] = 0;
+        top_seen_cache_cap = newcap;
+    }
+    top_seen_cache_ids[top_seen_cache_len] = strdup(id);
+    top_seen_cache_counts[top_seen_cache_len] = 1;
+    top_seen_cache_len++;
+}
+
+void clear_top_seen_cache(void) {
+    if (!top_seen_cache_ids) return;
+    for (size_t i = 0; i < top_seen_cache_len; i++) {
+        if (top_seen_cache_ids[i]) free(top_seen_cache_ids[i]);
+    }
+    free(top_seen_cache_ids);
+    free(top_seen_cache_counts);
+    top_seen_cache_ids = NULL;
+    top_seen_cache_counts = NULL;
+    top_seen_cache_len = 0;
+    top_seen_cache_cap = 0;
+}
+
+static int get_top_seen_count(const char *id) {
+    int idx = top_seen_cache_find(id);
+    if (idx < 0) return 0;
+    return top_seen_cache_counts[idx];
 }
 
 double calculate_score(
@@ -379,9 +473,6 @@ double calculate_score(
         random_multiplier *= 0.92;
     }
     
-    /* content_repeat_penalty already applied; no further multiplicative adjustments */
-
-    /* Age diversity: favor slightly older content that still attracts engagement */
     double age_diversity = calculate_age_diversity_boost(like_count, retweet_count, reply_count, quote_count, age_hours);
 
     double final_score = base_score * 
@@ -406,16 +497,13 @@ double calculate_score(
         final_score += random_component;
     }
     
-    /* apply age diversity multiplier after all other penalties */
     final_score *= age_diversity;
 
-    /* Extra choke on high repetition: if the same content repeats many times, suppress further */
     if (content_repeats > 2) {
         double extra_pen = pow(0.7, (double)(content_repeats - 2));
         if (!isfinite(extra_pen) || extra_pen <= 0.0) extra_pen = 0.01;
         final_score *= extra_pen;
     }
-    /* if an author is extremely repeated in feed, slightly penalize */
     if (author_repeats > 3) {
         final_score *= 0.85;
     }
@@ -436,11 +524,9 @@ static int compare_tweets(const void *a, const void *b) {
     if (tweet_b->score > tweet_a->score) return 1;
     if (tweet_b->score < tweet_a->score) return -1;
 
-    /* tie break: prefer more recent tweets */
     if (tweet_b->created_at > tweet_a->created_at) return 1;
     if (tweet_b->created_at < tweet_a->created_at) return -1;
 
-    /* final tie: compare ids if possible */
     if (tweet_a->id && tweet_b->id) {
         int c = strcmp(tweet_a->id, tweet_b->id);
         if (c < 0) return -1;
@@ -461,10 +547,8 @@ void rank_tweets(Tweet *tweets, size_t count) {
 
     time_t now_ts = time(NULL);
 
-    /* build duplicate counts by tweet id to detect same item repeated in input */
     unsigned int *dup_counts = (unsigned int *)calloc(count, sizeof(unsigned int));
     if (!dup_counts) {
-        /* allocation failed; proceed without deduplication */
         dup_counts = NULL;
     } else {
         for (size_t i = 0; i < count; i++) {
@@ -480,7 +564,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
     }
 
     for (size_t i = 0; i < count; i++) {
-        /* re-randomize random_factor per ranking pass so top selection isn't static across runs */
         tweets[i].random_factor = (double)rand() / (double)RAND_MAX;
         int effective_repeats = tweets[i].content_repeats;
         if (dup_counts) {
@@ -508,6 +591,19 @@ void rank_tweets(Tweet *tweets, size_t count) {
         );
 
         tweets[i].score = base_score;
+        if (is_recent_top_id(tweets[i].id)) {
+            int ct = 0;
+            for (size_t r = 0; r < recent_top_count; r++) if (recent_top_ids[r] && tweets[i].id && strcmp(recent_top_ids[r], tweets[i].id) == 0) ct++;
+            double rp = pow(0.6, (double)ct);
+            if (rp < 0.12) rp = 0.12;
+            tweets[i].score *= rp;
+        }
+        int top_seen_ct = get_top_seen_count(tweets[i].id);
+        if (top_seen_ct > 2) {
+            double sp = pow(0.85, (double)(top_seen_ct - 2));
+            if (sp < 0.6) sp = 0.6;
+            tweets[i].score *= sp;
+        }
     }
     
     qsort(tweets, count, sizeof(Tweet), compare_tweets);
@@ -539,11 +635,23 @@ void rank_tweets(Tweet *tweets, size_t count) {
         );
 
         tweets[i].score = adjusted_score;
+        if (is_recent_top_id(tweets[i].id)) {
+            int ct = 0;
+            for (size_t r = 0; r < recent_top_count; r++) if (recent_top_ids[r] && tweets[i].id && strcmp(recent_top_ids[r], tweets[i].id) == 0) ct++;
+            double rp = pow(0.6, (double)ct);
+            if (rp < 0.12) rp = 0.12;
+            tweets[i].score *= rp;
+        }
+        int top_seen_ct2 = get_top_seen_count(tweets[i].id);
+        if (top_seen_ct2 > 2) {
+            double sp = pow(0.85, (double)(top_seen_ct2 - 2));
+            if (sp < 0.6) sp = 0.6;
+            tweets[i].score *= sp;
+        }
     }
 
     qsort(tweets, count, sizeof(Tweet), compare_tweets);
 
-    /* Iteratively penalize duplicated ids in top window if unique ids are low */
     size_t top_check = (count < 10) ? count : 10;
     for (int pass = 0; pass < 3; pass++) {
         size_t unique_count = 0;
@@ -555,9 +663,8 @@ void rank_tweets(Tweet *tweets, size_t count) {
             }
             if (!found) unique_count++;
         }
-        if (unique_count >= (top_check * 70 / 100)) break; /* good diversity */
+        if (unique_count >= (top_check * 70 / 100)) break;
 
-        /* apply penalties to entries that are duplicated in top window */
         for (size_t i = 0; i < top_check; i++) {
             if (!tweets[i].id) continue;
             int dup_count = 0;
@@ -573,12 +680,10 @@ void rank_tweets(Tweet *tweets, size_t count) {
         qsort(tweets, count, sizeof(Tweet), compare_tweets);
     }
 
-    /* Clamp extremely dominant scores to avoid the same tweet always staying at top */
     if (count > 3) {
         double *scores = (double *)malloc(sizeof(double) * count);
         if (scores) {
             for (size_t i = 0; i < count; i++) scores[i] = tweets[i].score;
-            /* simple qsort on doubles */
             qsort(scores, count, sizeof(double), compare_doubles);
             double median = scores[count / 2];
             if (median <= 0.0) median = 1.0;
@@ -592,7 +697,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
         }
     }
 
-    /* reorder so unique tweet ids are prioritized at the top of the feed */
     if (count > 1) {
         Tweet *unique_buffer = (Tweet *)malloc(sizeof(Tweet) * count);
         Tweet *duplicate_buffer = (Tweet *)malloc(sizeof(Tweet) * count);
@@ -628,7 +732,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
         if (duplicate_buffer) free(duplicate_buffer);
     }
 
-    /* ensure the top portion of the feed contains some older tweets when available */
     if (count > 1) {
         size_t top_limit = (count < 10) ? count : 10;
         size_t desired_older = (top_limit >= 6) ? 2 : 1;
@@ -681,7 +784,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
 
     if (dup_counts) free(dup_counts);
 
-    /* Build age buckets from 0=>fresh to 4=>older for mixing diversity */
     size_t *buckets[5];
     size_t bucket_counts[5];
     size_t bucket_pos[5];
@@ -695,16 +797,15 @@ void rank_tweets(Tweet *tweets, size_t count) {
         double age_hours = (double)(now_ts - (time_t)tweets[i].created_at) / 3600.0;
         if (age_hours < 0.0) age_hours = 0.0;
         int bucket = 0;
-        if (age_hours < 6.0) bucket = 0; /* fresh */
-        else if (age_hours < 24.0) bucket = 1; /* recent */
-        else if (age_hours < 48.0) bucket = 2; /* 1 day */
-        else if (age_hours < 96.0) bucket = 3; /* 2-4 days */
-        else bucket = 4; /* 4+ days */
+        if (age_hours < 6.0) bucket = 0;
+        else if (age_hours < 24.0) bucket = 1;
+        else if (age_hours < 48.0) bucket = 2;
+        else if (age_hours < 96.0) bucket = 3;
+        else bucket = 4;
 
         buckets[bucket][bucket_counts[bucket]++] = i;
     }
 
-    /* Prepare selection: ensure the top window has at least a couple older tweets */
     size_t top_limit = (count < 10) ? count : 10;
     size_t forced_old_needed = 0;
     size_t fresh_count_in_top = 0;
@@ -713,7 +814,7 @@ void rank_tweets(Tweet *tweets, size_t count) {
         if (age_hours < 6.0) fresh_count_in_top++;
     }
     if (fresh_count_in_top > (top_limit * 60 / 100)) {
-        forced_old_needed = 2; /* require 2 older tweets if too many fresh */
+        forced_old_needed = 2;
     } else if (fresh_count_in_top > (top_limit * 40 / 100)) {
         forced_old_needed = 1;
     }
@@ -725,19 +826,15 @@ void rank_tweets(Tweet *tweets, size_t count) {
     }
     size_t selected = 0;
 
-    /* selection flags to mark chosen indices */
     int *selected_flags = (int *)calloc(count, sizeof(int));
     if (!selected_flags) { free(final_idx); for (int i = 0; i < 5; i++) { if (buckets[i]) free(buckets[i]); } return; }
 
-    /* author repetition heuristic: limit number of posts with repeated authors in top windows */
     size_t selected_author_repeat_count = 0;
     size_t max_author_repeat_slots = top_limit < 4 ? top_limit : 4;
     size_t forced_old_selected = 0;
 
-    /* pick function: attempt to pick one tweet from bucket b without violating constraints */
     for (size_t round = 0; round < (size_t)count && selected < count; round++) {
         int tried_any = 0;
-        /* rotate preference: start with bucket 0 then 2 then 1 then 3 then 4 - to encourage mixing older content*/
         int order[5] = {0, 2, 1, 3, 4};
         for (int oi = 0; oi < 5 && selected < count; oi++) {
             int b = order[(round + oi) % 5];
@@ -746,7 +843,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
             size_t idx = buckets[b][pos];
             if (selected_flags[idx]) { bucket_pos[b]++; continue; }
             tried_any = 1;
-            /* check duplicate id already selected */
             if (tweets[idx].id) {
                 int dup = 0;
                 for (size_t s = 0; s < selected; s++) {
@@ -754,7 +850,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
                 }
                 if (dup) { bucket_pos[b]++; continue; }
             }
-            /* restrict selection of repeated authors based on author_repeats heuristic */
             if ((size_t)tweets[idx].author_repeats > 0 && selected_author_repeat_count >= max_author_repeat_slots) {
                 bucket_pos[b]++;
                 continue;
@@ -768,7 +863,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
                 }
             }
 
-            /* commit selection */
             final_idx[selected] = idx;
             selected_flags[idx] = 1;
             if ((size_t)tweets[idx].author_repeats > 0) {
@@ -786,13 +880,12 @@ void rank_tweets(Tweet *tweets, size_t count) {
             }
             bucket_pos[b]++;
         }
-        if (!tried_any) break; /* nothing left to pick */
+        if (!tried_any) break;
         if (forced_old_needed == 0) {
             forced_old_selected = 0;
         }
     }
 
-    /* Fill remaining positions with any unselected tweets (including duplicates) */
     for (size_t i = 0; i < count && selected < count; i++) {
         if (!selected_flags[i]) {
             final_idx[selected++] = i;
@@ -800,7 +893,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
         }
     }
 
-    /* Reorder tweets as per final_idx */
     if (selected == count) {
         Tweet *copy = (Tweet *)malloc(sizeof(Tweet) * count);
         if (copy) {
@@ -810,7 +902,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
         }
     }
 
-    /* enforce forced older count if needed: try swapping in older candidates */
     if (forced_old_needed > 0) {
         size_t current_older = 0;
         for (size_t i = 0; i < top_limit; i++) {
@@ -820,8 +911,7 @@ void rank_tweets(Tweet *tweets, size_t count) {
         if (current_older < forced_old_needed) {
             for (size_t k = top_limit; k < count && current_older < forced_old_needed; k++) {
                 double candidate_age = (double)(now_ts - (time_t)tweets[k].created_at) / 3600.0;
-                if (candidate_age < 24.0) continue; /* want day+ */
-                /* ensure candidate doesn't duplicate any top ids */
+                if (candidate_age < 24.0) continue;
                 int conflict = 0;
                 if (tweets[k].id) {
                     for (size_t t = 0; t < top_limit; t++) {
@@ -829,7 +919,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
                     }
                 }
                 if (conflict) continue;
-                /* swap candidate in for a fresh top item */
                 size_t youngest_idx = SIZE_MAX; double youngest_age = 1e9;
                 for (size_t t = 0; t < top_limit; t++) {
                     double age_hours = (double)(now_ts - (time_t)tweets[t].created_at) / 3600.0;
@@ -849,12 +938,10 @@ void rank_tweets(Tweet *tweets, size_t count) {
     free(selected_flags);
     for (int i = 0; i < 5; i++) if (buckets[i]) free(buckets[i]);
 
-    /* Reduce adjacency duplicates in the top portion - try to swap duplicates out */
     size_t top_limit_adj = (count < 10) ? count : 10;
     for (size_t i = 0; i + 1 < top_limit_adj; i++) {
         if (!tweets[i].id || !tweets[i+1].id) continue;
         if (strcmp(tweets[i].id, tweets[i+1].id) == 0) {
-            /* find a later non-duplicate to swap with i+1 */
             size_t swap_idx = SIZE_MAX;
             for (size_t j = top_limit_adj; j < count; j++) {
                 if (!tweets[j].id) continue;
@@ -868,7 +955,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
         }
     }
 
-    /* Slightly randomize the ordering within the top window to avoid identical positions across refreshes */
     if (top_limit_adj > 2) {
         for (size_t i = 0; i < top_limit_adj; i++) {
             size_t j = i + (rand() % (top_limit_adj - i));
@@ -880,20 +966,16 @@ void rank_tweets(Tweet *tweets, size_t count) {
         }
     }
 
-    /* Try to ensure presence of 1d (bucket 2), 2d (bucket 3), and 4d+ (bucket 4) tweets in top window
-       If one of these is missing, and a candidate exists in the lower ranks, swap it in. */
     if (count > 1) {
         int need_buckets[3] = {0,0,0};
-        /* Check presence of each target bucket in top window */
         for (size_t i = 0; i < top_limit_adj; i++) {
             double age_hours = (double)(now_ts - (time_t)tweets[i].created_at) / 3600.0;
-            if (age_hours >= 24.0 && age_hours < 48.0) need_buckets[0] = 1; /* 1d */
-            if (age_hours >= 48.0 && age_hours < 96.0) need_buckets[1] = 1; /* 2d */
-            if (age_hours >= 96.0) need_buckets[2] = 1; /* 4d+ */
+            if (age_hours >= 24.0 && age_hours < 48.0) need_buckets[0] = 1;
+            if (age_hours >= 48.0 && age_hours < 96.0) need_buckets[1] = 1;
+            if (age_hours >= 96.0) need_buckets[2] = 1;
         }
         for (int target = 0; target < 3; target++) {
-            if (need_buckets[target]) continue; /* already present */
-            /* find candidate in the lower ranks */
+            if (need_buckets[target]) continue;
             size_t candidate_idx = SIZE_MAX;
             for (size_t k = top_limit_adj; k < count; k++) {
                 double age_hours = (double)(now_ts - (time_t)tweets[k].created_at) / 3600.0;
@@ -902,7 +984,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
                 if (target == 1 && age_hours >= 48.0 && age_hours < 96.0) match = 1;
                 if (target == 2 && age_hours >= 96.0) match = 1;
                 if (!match) continue;
-                /* ensure not a duplicate id in top window */
                 int conflict = 0;
                 if (tweets[k].id) {
                     for (size_t t = 0; t < top_limit_adj; t++) {
@@ -912,7 +993,6 @@ void rank_tweets(Tweet *tweets, size_t count) {
                 if (!conflict) { candidate_idx = k; break; }
             }
             if (candidate_idx == SIZE_MAX) continue;
-            /* swap candidate in for the youngest fresh slot in top window */
             size_t swap_idx = SIZE_MAX; double youngest_age = 1e9;
             for (size_t i = 0; i < top_limit_adj; i++) {
                 double age_hours = (double)(now_ts - (time_t)tweets[i].created_at) / 3600.0;
@@ -926,19 +1006,16 @@ void rank_tweets(Tweet *tweets, size_t count) {
         }
     }
 
-    /* Reduce repeated content count in the top window by swapping in less-repetitive tweets */
     if (count > 1) {
         size_t top_limit_cr = top_limit_adj;
         size_t current_repeats = 0;
         for (size_t i = 0; i < top_limit_cr; i++) if (tweets[i].content_repeats > 0) current_repeats++;
-        size_t allowed_repeats = (top_limit_cr * 30) / 100; /* allow 30% */
+        size_t allowed_repeats = (top_limit_cr * 30) / 100;
         for (size_t i = 0; i < top_limit_cr && current_repeats > allowed_repeats; i++) {
             if (tweets[i].content_repeats <= 0) continue;
-            /* find a later candidate with no content repeats */
             size_t swap_idx = SIZE_MAX;
             for (size_t j = top_limit_cr; j < count; j++) {
                 if (tweets[j].content_repeats == 0) {
-                    /* also ensure not duplicating an id in top window */
                     int conflict = 0;
                     if (tweets[j].id) {
                         for (size_t t = 0; t < top_limit_cr; t++) {
@@ -957,12 +1034,11 @@ void rank_tweets(Tweet *tweets, size_t count) {
         }
     }
 
-    /* Reduce author-heavy top windows by swapping in tweets from different authors */
     if (count > 1) {
         size_t top_limit_ah = top_limit_adj;
         size_t current_author_repeats = 0;
         for (size_t i = 0; i < top_limit_ah; i++) if (tweets[i].author_repeats > 0) current_author_repeats++;
-        size_t allowed_author_repeats = (top_limit_ah * 30) / 100; /* allow 30% */
+        size_t allowed_author_repeats = (top_limit_ah * 30) / 100;
         for (size_t i = 0; i < top_limit_ah && current_author_repeats > allowed_author_repeats; i++) {
             if (tweets[i].author_repeats == 0) continue;
             size_t swap_idx = SIZE_MAX;
@@ -984,6 +1060,11 @@ void rank_tweets(Tweet *tweets, size_t count) {
                 current_author_repeats--;
             }
         }
+    }
+
+    size_t record_top = (count < 10) ? count : 10;
+    for (size_t i = 0; i < record_top; i++) {
+        if (tweets[i].id) record_top_shown(tweets[i].id);
     }
 }
 

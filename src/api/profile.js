@@ -104,7 +104,7 @@ const getUserMedia = db.prepare(`
   FROM posts 
   JOIN users ON posts.user_id = users.id 
   JOIN attachments ON posts.id = attachments.post_id
-  WHERE posts.user_id = ? AND users.suspended = 0
+  WHERE posts.user_id = ? AND users.suspended = 0 AND (attachments.file_type LIKE 'image/%' OR attachments.file_type LIKE 'video/%')
   ORDER BY posts.created_at DESC
   LIMIT ?
 `);
@@ -114,7 +114,7 @@ const getUserMediaPaginated = db.prepare(`
   FROM posts 
   JOIN users ON posts.user_id = users.id 
   JOIN attachments ON posts.id = attachments.post_id
-  WHERE posts.user_id = ? AND posts.id < ? AND users.suspended = 0
+  WHERE posts.user_id = ? AND posts.id < ? AND users.suspended = 0 AND (attachments.file_type LIKE 'image/%' OR attachments.file_type LIKE 'video/%')
   ORDER BY posts.created_at DESC
   LIMIT ?
 `);
@@ -2245,6 +2245,7 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 		}
 	})
 	.post("/settings/private", async ({ jwt, headers, body }) => {
+		// TR THE DB IS LOCKED
 		const authorization = headers.authorization;
 		if (!authorization) return { error: "Authentication required" };
 

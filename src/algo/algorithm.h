@@ -53,4 +53,9 @@ double calculate_score(
 void rank_tweets(Tweet *tweets, size_t count);
 char *process_timeline(const char *json_input);
 
+void set_recent_top_ids(const char **ids, size_t count);
+void clear_recent_top_ids(void);
+void record_top_shown(const char *id);
+void clear_top_seen_cache(void);
+
 #endif
