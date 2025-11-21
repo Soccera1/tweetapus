@@ -7,18 +7,12 @@ import {
 	isConvertibleImage,
 } from "../../shared/image-utils.js";
 import { showReportModal } from "../../shared/report-modal.js";
-import {
-	createProfileSkeleton,
-	createTweetSkeleton,
-	removeSkeletons,
-	showSkeletons,
-} from "../../shared/skeleton-utils.js";
 import { updateTabIndicator } from "../../shared/tab-indicator.js";
 import toastQueue from "../../shared/toasts.js";
 import { createModal, createPopup } from "../../shared/ui-utils.js";
 import query from "./api.js";
 import getUser, { authToken } from "./auth.js";
-import switchPage, { addRoute } from "./pages.js";
+import switchPage from "./pages.js";
 import { addTweetToTimeline, createTweetElement } from "./tweets.js";
 
 let currentProfile = null;
@@ -1333,7 +1327,7 @@ function updateFollowButton(isFollowing) {
 				notificationDropdown.style.display = "none";
 			}
 			const count = document.getElementById("profileFollowerCount");
-			count.textContent = Math.max(0, parseInt(count.textContent) - 1);
+			count.textContent = Math.max(0, parseInt(count.textContent, 10) - 1);
 		};
 	} else {
 		btn.textContent = "Follow";
@@ -1371,7 +1365,7 @@ function updateFollowButton(isFollowing) {
 			}
 			setupNotificationButton(currentUsername, false);
 			const count = document.getElementById("profileFollowerCount");
-			count.textContent = parseInt(count.textContent) + 1;
+			count.textContent = parseInt(count.textContent, 10) + 1;
 		};
 	}
 }

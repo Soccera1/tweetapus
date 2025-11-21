@@ -447,7 +447,7 @@ const loadTweets = async () => {
 			return;
 		}
 
-		const validPosts = data.posts.filter((post) => post && post.author);
+		const validPosts = data.posts.filter((post) => post?.author);
 
 		for (let i = validPosts.length - 1; i > 0; i--) {
 			const j = Math.floor(Math.random() * (i + 1));

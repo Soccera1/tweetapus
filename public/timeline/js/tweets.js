@@ -225,93 +225,6 @@ async function checkReplyPermissions(tweet, replyRestriction) {
 	}
 }
 
-async function showInteractionUsers(tweetId, interaction, title) {
-	try {
-		const data = await query(`/tweets/${tweetId}/${interaction}`);
-
-		if (data.error) {
-			toastQueue.add(`<h1>Error</h1><p>${data.error}</p>`);
-			return;
-		}
-
-		const contentContainer = document.createElement("div");
-
-		if (interaction === "quotes") {
-			if (!data.tweets || data.tweets.length === 0) {
-				toastQueue.add(
-					`<h1>No ${title.toLowerCase()}</h1><p>This tweet hasn't been quoted by anyone yet.</p>`,
-				);
-				return;
-			}
-
-			contentContainer.className = "quotes-list";
-
-			data.tweets.forEach((tweet) => {
-				const tweetEl = createTweetElement(tweet, {
-					clickToOpen: true,
-					showTopReply: false,
-					isTopReply: false,
-					size: "normal",
-				});
-				contentContainer.appendChild(tweetEl);
-			});
-		} else {
-			if (!data.users || data.users.length === 0) {
-				toastQueue.add(
-					`<h1>No ${title.toLowerCase()}</h1><p>This tweet hasn't been ${interaction.slice(
-						0,
-						-1,
-					)}ed by anyone yet.</p>`,
-				);
-				return;
-			}
-			contentContainer.className = "users-list";
-
-			data.users.forEach((user) => {
-				const userItem = document.createElement("div");
-				userItem.className = "user-item";
-
-				const timeText =
-					interaction === "likes"
-						? `liked ${formatInteractionTime(new Date(user.liked_at))}`
-						: `retweeted ${formatInteractionTime(new Date(user.retweeted_at))}`;
-
-				userItem.innerHTML = `
-          <div class="user-avatar">
-            <img src="${
-							user.avatar || "/public/shared/assets/default-avatar.svg"
-						}" alt="${user.name || user.username}" />
-          </div>
-          <div class="user-info">
-            <div class="user-name">${user.name || user.username}</div>
-            <div class="user-username">@${user.username}</div>
-            <div class="user-time">${timeText}</div>
-          </div>
-        `;
-
-				userItem.addEventListener("click", async () => {
-					modal.close();
-					const { default: openProfile } = await import("./profile.js");
-					openProfile(user.username);
-				});
-
-				contentContainer.appendChild(userItem);
-			});
-		}
-
-		const modal = createModal({
-			title,
-			content: contentContainer,
-			className: "interactions-modal",
-		});
-	} catch (error) {
-		console.error("Error querying interaction users:", error);
-		toastQueue.add(
-			`<h1>Network Error</h1><p>Failed to load ${title.toLowerCase()}.</p>`,
-		);
-	}
-}
-
 function formatInteractionTime(date) {
 	const now = new Date();
 	const diff = now - date;
@@ -1442,7 +1355,7 @@ export const createTweetElement = (tweet, config = {}) => {
 				if (attachment.file_name === "unsplash.jpg" && attachment.file_hash) {
 					try {
 						const attribution = JSON.parse(attachment.file_hash);
-						if (attribution && attribution.user_name) {
+						if (attribution?.user_name) {
 							const attributionEl = document.createElement("div");
 							attributionEl.className = "unsplash-attribution-badge";
 							attributionEl.innerHTML = `
@@ -1594,7 +1507,7 @@ export const createTweetElement = (tweet, config = {}) => {
 
 		const svg = tweetInteractionsLikeEl.querySelector("svg path");
 		const likeCountSpan = tweetInteractionsLikeEl.querySelector(".like-count");
-		const currentCount = parseInt(likeCountSpan.textContent || "0");
+		const currentCount = parseInt(likeCountSpan.textContent || "0", 10);
 
 		if (newIsLiked) {
 			svg.setAttribute("fill", "#F91980");

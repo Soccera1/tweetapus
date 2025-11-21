@@ -66,5 +66,5 @@ export function showSkeletons(container, skeletonCreator, count = 3) {
 }
 
 export function removeSkeletons(skeletons) {
-	skeletons.forEach((skeleton) => skeleton.remove());
+	skeletons.forEach((skeleton) => { skeleton.remove(); });
 }
