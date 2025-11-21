@@ -1215,6 +1215,8 @@ const renderProfile = (data) => {
 
 						<iframe width="100%" style="width:100%;height: 259px;border:0;border-radius:3px;margin-top: 6px;" height="259" loading="lazy" allowfullscreen src="https://www.google.com/maps?q=${transparencyReport.login["cf-iplatitude"] || transparencyReport.login.latitude},${transparencyReport.login["cf-iplongitude"] || transparencyReport.login.longitude}&hl=en&z=4&output=embed"></iframe></div></div>
 
+						${transparencyReport.login?.vpn ? "VPN detected on last login." : ""}
+
 						<div class="transparency-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock-icon lucide-clock"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg>
 						<div class="transparency-data"><strong>Last login timezone</strong> ${
 								transparencyReport.login["cf-timezone"]|| transparencyReport.login.timezone || "Unknown"
@@ -1243,6 +1245,7 @@ ${
 						</div>`
 		: ``
 }
+						${transparencyReport.creation?.vpn ? "VPN detected on account ." : ""}
 					
 					</div>
         </div>
