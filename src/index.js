@@ -310,6 +310,9 @@ new Elysia()
 			? file("./public/timeline/index.html")
 			: file("./public/account-v2/index.html");
 	})
+	.get("/test", ({ headers }) => {
+		return headers;
+	})
 	.use(api)
 	.head(
 		"/public/shared/assets/js/emoji-picker-element/data.json",

@@ -18,6 +18,12 @@ const origin = process.env.AUTH_ORIGIN;
 const getUserByUsername = db.prepare(
 	"SELECT * FROM users WHERE LOWER(username) = LOWER(?)",
 );
+const updateUserCreationTransparency = db.prepare(
+	"UPDATE users SET account_creation_transparency = ? WHERE id = ?",
+);
+const updateUserLoginTransparency = db.prepare(
+	"UPDATE users SET account_login_transparency = ? WHERE id = ?",
+);
 const userExistsByUsername = db.prepare(
 	"SELECT count(*) FROM users WHERE LOWER(username) = LOWER(?)",
 );
@@ -574,7 +580,7 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 			response: t.Any(),
 		},
 	)
-	.post("/verify-registration", async ({ body, jwt }) => {
+	.post("/verify-registration", async ({ body, jwt, headers }) => {
 		const { username, credential, challenge } = body;
 
 		if (!username || !credential) {
@@ -637,6 +643,17 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 						};
 					}
 
+					const loginTransparency = JSON.stringify({
+						city: headers['cf-ipcity'] || null,
+						country: headers['cf-ipcountry'] || null,
+						continent: headers['cf-ipcontinent'] || null,
+						latitude: headers['cf-iplatitude'] || null,
+						longitude: headers['cf-iplongitude'] || null,
+						timezone: headers['cf-timezone'] || null,
+					});
+
+					updateUserLoginTransparency.run(loginTransparency, user.id);
+
 					return {
 						verified: true,
 						user: { id: user.id, username: user.username },
@@ -650,11 +667,20 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 				}
 
 				if (!user) {
+					const creationTransparency = JSON.stringify({
+						city: headers['cf-ipcity'] || null,
+						country: headers['cf-ipcountry'] || null,
+						continent: headers['cf-ipcontinent'] || null,
+						latitude: headers['cf-iplatitude'] || null,
+						longitude: headers['cf-iplongitude'] || null,
+						timezone: headers['cf-timezone'] || null,
+					});
+
 					user = db
 						.query(
-							"INSERT INTO users (id, username, character_limit) VALUES (?, ?, ?) RETURNING *",
+							"INSERT INTO users (id, username, character_limit, account_creation_transparency) VALUES (?, ?, ?, ?) RETURNING *",
 						)
-						.get(challengePayload.userId, username, null);
+						.get(challengePayload.userId, username, null, creationTransparency);
 				}
 
 				savePasskey({
@@ -1013,7 +1039,7 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 	)
 	.post(
 		"/register-with-password",
-		async ({ body, jwt }) => {
+		async ({ body, jwt, headers }) => {
 			try {
 				const username = body.username?.trim();
 				const { password, challengeToken } = body;
@@ -1054,11 +1080,20 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 				const passwordHash = await Bun.password.hash(password);
 				const userId = Bun.randomUUIDv7();
 
+				const creationTransparency = JSON.stringify({
+					city: headers['cf-ipcity'] || null,
+					country: headers['cf-ipcountry'] || null,
+					continent: headers['cf-ipcontinent'] || null,
+					latitude: headers['cf-iplatitude'] || null,
+					longitude: headers['cf-iplongitude'] || null,
+					timezone: headers['cf-timezone'] || null,
+				});
+
 				const user = db
 					.query(
-						"INSERT INTO users (id, username, password_hash, character_limit) VALUES (?, ?, ?, ?) RETURNING *",
+						"INSERT INTO users (id, username, password_hash, character_limit, account_creation_transparency) VALUES (?, ?, ?, ?, ?) RETURNING *",
 					)
-					.get(userId, username, passwordHash, null);
+					.get(userId, username, passwordHash, null, creationTransparency);
 
 				const token = await jwt.sign({
 					userId: user.id,
@@ -1089,7 +1124,7 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 	)
 	.post(
 		"/basic-login",
-		async ({ body, jwt }) => {
+		async ({ body, jwt, headers }) => {
 			try {
 				const { username, password } = body;
 
@@ -1109,6 +1144,17 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 				if (!isValidPassword) {
 					return { error: "Invalid username or password" };
 				}
+
+				const loginTransparency = JSON.stringify({
+					city: headers['cf-ipcity'] || null,
+					country: headers['cf-ipcountry'] || null,
+					continent: headers['cf-ipcontinent'] || null,
+					latitude: headers['cf-iplatitude'] || null,
+					longitude: headers['cf-iplongitude'] || null,
+					timezone: headers['cf-timezone'] || null,
+				});
+
+				updateUserLoginTransparency.run(loginTransparency, user.id);
 
 				const token = await jwt.sign({
 					userId: user.id,

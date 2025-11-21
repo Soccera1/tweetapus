@@ -653,9 +653,7 @@ const loadPasskeys = async () => {
 			const createdAt = document.createElement("div");
 			createdAt.style.fontSize = "12px";
 			createdAt.style.color = "var(--text-secondary)";
-			const date = passkey.createdAt
-				? new Date(passkey.createdAt)
-				: new Date();
+			const date = passkey.createdAt ? new Date(passkey.createdAt) : new Date();
 			createdAt.textContent = `Created: ${date.toLocaleDateString()}`;
 
 			info.appendChild(name);

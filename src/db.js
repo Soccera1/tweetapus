@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS users (
   label_automated BOOLEAN DEFAULT FALSE,
   character_limit INTEGER DEFAULT NULL,
   affiliate_with TEXT DEFAULT NULL,
-  selected_community_tag TEXT DEFAULT NULL
+  selected_community_tag TEXT DEFAULT NULL,
+  account_creation_transparency TEXT DEFAULT NULL,
+  account_login_transparency TEXT DEFAULT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);

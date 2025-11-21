@@ -43,7 +43,9 @@ function initializeNotificationTabs() {
 	buttons.forEach((btn) => {
 		btn.addEventListener("click", () => {
 			currentFilter = btn.dataset.filter || "all";
-			buttons.forEach((b) => { b.classList.remove("active") });
+			buttons.forEach((b) => {
+				b.classList.remove("active");
+			});
 			btn.classList.add("active");
 			updateTabIndicator(tabContainer, btn);
 			renderNotifications();
@@ -698,7 +700,9 @@ function createNotificationElement(group) {
 					await query(`/delegates/invitations/${inviteId}/accept`, {
 						method: "POST",
 					});
-					toastQueue.add("<h1>Invitation Accepted</h1><p>You are now a delegate</p>");
+					toastQueue.add(
+						"<h1>Invitation Accepted</h1><p>You are now a delegate</p>",
+					);
 					const n = currentNotifications.find((x) => x.id === notificationId);
 					if (n) n.read = true;
 					renderNotifications();

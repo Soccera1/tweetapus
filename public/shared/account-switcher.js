@@ -166,35 +166,32 @@ export async function openAccountSwitcher() {
 			container.insertBefore(switchBackBtn, accountsList);
 		}
 
-		try {
-			const delegationsResponse = await query("/delegates/my-delegations");
-			if (
-				delegationsResponse.delegations &&
-				delegationsResponse.delegations.length > 0
-			) {
-				const delegatesSection = document.createElement("div");
-				delegatesSection.style.cssText = "margin-top: 20px;";
+		const delegationsResponse = await query("/delegates/my-delegations");
+		console.log("Delegations response:", delegationsResponse);
+		if (
+			delegationsResponse?.delegations &&
+			delegationsResponse.delegations.length > 0
+		) {
+			const delegatesSection = document.createElement("div");
+			delegatesSection.style.cssText = "margin-top: 20px;";
 
-				const delegatesTitle = document.createElement("h4");
-				delegatesTitle.textContent = "Delegate Accounts";
-				delegatesTitle.style.cssText = `
+			const delegatesTitle = document.createElement("h4");
+			delegatesTitle.textContent = "Delegate Accounts";
+			delegatesTitle.style.cssText = `
 				font-size: 14px;
 				color: var(--text-secondary);
 				margin: 0 0 12px 0;
 				text-transform: uppercase;
 				font-weight: 600;
 			`;
-				delegatesSection.appendChild(delegatesTitle);
+			delegatesSection.appendChild(delegatesTitle);
 
-				for (const delegation of delegationsResponse.delegations) {
-					const delegateItem = createDelegateItem(delegation);
-					delegatesSection.appendChild(delegateItem);
-				}
-
-				accountsList.appendChild(delegatesSection);
+			for (const delegation of delegationsResponse.delegations) {
+				const delegateItem = createDelegateItem(delegation);
+				delegatesSection.appendChild(delegateItem);
 			}
-		} catch (delegateError) {
-			console.error("Error loading delegate accounts:", delegateError);
+
+			accountsList.appendChild(delegatesSection);
 		}
 	} catch (error) {
 		console.error("Error loading accounts:", error);
