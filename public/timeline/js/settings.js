@@ -239,6 +239,13 @@ const createAccountContent = () => {
 		transparencySelect.appendChild(option);
 	});
 
+	setTimeout(async () => {
+		const user = await ensureCurrentUser();
+		if (user && transparencySelect) {
+			transparencySelect.value = user.transparency_location_display || "full";
+		}
+	}, 0);
+
 	transparencySelect.addEventListener("change", async (e) => {
 		const display = e.target.value;
 		console.log("Transparency location changed to:", display);
@@ -257,15 +264,6 @@ const createAccountContent = () => {
 				if (currentUser) {
 					currentUser.transparency_location_display = display;
 				}
-				toastQueue.add(
-					`<h1>Setting Updated</h1><p>Transparency location display updated to ${
-						display === "full"
-							? "Full Location"
-							: display === "country"
-								? "Country Only"
-								: "Continent Only"
-					}</p>`,
-				);
 			} else {
 				toastQueue.add(
 					`<h1>Failed to update setting</h1><p>${result.error || "Unknown error"}</p>`,
@@ -2174,7 +2172,7 @@ const loadPrivacySettings = async () => {
 		const transparencySelect = document.getElementById(
 			"transparency-location-select",
 		);
-		
+
 		if (transparencySelect && user) {
 			transparencySelect.value = user.transparency_location_display || "full";
 
@@ -2184,13 +2182,16 @@ const loadPrivacySettings = async () => {
 					const display = e.target.value;
 					console.log("Transparency location changed to:", display);
 					try {
-						const result = await query("/profile/settings/transparency-location", {
-							method: "POST",
-							headers: {
-								"Content-Type": "application/json",
+						const result = await query(
+							"/profile/settings/transparency-location",
+							{
+								method: "POST",
+								headers: {
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify({ display }),
 							},
-							body: JSON.stringify({ display }),
-						});
+						);
 
 						console.log("API response:", result);
 

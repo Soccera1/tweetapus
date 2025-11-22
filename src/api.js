@@ -290,7 +290,7 @@ export default new Elysia({
 		},
 	)
 	.get("/owoembed", async ({ query }) => {
-		const { i, a} = query;
+		const { i, a } = query;
 
 		return {
 			author_name: a,

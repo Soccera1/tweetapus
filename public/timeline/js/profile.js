@@ -1216,6 +1216,12 @@ const renderProfile = (data) => {
 				`/transparency/${profile.username}`,
 			);
 
+			const hasLimitedLocation =
+				(transparencyReport.login?.continent &&
+					!transparencyReport.login?.country) ||
+				(transparencyReport.creation?.continent &&
+					!transparencyReport.creation?.country);
+
 			const modalWrapper = document.createElement("div");
 			modalWrapper.className = "modal";
 			modalWrapper.innerHTML = `
@@ -1231,6 +1237,17 @@ const renderProfile = (data) => {
           </button>
         </div>
         <div class="modal-body">
+					${
+						hasLimitedLocation
+							? `<div style="padding: 12px 16px; margin-bottom: 16px; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 8px; color: var(--text-primary);">
+						<div style="display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 4px;">
+							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+							Limited location information
+						</div>
+						<div style="font-size: 13px; line-height: 1.4;">This user has chosen to only display their continent for privacy reasons. More detailed location data is not available.</div>
+					</div>`
+							: ""
+					}
 					<div class="transparency-items">
             ${
 							profile.verified
@@ -1304,16 +1321,15 @@ ${
 }
 
 <div class="transparency-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-plus-icon lucide-calendar-plus"><path d="M16 19h6"/><path d="M16 2v4"/><path d="M19 16v6"/><path d="M21 12.598V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8.5"/><path d="M3 10h18"/><path d="M8 2v4"/></svg>
-						<div class="transparency-data"><strong>Account created</strong>${(new Date(profile.created_at)).toLocaleDateString(
-							"en-US",
-							{
-								month: "long",
-								year: "numeric",
-								day: "numeric",
-								hour: "2-digit",
-								minute: "2-digit",
-							},
-						)}</div></div>
+						<div class="transparency-data"><strong>Account created</strong>${(
+							new Date(profile.created_at)
+						).toLocaleDateString("en-US", {
+							month: "long",
+							year: "numeric",
+							day: "numeric",
+							hour: "2-digit",
+							minute: "2-digit",
+						})}</div></div>
 					</div>
         </div>
 				</div>
