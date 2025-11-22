@@ -64,6 +64,14 @@ body {
   margin-top: 15px;
 }
 
+/* Ensure bg-body cards in admin match the admin dark theme and use readable text color */
+.card.bg-body,
+.card.bg-body .card-body {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--text-primary) !important;
+  border: none;
+}
+
 .emoji-cropper {
   display: flex;
   flex-direction: column;

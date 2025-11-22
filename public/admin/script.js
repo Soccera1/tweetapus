@@ -1676,6 +1676,55 @@ class AdminPanel {
 
 			const { user, suspensions, recentPosts, affiliate } = userData;
 
+			let creationTransparency = null;
+			try {
+				creationTransparency = user.account_creation_transparency
+					? JSON.parse(user.account_creation_transparency)
+					: null;
+			} catch (_err) {
+				creationTransparency = null;
+			}
+			let loginTransparency = null;
+			try {
+				loginTransparency = user.account_login_transparency
+					? JSON.parse(user.account_login_transparency)
+					: null;
+			} catch (_err) {
+				loginTransparency = null;
+			}
+
+			const creationTorFlag = creationTransparency?.country === "T1";
+			const loginTorFlag = loginTransparency?.country === "T1";
+			const loginCityValue = loginTorFlag ? "" : loginTransparency?.city || "";
+			const loginCountryValue = loginTorFlag
+				? ""
+				: loginTransparency?.country || "";
+			const loginLatitudeValue = loginTorFlag
+				? ""
+				: loginTransparency?.latitude || "";
+			const loginLongitudeValue = loginTorFlag
+				? ""
+				: loginTransparency?.longitude || "";
+			const loginTimezoneValue = loginTransparency?.timezone || "";
+			const creationCityValue = creationTorFlag
+				? ""
+				: creationTransparency?.city || "";
+			const creationCountryValue = creationTorFlag
+				? ""
+				: creationTransparency?.country || "";
+			const creationLatitudeValue = creationTorFlag
+				? ""
+				: creationTransparency?.latitude || "";
+			const creationLongitudeValue = creationTorFlag
+				? ""
+				: creationTransparency?.longitude || "";
+			const creationTimezoneValue = creationTransparency?.timezone || "";
+			const loginHideDatacenterWarning =
+				!!loginTransparency?.suppress_vpn_warning;
+			const loginPreserveOverride = !!loginTransparency?.preserve_override;
+			const creationHideDatacenterWarning =
+				!!creationTransparency?.suppress_vpn_warning;
+
 			document.getElementById("userModalBody").innerHTML = `
         <div class="row">
           <div class="col-md-4 text-center">
@@ -1856,6 +1905,97 @@ class AdminPanel {
 								}" placeholder="Leave empty to use tier default" min="1">
                 <small style="color: var(--text-secondary);">Tier defaults: 400 (Standard) | 5,500 (Verified) | 16,500 (Gold)</small>
               </div>
+			  <div class="card bg-body border-0 mt-4">
+				<div class="card-body">
+				  <h5 class="card-title mb-3">Transparency Overrides</h5>
+				  <div class="row g-4">
+					<div class="col-md-6">
+					  <h6 class="fw-bold">Last Login</h6>
+					  <div class="mb-3">
+						<label class="form-label">City</label>
+						<input type="text" class="form-control" id="editProfileLoginCity" value="${this.escapeHtml(
+							loginCityValue,
+						)}">
+					  </div>
+					  <div class="mb-3">
+						<label class="form-label">Country / Region</label>
+						<input type="text" class="form-control" id="editProfileLoginCountry" value="${this.escapeHtml(
+							loginCountryValue,
+						)}">
+					  </div>
+					  <div class="row">
+						<div class="col-md-6 mb-3">
+						  <label class="form-label">Latitude</label>
+						  <input type="text" class="form-control" id="editProfileLoginLatitude" value="${this.escapeHtml(
+								loginLatitudeValue,
+							)}">
+						</div>
+						<div class="col-md-6 mb-3">
+						  <label class="form-label">Longitude</label>
+						  <input type="text" class="form-control" id="editProfileLoginLongitude" value="${this.escapeHtml(
+								loginLongitudeValue,
+							)}">
+						</div>
+					  </div>
+					  <div class="mb-3">
+						<label class="form-label">Timezone</label>
+						<input type="text" class="form-control" id="editProfileLoginTimezone" value="${this.escapeHtml(
+							loginTimezoneValue,
+						)}" placeholder="e.g. America/New_York">
+					  </div>
+					  <div class="form-check form-switch mb-1">
+						<input class="form-check-input" type="checkbox" id="editProfileLoginTor" ${
+							loginTorFlag ? "checked" : ""
+						}>
+						<label class="form-check-label">Last login via Tor</label>
+					  </div>
+					  <small class="text-muted">Update login transparency data that appears on the user's profile.</small>
+					</div>
+					<div class="col-md-6">
+					  <h6 class="fw-bold">Account Creation</h6>
+					  <div class="mb-3">
+						<label class="form-label">City</label>
+						<input type="text" class="form-control" id="editProfileCreationCity" value="${this.escapeHtml(
+							creationCityValue,
+						)}">
+					  </div>
+					  <div class="mb-3">
+						<label class="form-label">Country / Region</label>
+						<input type="text" class="form-control" id="editProfileCreationCountry" value="${this.escapeHtml(
+							creationCountryValue,
+						)}">
+					  </div>
+					  <div class="row">
+						<div class="col-md-6 mb-3">
+						  <label class="form-label">Latitude</label>
+						  <input type="text" class="form-control" id="editProfileCreationLatitude" value="${this.escapeHtml(
+								creationLatitudeValue,
+							)}">
+						</div>
+						<div class="col-md-6 mb-3">
+						  <label class="form-label">Longitude</label>
+						  <input type="text" class="form-control" id="editProfileCreationLongitude" value="${this.escapeHtml(
+								creationLongitudeValue,
+							)}">
+						</div>
+					  </div>
+					  <div class="mb-3">
+						<label class="form-label">Timezone</label>
+						<input type="text" class="form-control" id="editProfileCreationTimezone" value="${this.escapeHtml(
+							creationTimezoneValue,
+						)}" placeholder="e.g. UTC">
+					  </div>
+					  <div class="form-check form-switch mb-1">
+						<input class="form-check-input" type="checkbox" id="editProfileCreationTor" ${
+							creationTorFlag ? "checked" : ""
+						}>
+						<label class="form-check-label">Created via Tor</label>
+					  </div>
+					  <small class="text-muted">Control the origin data shown in transparency modals.</small>
+					</div>
+				  </div>
+				</div>
+			  </div>
             </form>
 
             <div class="mt-4">
@@ -2223,6 +2363,94 @@ class AdminPanel {
 			if (usernames.length > 0) {
 				payload.force_follow_usernames = usernames;
 			}
+		}
+
+		const loginCityInput = document.getElementById("editProfileLoginCity");
+		if (loginCityInput) {
+			const value = loginCityInput.value.trim();
+			payload.login_city = value.length ? value : null;
+			loginCityInput.value = value;
+		}
+		const loginCountryInput = document.getElementById(
+			"editProfileLoginCountry",
+		);
+		if (loginCountryInput) {
+			const value = loginCountryInput.value.trim();
+			payload.login_country = value.length ? value : null;
+			loginCountryInput.value = value;
+		}
+		const loginLatitudeInput = document.getElementById(
+			"editProfileLoginLatitude",
+		);
+		if (loginLatitudeInput) {
+			const value = loginLatitudeInput.value.trim();
+			payload.login_latitude = value.length ? value : null;
+			loginLatitudeInput.value = value;
+		}
+		const loginLongitudeInput = document.getElementById(
+			"editProfileLoginLongitude",
+		);
+		if (loginLongitudeInput) {
+			const value = loginLongitudeInput.value.trim();
+			payload.login_longitude = value.length ? value : null;
+			loginLongitudeInput.value = value;
+		}
+		const loginTimezoneInput = document.getElementById(
+			"editProfileLoginTimezone",
+		);
+		if (loginTimezoneInput) {
+			const value = loginTimezoneInput.value.trim();
+			payload.login_timezone = value.length ? value : null;
+			loginTimezoneInput.value = value;
+		}
+		const loginTorInput = document.getElementById("editProfileLoginTor");
+		if (loginTorInput) {
+			payload.login_tor = !!loginTorInput.checked;
+		}
+
+		const creationCityInput = document.getElementById(
+			"editProfileCreationCity",
+		);
+		if (creationCityInput) {
+			const value = creationCityInput.value.trim();
+			payload.creation_city = value.length ? value : null;
+			creationCityInput.value = value;
+		}
+		const creationCountryInput = document.getElementById(
+			"editProfileCreationCountry",
+		);
+		if (creationCountryInput) {
+			const value = creationCountryInput.value.trim();
+			payload.creation_country = value.length ? value : null;
+			creationCountryInput.value = value;
+		}
+		const creationLatitudeInput = document.getElementById(
+			"editProfileCreationLatitude",
+		);
+		if (creationLatitudeInput) {
+			const value = creationLatitudeInput.value.trim();
+			payload.creation_latitude = value.length ? value : null;
+			creationLatitudeInput.value = value;
+		}
+		const creationLongitudeInput = document.getElementById(
+			"editProfileCreationLongitude",
+		);
+		if (creationLongitudeInput) {
+			const value = creationLongitudeInput.value.trim();
+			payload.creation_longitude = value.length ? value : null;
+			creationLongitudeInput.value = value;
+		}
+		const creationTimezoneInput = document.getElementById(
+			"editProfileCreationTimezone",
+		);
+		if (creationTimezoneInput) {
+			const value = creationTimezoneInput.value.trim();
+			payload.creation_timezone = value.length ? value : null;
+			creationTimezoneInput.value = value;
+		}
+		const creationTorInput = document.getElementById("editProfileCreationTor");
+		if (creationTorInput) {
+			payload.creation_tor = !!creationTorInput.checked;
 		}
 
 		try {

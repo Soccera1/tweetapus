@@ -450,9 +450,9 @@ button {
 
       label {
         display: block;
-        margin-bottom: 0px;
         font-weight: 400;
         color: var(--text-primary);
+        margin-bottom: 3px;
       }
 
       input {

@@ -210,7 +210,7 @@ WHERE u.id = ?
 		"INSERT INTO posts (id, user_id, content, reply_to, created_at) VALUES (?, ?, ?, ?, ?)",
 	),
 	updateUser: db.prepare(
-		"UPDATE users SET username = ?, name = ?, bio = ?, verified = ?, admin = ?, gold = ?, follower_count = ?, following_count = ?, character_limit = ?, created_at = ? WHERE id = ?",
+		"UPDATE users SET username = ?, name = ?, bio = ?, verified = ?, admin = ?, gold = ?, follower_count = ?, following_count = ?, character_limit = ?, created_at = ?, account_creation_transparency = ?, account_login_transparency = ? WHERE id = ?",
 	),
 
 	getAllConversations: db.prepare(`
@@ -2590,6 +2590,290 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 					}
 				}
 
+				const normalizeTransparencyValue = (value) => {
+					if (value === undefined) return undefined;
+					if (value === null) return null;
+					if (typeof value === "string") {
+						const trimmed = value.trim();
+						return trimmed.length ? trimmed : null;
+					}
+					const asString = `${value}`.trim();
+					return asString.length ? asString : null;
+				};
+
+				const parseTransparency = (raw) => {
+					if (!raw) return null;
+					try {
+						return JSON.parse(raw);
+					} catch (_err) {
+						return null;
+					}
+				};
+
+				const hasTransparencyValue = (record) => {
+					if (!record) return false;
+					for (const key of [
+						"city",
+						"country",
+						"latitude",
+						"longitude",
+						"timezone",
+						"continent",
+						"vpn",
+						"suppress_vpn_warning",
+						"preserve_override",
+					]) {
+						if (
+							record[key] !== null &&
+							record[key] !== undefined &&
+							record[key] !== ""
+						) {
+							return true;
+						}
+					}
+					return false;
+				};
+
+				const serializeTransparency = (record) => {
+					if (!record) return null;
+					return hasTransparencyValue(record) ? JSON.stringify(record) : null;
+				};
+
+				const updateTransparencyField = (
+					target,
+					key,
+					inputValue,
+					markChanged,
+				) => {
+					const normalized = normalizeTransparencyValue(inputValue);
+					const previous = target ? (target[key] ?? null) : null;
+					if (previous === normalized) {
+						return target;
+					}
+					const nextTarget = target ? target : {};
+					nextTarget[key] = normalized;
+					markChanged();
+					return nextTarget;
+				};
+
+				let creationTransparency = parseTransparency(
+					user.account_creation_transparency,
+				);
+				let loginTransparency = parseTransparency(
+					user.account_login_transparency,
+				);
+				let creationTransparencyChanged = false;
+				let loginTransparencyChanged = false;
+
+				if (body.creation_tor !== undefined) {
+					const torFlag = !!body.creation_tor;
+					const prevIsTor = creationTransparency?.country === "T1";
+					if (torFlag && !prevIsTor) {
+						if (!creationTransparency) creationTransparency = {};
+						if (creationTransparency.country !== "T1") {
+							creationTransparency.country = "T1";
+							creationTransparencyChanged = true;
+						}
+						if (
+							creationTransparency.city !== null &&
+							creationTransparency.city !== undefined
+						) {
+							creationTransparency.city = null;
+							creationTransparencyChanged = true;
+						}
+						if (
+							creationTransparency.latitude !== null &&
+							creationTransparency.latitude !== undefined
+						) {
+							creationTransparency.latitude = null;
+							creationTransparencyChanged = true;
+						}
+						if (
+							creationTransparency.longitude !== null &&
+							creationTransparency.longitude !== undefined
+						) {
+							creationTransparency.longitude = null;
+							creationTransparencyChanged = true;
+						}
+					}
+					if (!torFlag && prevIsTor) {
+						if (!creationTransparency) creationTransparency = {};
+						creationTransparency.country = null;
+						creationTransparencyChanged = true;
+					}
+				}
+
+				if (body.login_tor !== undefined) {
+					const torFlag = !!body.login_tor;
+					const prevIsTor = loginTransparency?.country === "T1";
+					if (torFlag && !prevIsTor) {
+						if (!loginTransparency) loginTransparency = {};
+						if (loginTransparency.country !== "T1") {
+							loginTransparency.country = "T1";
+							loginTransparencyChanged = true;
+						}
+						if (
+							loginTransparency.city !== null &&
+							loginTransparency.city !== undefined
+						) {
+							loginTransparency.city = null;
+							loginTransparencyChanged = true;
+						}
+						if (
+							loginTransparency.latitude !== null &&
+							loginTransparency.latitude !== undefined
+						) {
+							loginTransparency.latitude = null;
+							loginTransparencyChanged = true;
+						}
+						if (
+							loginTransparency.longitude !== null &&
+							loginTransparency.longitude !== undefined
+						) {
+							loginTransparency.longitude = null;
+							loginTransparencyChanged = true;
+						}
+					}
+					if (!torFlag && prevIsTor) {
+						if (!loginTransparency) loginTransparency = {};
+						loginTransparency.country = null;
+						loginTransparencyChanged = true;
+					}
+				}
+
+				const creationLocationFields = [
+					["creation_city", "city"],
+					["creation_country", "country"],
+					["creation_latitude", "latitude"],
+					["creation_longitude", "longitude"],
+				];
+
+				for (const [bodyKey, fieldKey] of creationLocationFields) {
+					if (body[bodyKey] === undefined) continue;
+					if (creationTransparency?.country === "T1") continue;
+					creationTransparency = updateTransparencyField(
+						creationTransparency,
+						fieldKey,
+						body[bodyKey],
+						() => {
+							creationTransparencyChanged = true;
+						},
+					);
+				}
+
+				const loginLocationFields = [
+					["login_city", "city"],
+					["login_country", "country"],
+					["login_latitude", "latitude"],
+					["login_longitude", "longitude"],
+				];
+
+				for (const [bodyKey, fieldKey] of loginLocationFields) {
+					if (body[bodyKey] === undefined) continue;
+					if (loginTransparency?.country === "T1") continue;
+					loginTransparency = updateTransparencyField(
+						loginTransparency,
+						fieldKey,
+						body[bodyKey],
+						() => {
+							loginTransparencyChanged = true;
+						},
+					);
+				}
+
+				if (body.creation_timezone !== undefined) {
+					creationTransparency = updateTransparencyField(
+						creationTransparency,
+						"timezone",
+						body.creation_timezone,
+						() => {
+							creationTransparencyChanged = true;
+						},
+					);
+				}
+
+				if (body.login_timezone !== undefined) {
+					loginTransparency = updateTransparencyField(
+						loginTransparency,
+						"timezone",
+						body.login_timezone,
+						() => {
+							loginTransparencyChanged = true;
+						},
+					);
+				}
+
+				if (body.creation_hide_datacenter_warning !== undefined) {
+					const shouldSuppress = !!body.creation_hide_datacenter_warning;
+					if (!creationTransparency && shouldSuppress) {
+						creationTransparency = {};
+					}
+					if (creationTransparency) {
+						const previous = !!creationTransparency.suppress_vpn_warning;
+						if (shouldSuppress && !previous) {
+							creationTransparency.suppress_vpn_warning = true;
+							creationTransparencyChanged = true;
+						} else if (!shouldSuppress && previous) {
+							delete creationTransparency.suppress_vpn_warning;
+							creationTransparencyChanged = true;
+						}
+					}
+				}
+
+				if (body.login_hide_datacenter_warning !== undefined) {
+					const shouldSuppress = !!body.login_hide_datacenter_warning;
+					if (!loginTransparency && shouldSuppress) {
+						loginTransparency = {};
+					}
+					if (loginTransparency) {
+						const previous = !!loginTransparency.suppress_vpn_warning;
+						if (shouldSuppress && !previous) {
+							loginTransparency.suppress_vpn_warning = true;
+							loginTransparencyChanged = true;
+						} else if (!shouldSuppress && previous) {
+							delete loginTransparency.suppress_vpn_warning;
+							loginTransparencyChanged = true;
+						}
+					}
+				}
+
+				if (body.login_preserve_override !== undefined) {
+					const shouldPreserve = !!body.login_preserve_override;
+					if (!loginTransparency && shouldPreserve) {
+						loginTransparency = {};
+					}
+					if (loginTransparency) {
+						const previous = !!loginTransparency.preserve_override;
+						if (shouldPreserve && !previous) {
+							loginTransparency.preserve_override = true;
+							loginTransparencyChanged = true;
+						} else if (!shouldPreserve && previous) {
+							delete loginTransparency.preserve_override;
+							loginTransparencyChanged = true;
+						}
+					}
+				}
+
+				const nextCreationTransparency = creationTransparencyChanged
+					? serializeTransparency(creationTransparency)
+					: user.account_creation_transparency;
+				const nextLoginTransparency = loginTransparencyChanged
+					? serializeTransparency(loginTransparency)
+					: user.account_login_transparency;
+
+				if (nextCreationTransparency !== user.account_creation_transparency) {
+					changes.account_creation_transparency = {
+						old: user.account_creation_transparency,
+						new: nextCreationTransparency,
+					};
+				}
+				if (nextLoginTransparency !== user.account_login_transparency) {
+					changes.account_login_transparency = {
+						old: user.account_login_transparency,
+						new: nextLoginTransparency,
+					};
+				}
+
 				adminQueries.updateUser.run(
 					newUsername,
 					nameToPersist,
@@ -2601,6 +2885,8 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 					user.following_count || 0,
 					newCharacterLimit,
 					newUserCreatedAt,
+					nextCreationTransparency,
+					nextLoginTransparency,
 					params.id,
 				);
 
@@ -2669,6 +2955,19 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				character_limit: t.Optional(t.Union([t.Number(), t.Null()])),
 				created_at: t.Optional(t.String()),
 				force_follow_usernames: t.Optional(t.Array(t.String())),
+				login_city: t.Optional(t.Union([t.String(), t.Null()])),
+				login_country: t.Optional(t.Union([t.String(), t.Null()])),
+				login_latitude: t.Optional(t.Union([t.String(), t.Null()])),
+				login_longitude: t.Optional(t.Union([t.String(), t.Null()])),
+				login_timezone: t.Optional(t.Union([t.String(), t.Null()])),
+				login_tor: t.Optional(t.Boolean()),
+				creation_city: t.Optional(t.Union([t.String(), t.Null()])),
+				creation_country: t.Optional(t.Union([t.String(), t.Null()])),
+				creation_latitude: t.Optional(t.Union([t.String(), t.Null()])),
+				creation_longitude: t.Optional(t.Union([t.String(), t.Null()])),
+				creation_hide_datacenter_warning: t.Optional(t.Boolean()),
+				creation_timezone: t.Optional(t.Union([t.String(), t.Null()])),
+				creation_tor: t.Optional(t.Boolean()),
 			}),
 			response: t.Any(),
 		},
