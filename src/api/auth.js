@@ -173,8 +173,6 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 						admin: user.admin || false,
 						theme: user.theme || null,
 						accent_color: user.accent_color || null,
-						use_c_algorithm:
-							user.use_c_algorithm === 1 || user.use_c_algorithm === true,
 						avatar_radius: user.avatar_radius ?? null,
 						character_limit: user.character_limit ?? null,
 						label_type: user.label_type || null,

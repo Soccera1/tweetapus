@@ -8798,10 +8798,6 @@ emoji-picker.emoji-picker-popup {
         font-weight: 500;
         color: var(--text-muted-hover);
       }
-
-      span {
-        color: var(--text-secondary);
-      }
     }
   }
 }

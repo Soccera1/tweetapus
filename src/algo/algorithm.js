@@ -367,9 +367,7 @@ export const rankTweets = (
 		}
 	}
 
-	// return selected items and append remainder for context (for pagination), but slicing will be done by the caller
 	const finalArray = [...selected, ...remaining];
-	// Sanitize by removing _score property
 	return finalArray.map(({ _score, ...rest }) => rest);
 };
 

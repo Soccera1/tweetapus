@@ -63,7 +63,6 @@ const getFollowingTimelinePostsBefore = db.query(`
   LIMIT ?
 `);
 
-// Helper to lookup a post's created_at for composite cursor pagination
 const getPostCreatedAt = db.query(`SELECT created_at FROM posts WHERE id = ?`);
 
 const getUserByUsername = db.query(
@@ -655,7 +654,7 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 			return { timeline: [] };
 		}
 
-		if (user.use_c_algorithm && isAlgorithmAvailable()) {
+		if (isAlgorithmAvailable()) {
 			const postIds = posts.map((p) => p.id);
 			if (postIds.length > 0) {
 				const attachmentPlaceholders = postIds.map(() => "?").join(",");
@@ -691,16 +690,10 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 				seenTweets.map((row) => [row.tweet_id, row.seen_at]),
 			);
 
-			// Non-destructive suppression: for posts that are part of a
-			// repeated-content cluster (e.g. content_repeat_count >= 3), mark
-			// them as "seen" in the in-memory seenMeta used for ranking so
-			// the ranking algorithm will tend to deprioritize them for this
-			// request. This does not modify DB state or the C algorithm.
 			const CLUSTER_SUPPRESS_THRESHOLD = 3;
 			for (const post of posts) {
 				const c = post._normalized_content || "";
 				if (c && contentCounts.get(c) >= CLUSTER_SUPPRESS_THRESHOLD) {
-					// Only set if not already present in seenMeta
 					if (!seenMeta.has(post.id)) {
 						seenMeta.set(post.id, new Date().toISOString());
 					}
