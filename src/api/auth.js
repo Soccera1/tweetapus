@@ -812,7 +812,7 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 	)
 	.post(
 		"/verify-authentication",
-		async ({ body, jwt }) => {
+		async ({ body, jwt, headers }) => {
 			const { expectedChallenge, credential } = body;
 
 			if (!expectedChallenge || !credential) {

@@ -7,25 +7,24 @@ import ratelimit from "../helpers/ratelimit.js";
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const getUserByUsername = db.prepare(
-  "SELECT * FROM users WHERE LOWER(username) = LOWER(?)"
+  "SELECT id FROM users WHERE LOWER(username) = LOWER(?)"
 );
-const getUserById = db.prepare("SELECT * FROM users WHERE id = ?");
-
-const checkBlockExists = db.prepare(`
-  SELECT id FROM blocks WHERE blocker_id = ? AND blocked_id = ?
-`);
-
-const addBlock = db.prepare(`
-  INSERT INTO blocks (id, blocker_id, blocked_id) VALUES (?, ?, ?)
-`);
-
-const removeBlock = db.prepare(`
-  DELETE FROM blocks WHERE blocker_id = ? AND blocked_id = ?
-`);
-
-const isUserBlocked = db.prepare(`
-  SELECT id FROM blocks WHERE blocker_id = ? AND blocked_id = ?
-`);
+const getUserById = db.prepare("SELECT id FROM users WHERE id = ?");
+const checkBlockExists = db.prepare(
+  "SELECT 1 FROM blocks WHERE blocker_id = ? AND blocked_id = ?"
+);
+const addBlock = db.prepare(
+  "INSERT INTO blocks (id, blocker_id, blocked_id) VALUES (?, ?, ?)"
+);
+const removeBlock = db.prepare(
+  "DELETE FROM blocks WHERE blocker_id = ? AND blocked_id = ?"
+);
+const removeFollows = db.prepare(
+  "DELETE FROM follows WHERE (follower_id = ? AND following_id = ?) OR (follower_id = ? AND following_id = ?)"
+);
+const removeFollowRequests = db.prepare(
+  "DELETE FROM follow_requests WHERE (requester_id = ? AND target_id = ?) OR (requester_id = ? AND target_id = ?)"
+);
 
 export default new Elysia({ prefix: "/blocking", tags: ["Blocking"] })
   .use(jwt({ name: "jwt", secret: JWT_SECRET }))
@@ -63,15 +62,9 @@ export default new Elysia({ prefix: "/blocking", tags: ["Blocking"] })
         return { error: "User is already blocked" };
       }
 
-      const blockId = Bun.randomUUIDv7();
-      addBlock.run(blockId, user.id, userId);
-
-      db.query(
-        "DELETE FROM follows WHERE (follower_id = ? AND following_id = ?) OR (follower_id = ? AND following_id = ?)"
-      ).run(user.id, userId, userId, user.id);
-      db.query(
-        "DELETE FROM follow_requests WHERE (requester_id = ? AND target_id = ?) OR (requester_id = ? AND target_id = ?)"
-      ).run(user.id, userId, userId, user.id);
+      addBlock.run(Bun.randomUUIDv7(), user.id, userId);
+      removeFollows.run(user.id, userId, userId, user.id);
+      removeFollowRequests.run(user.id, userId, userId, user.id);
 
       return { success: true, blocked: true };
     } catch (error) {
@@ -86,9 +79,9 @@ export default new Elysia({ prefix: "/blocking", tags: ["Blocking"] })
       userId: t.String(),
     }),
     response: t.Object({
-      success: t.Boolean(),
+      success: t.Optional(t.Boolean()),
       error: t.Optional(t.String()),
-      blocked: true,
+      blocked: t.Optional(t.Boolean()),
     }),
   })
   .post("/unblock", async ({ jwt, headers, body }) => {
@@ -125,9 +118,9 @@ export default new Elysia({ prefix: "/blocking", tags: ["Blocking"] })
       userId: t.String(),
     }),
     response: t.Object({
-      success: t.Boolean(),
+      success: t.Optional(t.Boolean()),
       error: t.Optional(t.String()),
-      blocked: false,
+      blocked: t.Optional(t.Boolean()),
     }),
   })
   .get("/check/:userId", async ({ jwt, headers, params }) => {
@@ -141,8 +134,7 @@ export default new Elysia({ prefix: "/blocking", tags: ["Blocking"] })
       const user = getUserByUsername.get(payload.username);
       if (!user) return { error: "User not found" };
 
-      const { userId } = params;
-      const isBlocked = isUserBlocked.get(user.id, userId);
+      const isBlocked = checkBlockExists.get(user.id, params.userId);
 
       return {
         success: true,
@@ -160,7 +152,8 @@ export default new Elysia({ prefix: "/blocking", tags: ["Blocking"] })
       userId: t.String(),
     }),
     response: t.Object({
-      success: t.Boolean(),
-      blocked: t.Boolean(),
+      success: t.Optional(t.Boolean()),
+      error: t.Optional(t.String()),
+      blocked: t.Optional(t.Boolean()),
     }),
   });

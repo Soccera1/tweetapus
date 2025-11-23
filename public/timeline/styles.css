@@ -1859,6 +1859,7 @@ nav {
 
   .tweet-interactions button.blocked-interaction {
     opacity: 0.6;
+    pointer-events: none;
     filter: grayscale(30%);
   }
 
@@ -2480,13 +2481,15 @@ nav {
     display: none;
     align-items: center;
     gap: 12px;
-    padding: 12px 14px;
+    padding: 14px 16px;
     margin-top: 12px;
     border-radius: 10px;
-    background-color: rgba(220, 38, 38, 0.06);
     color: var(--text-primary);
-    border: 1px solid rgba(220, 38, 38, 0.15);
+    border: 1px solid var(--error-color);
     width: calc(100% - 0px);
+    user-select: none;
+    flex-direction: column;
+    margin-bottom: 12px;
   }
 
   .profile-block-banner .banner-icon {
@@ -2494,27 +2497,27 @@ nav {
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--error-color);
   }
 
   .profile-block-banner .banner-text {
     flex: 1 1 auto;
     font-size: 14px;
     line-height: 1.2;
+    text-align: center;
+
+    strong {
+      font-weight: 600;
+      color: var(--error-color);
+    }
   }
 
   .profile-block-banner .banner-sub {
     color: var(--text-secondary);
     font-size: 13px;
-    margin-top: 2px;
-  }
-
-  .profile-block-banner .banner-dismiss {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 6px;
-    font-size: 14px;
+    max-width: 200px;
+    margin: 0px auto;
+    margin-top: 6px;
   }
 
   .profile-stats {

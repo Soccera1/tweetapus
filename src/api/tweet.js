@@ -1003,7 +1003,6 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 
 			const tweet = getTweetById.get(tweetId);
 			if (!tweet) return { error: "Tweet not found" };
-			// Block interactions on tweets whose author is suspended.
 			if (isUserSuspendedById(tweet.user_id)) {
 				return { error: "Tweet not found" };
 			}
