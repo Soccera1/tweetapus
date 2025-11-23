@@ -28,7 +28,11 @@ if (existsSync(libPath)) {
 					FFIType.i32,
 					FFIType.i32,
 					FFIType.i32,
+					FFIType.double,
 					FFIType.i32,
+					FFIType.i32,
+					FFIType.double,
+					FFIType.double,
 				],
 				returns: FFIType.double,
 			},
@@ -65,6 +69,10 @@ export const calculateScore = (
 	follower_count = 0,
 	has_community_note = 0,
 	user_super_tweeter_boost = 0.0,
+	blocked_by_count = 0,
+	muted_by_count = 0,
+	spam_score = 0.0,
+	account_age_days = 0.0,
 ) => {
 	if (!lib) {
 		return 0;
@@ -94,6 +102,10 @@ export const calculateScore = (
 		follower_count,
 		has_community_note,
 		user_super_tweeter_boost,
+		blocked_by_count,
+		muted_by_count,
+		spam_score,
+		account_age_days,
 	);
 };
 
@@ -214,6 +226,19 @@ export const rankTweets = (
 		const postBoost = tweet.super_tweet ? tweet.super_tweet_boost || 50.0 : 0.0;
 		const userSuperTweeterBoost = Math.max(userBoost, postBoost);
 
+		const blockedByCount = tweet.blocked_by_count || tweet.author?.blocked_by_count || 0;
+		const mutedByCount = tweet.muted_by_count || tweet.author?.muted_by_count || 0;
+		const spamScore = tweet.spam_score || tweet.author?.spam_score || 0.0;
+		
+		const accountCreatedAt = tweet.author?.created_at || tweet.user_created_at;
+		let accountAgeDays = 0.0;
+		if (accountCreatedAt) {
+			const createdMs = typeof accountCreatedAt === "string"
+				? new Date(accountCreatedAt).getTime()
+				: accountCreatedAt;
+			accountAgeDays = Math.max(0, (nowMillis - createdMs) / 86400000);
+		}
+
 		const score = calculateScore(
 			timestamp,
 			tweet.like_count || 0,
@@ -233,6 +258,10 @@ export const rankTweets = (
 			followerCount,
 			hasCommunityNote,
 			userSuperTweeterBoost,
+			blockedByCount,
+			mutedByCount,
+			spamScore,
+			accountAgeDays,
 		);
 
 		return { ...tweet, _score: score };

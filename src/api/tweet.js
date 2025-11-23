@@ -4,6 +4,7 @@ import { rateLimit } from "elysia-rate-limit";
 import db from "./../db.js";
 import { generateAIResponse } from "../helpers/ai-assistant.js";
 import ratelimit from "../helpers/ratelimit.js";
+import { updateUserSpamScore } from "../helpers/spam-detection.js";
 import { addNotification } from "./notifications.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -961,6 +962,14 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 
 			const effectiveUser =
 				effectiveUserId !== user.id ? getUserById.get(effectiveUserId) : user;
+
+			setTimeout(() => {
+				try {
+					updateUserSpamScore(effectiveUserId);
+				} catch (err) {
+					console.error("Failed to update spam score:", err);
+				}
+			}, 0);
 
 			return {
 				success: true,

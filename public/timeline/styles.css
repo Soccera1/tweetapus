@@ -1857,12 +1857,6 @@ nav {
     cursor: not-allowed;
   }
 
-  .tweet-interactions button.blocked-interaction {
-    opacity: 0.6;
-    pointer-events: none;
-    filter: grayscale(30%);
-  }
-
   .tweet-attachments {
     border-radius: 12px;
     overflow: hidden;
@@ -2460,6 +2454,67 @@ nav {
             &:hover {
               text-decoration: underline;
             }
+          }
+        }
+      }
+
+      .profile-algo-stats {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 16px;
+
+        .profile-algo-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          color: var(--text-primary);
+          font-size: 15px;
+
+          svg {
+            color: var(--text-secondary);
+          }
+        }
+
+        .profile-algo-body {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+
+          .algo-stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+
+            &.algo-stat-full {
+              grid-column: 1 / -1;
+              padding-top: 8px;
+              border-top: 1px solid var(--border-color);
+              flex-direction: row;
+              justify-content: space-between;
+              align-items: center;
+            }
+
+            .algo-stat-label {
+              font-size: 13px;
+              color: var(--text-secondary);
+            }
+
+            .algo-stat-value {
+              font-size: 16px;
+              font-weight: 600;
+              color: var(--text-primary);
+            }
+          }
+
+          .algo-stat-description {
+            grid-column: 1 / -1;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            line-height: 1.4;
           }
         }
       }
@@ -3142,11 +3197,20 @@ nav {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  transition: opacity 0.2s;
+
+  @starting-style {
+    opacity: 0;
+  }
 
   .modal {
     position: relative;
-    transition: none;
     display: block;
+    transition: transform 0.2s;
+
+    @starting-style {
+      transform: scale(.99);
+    }
   }
 
   .modal-close {
@@ -3301,17 +3365,6 @@ nav {
 }
 
 .composer-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-
   .modal {
     background: var(--bg-primary);
     border-radius: 12px;

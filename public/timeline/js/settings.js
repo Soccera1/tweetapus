@@ -371,10 +371,101 @@ const createAccountContent = () => {
 
 	section.appendChild(group);
 
+	const algoGroup = document.createElement("div");
+	algoGroup.className = "setting-group";
+	const algoH2 = document.createElement("h2");
+	algoH2.textContent = "Algorithm transparency";
+	algoGroup.appendChild(algoH2);
+
+	const algoItem = document.createElement("div");
+	algoItem.className = "setting-item";
+	algoItem.style.cssText = "flex-direction: column; align-items: stretch;";
+
+	const algoStatsContainer = document.createElement("div");
+	algoStatsContainer.id = "settingsAlgorithmStats";
+	algoStatsContainer.style.cssText = "margin-top: 12px;";
+	algoStatsContainer.innerHTML = `
+		<div style="display: flex; justify-content: center;">
+			<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+				<style>.spinner_z9k8 {transform-origin: center;animation: spinner_StKS 0.75s infinite linear;}@keyframes spinner_StKS {100% {transform: rotate(360deg);}}</style>
+				<path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25" fill="currentColor"></path>
+				<path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z" class="spinner_z9k8" fill="currentColor"></path>
+			</svg>
+		</div>
+	`;
+
+	algoItem.appendChild(algoStatsContainer);
+	algoGroup.appendChild(algoItem);
+	section.appendChild(algoGroup);
+
+	setTimeout(async () => {
+		const user = await ensureCurrentUser();
+		if (user) {
+			try {
+				const algoData = await query(`/profile/${user.username}/algorithm-stats`);
+				if (!algoData.error) {
+					const impact = algoData.algorithm_impact;
+					const ratingColor = 
+						impact.rating === "Excellent" ? "#4caf50" :
+						impact.rating === "Good" ? "#8bc34a" :
+						impact.rating === "Average" ? "#ffeb3b" :
+						impact.rating === "Below Average" ? "#ff9800" :
+						impact.rating === "Poor" ? "#ff5722" : "#f44336";
+					
+					algoStatsContainer.innerHTML = `
+						<div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px;">
+							<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--text-primary); font-size: 15px;">
+								<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+								<span style="font-weight: 600;">Impact</span>
+								<span style="margin-left: auto; padding: 4px 10px; background: ${ratingColor}22; color: ${ratingColor}; border-radius: 6px; font-size: 12px; font-weight: 600;">${impact.rating}</span>
+							</div>
+							<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+								<div style="display: flex; flex-direction: column; gap: 4px;">
+									<span style="font-size: 13px; color: var(--text-secondary);">Blocked by</span>
+									<span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${algoData.blocked_by_count} account${algoData.blocked_by_count !== 1 ? 's' : ''}</span>
+								</div>
+								<div style="display: flex; flex-direction: column; gap: 4px;">
+									<span style="font-size: 13px; color: var(--text-secondary);">Muted by</span>
+									<span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${algoData.muted_by_count} account${algoData.muted_by_count !== 1 ? 's' : ''}</span>
+								</div>
+								<div style="display: flex; flex-direction: column; gap: 4px;">
+									<span style="font-size: 13px; color: var(--text-secondary);">Spam score</span>
+									<span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${(algoData.spam_score * 100).toFixed(1)}%</span>
+								</div>
+								<div style="display: flex; flex-direction: column; gap: 4px;">
+									<span style="font-size: 13px; color: var(--text-secondary);">Account age</span>
+									<span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${algoData.account_age_days} days</span>
+								</div>
+								<div style="grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+									<span style="font-size: 13px; color: var(--text-secondary);">Overall multiplier</span>
+									<span style="font-size: 16px; font-weight: 600; color: ${ratingColor};">${impact.overall_multiplier}x</span>
+								</div>
+								<div style="grid-column: 1 / -1; font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">${impact.description}</div>
+							</div>
+						</div>
+					`;
+				} else {
+					algoStatsContainer.innerHTML = `
+						<div style="padding: 16px; text-align: center; color: var(--text-secondary);">
+							Failed to load algorithm stats
+						</div>
+					`;
+				}
+			} catch (error) {
+				console.error("Failed to load algorithm stats:", error);
+				algoStatsContainer.innerHTML = `
+					<div style="padding: 16px; text-align: center; color: var(--text-secondary);">
+						Failed to load algorithm stats
+					</div>
+				`;
+			}
+		}
+	}, 0);
+
 	const danger = document.createElement("div");
 	danger.className = "setting-group danger-group";
 	const dh2 = document.createElement("h2");
-	dh2.textContent = "Danger Zone";
+	dh2.textContent = "Danger zone";
 	danger.appendChild(dh2);
 	const item3 = document.createElement("div");
 	item3.className = "setting-item";

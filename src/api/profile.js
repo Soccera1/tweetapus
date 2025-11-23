@@ -2378,4 +2378,88 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 			console.error("Update transparency location setting error:", error);
 			return { error: "Failed to update setting" };
 		}
+	})
+	.get("/:username/algorithm-stats", async ({ params }) => {
+		try {
+			const { username } = params;
+			const user = getUserByUsername.get(username);
+			
+			if (!user) {
+				return { error: "User not found" };
+			}
+
+			const accountAgeMs = Date.now() - new Date(user.created_at).getTime();
+			const accountAgeDays = accountAgeMs / (1000 * 60 * 60 * 24);
+
+			const stats = {
+				blocked_by_count: user.blocked_by_count || 0,
+				muted_by_count: user.muted_by_count || 0,
+				spam_score: user.spam_score || 0.0,
+				account_age_days: Math.floor(accountAgeDays),
+				follower_count: user.follower_count || 0,
+				following_count: user.following_count || 0,
+				post_count: user.post_count || 0,
+				verified: user.verified || false,
+				gold: user.gold || false,
+				super_tweeter: user.super_tweeter || false,
+				algorithm_impact: {
+					reputation_multiplier: 1.0,
+					account_age_multiplier: 1.0,
+					description: "How the algorithm views this account"
+				}
+			};
+
+			let reputationMultiplier = 1.0;
+			
+			if (stats.blocked_by_count > 0) {
+				const blockPenalty = 1.0 / (1.0 + stats.blocked_by_count * 0.08);
+				reputationMultiplier *= blockPenalty;
+				if (stats.blocked_by_count > 10) reputationMultiplier *= 0.7;
+				if (stats.blocked_by_count > 50) reputationMultiplier *= 0.5;
+				if (stats.blocked_by_count > 100) reputationMultiplier *= 0.3;
+			}
+
+			if (stats.muted_by_count > 0) {
+				const mutePenalty = 1.0 / (1.0 + stats.muted_by_count * 0.05);
+				reputationMultiplier *= mutePenalty;
+				if (stats.muted_by_count > 20) reputationMultiplier *= 0.8;
+				if (stats.muted_by_count > 100) reputationMultiplier *= 0.6;
+			}
+
+			if (stats.spam_score > 0.0) {
+				const spamPenalty = 1.0 / (1.0 + stats.spam_score * 0.5);
+				reputationMultiplier *= spamPenalty;
+				if (stats.spam_score > 0.5) reputationMultiplier *= 0.6;
+				if (stats.spam_score > 0.8) reputationMultiplier *= 0.3;
+			}
+
+			let accountAgeMultiplier = 1.0;
+			if (accountAgeDays > 30) {
+				accountAgeMultiplier = 1.0 + Math.log((accountAgeDays / 30.0) + 1.0) * 0.08;
+				if (accountAgeMultiplier > 1.35) accountAgeMultiplier = 1.35;
+			} else if (accountAgeDays < 7) {
+				accountAgeMultiplier = 0.85 + (accountAgeDays / 7.0) * 0.15;
+			}
+
+			stats.algorithm_impact.reputation_multiplier = Math.round(reputationMultiplier * 1000) / 1000;
+			stats.algorithm_impact.account_age_multiplier = Math.round(accountAgeMultiplier * 1000) / 1000;
+
+			const overallMultiplier = reputationMultiplier * accountAgeMultiplier;
+			stats.algorithm_impact.overall_multiplier = Math.round(overallMultiplier * 1000) / 1000;
+
+			let rating = "Excellent";
+			if (overallMultiplier < 0.3) rating = "Very Poor";
+			else if (overallMultiplier < 0.5) rating = "Poor";
+			else if (overallMultiplier < 0.7) rating = "Below Average";
+			else if (overallMultiplier < 0.9) rating = "Average";
+			else if (overallMultiplier < 1.1) rating = "Good";
+
+			stats.algorithm_impact.rating = rating;
+			stats.algorithm_impact.description = `Posts from this account have their algorithm score multiplied by ${stats.algorithm_impact.overall_multiplier}x`;
+
+			return stats;
+		} catch (error) {
+			console.error("Algorithm stats error:", error);
+			return { error: "Failed to fetch algorithm stats" };
+		}
 	});

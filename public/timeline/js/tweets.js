@@ -41,6 +41,30 @@ const DOMPURIFY_CONFIG = {
 	ALLOWED_ATTR: ["href", "target", "rel", "class"],
 };
 
+const createBlockedModal = () => {
+	createModal({
+		content: `<div style="padding: 24px; text-align: center;">
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--error-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield-ban-icon lucide-shield-ban" style="margin-top: 1em;margin-bottom: 0.5em;"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m4.243 5.21 14.39 12.472"></path></svg>
+<h2 style="margin: 3px 0 15px; font-size: 20px;color:var(--error-color)">This user has blocked you</h2>
+<p style="margin: 0; color: var(--text-secondary); line-height: 1.5;text-align:left">
+<strong>What this means for you:</strong></p>
+<ul style="margin-top:6px;text-align:left;display:flex;gap:6px;flex-direction: column;    padding-left: 18px;">
+<li>You will not be able to interact with tweets from this user</li>
+<li>You will not be able to follow or DM this user</li>
+<li>This may impact your engagement and algorithm score negatively. You can learn more about your score in "Algorithm Impact" in Settings.</li>
+</ul>
+<p style="margin: 0; color: var(--text-secondary); line-height: 1.5;text-align:left">
+<strong>What this means for the user:</strong></p>
+<ul style="margin-top:6px;text-align:left;display:flex;gap:6px;flex-direction: column;    padding-left: 18px;">
+<li>They will not be able to see your tweets in their timeline</li>
+<li>They won't be able to interact with your profile either</li>
+<li>They won't get notifications for your tweets</li>
+</ul>
+<p style="margin: 0; color: var(--text-secondary); line-height: 1.5;text-align:left">If you believe this is part of an algorithm manipulation campaign, please contact us.</p>
+</div>`,
+	});
+};
+
 const createFactCheck = (fact_check) => {
 	const factCheckEl = document.createElement("div");
 	factCheckEl.className = "fact-check-banner";
@@ -751,17 +775,6 @@ export const createTweetElement = (tweet, config = {}) => {
 
 	const tweetEl = document.createElement("div");
 	tweetEl.className = isTopReply ? "tweet top-reply" : "tweet";
-
-	const isBlockedByProfile = (() => {
-		try {
-			const pc = document.getElementById("profileContainer");
-			return pc?.dataset?.blockedByProfile === "true";
-		} catch (_) {
-			return false;
-		}
-	})();
-
-	if (isBlockedByProfile) tweetEl.classList.add("blocked-by-profile");
 
 	if (size === "preview") {
 		tweetEl.classList.add("tweet-preview");
@@ -1604,6 +1617,7 @@ export const createTweetElement = (tweet, config = {}) => {
 	const tweetInteractionsLikeEl = document.createElement("button");
 	tweetInteractionsLikeEl.className = "engagement";
 	tweetInteractionsLikeEl.dataset.liked = tweet.liked_by_user;
+	tweetInteractionsLikeEl.dataset.likeCount = tweet.like_count || 0;
 	tweetInteractionsLikeEl.style.setProperty("--color", "249, 25, 128");
 
 	tweetInteractionsLikeEl.innerHTML = `<svg
@@ -1628,23 +1642,23 @@ export const createTweetElement = (tweet, config = {}) => {
 		e.preventDefault();
 		e.stopPropagation();
 
-		if (isBlockedByProfile) {
-			toastQueue.add(`<h1>You have been blocked by this user</h1>`);
-			return;
-		}
-
-		const newIsLiked = tweetInteractionsLikeEl.dataset.liked !== "true";
+		const wasLiked = tweetInteractionsLikeEl.dataset.liked === "true";
+		const newIsLiked = !wasLiked;
 		tweetInteractionsLikeEl.dataset.liked = newIsLiked;
 
 		const svg = tweetInteractionsLikeEl.querySelector("svg path");
 		const likeCountSpan = tweetInteractionsLikeEl.querySelector(".like-count");
-		const currentCount = parseInt(likeCountSpan.textContent || "0", 10);
+		const currentCount = parseInt(
+			tweetInteractionsLikeEl.dataset.likeCount || "0",
+			10,
+		);
 
 		if (newIsLiked) {
 			svg.setAttribute("fill", "#F91980");
 			svg.setAttribute("stroke", "#F91980");
+			tweetInteractionsLikeEl.dataset.likeCount = currentCount + 1;
 			likeCountSpan.textContent =
-				currentCount === -1 ? "" : formatNumber(currentCount + 1);
+				currentCount + 1 === 0 ? "" : formatNumber(currentCount + 1);
 
 			tweetInteractionsLikeEl.querySelector("svg").classList.add("like-bump");
 
@@ -1656,6 +1670,7 @@ export const createTweetElement = (tweet, config = {}) => {
 		} else {
 			svg.setAttribute("fill", "none");
 			svg.setAttribute("stroke", "currentColor");
+			tweetInteractionsLikeEl.dataset.likeCount = Math.max(0, currentCount - 1);
 			likeCountSpan.textContent =
 				Math.max(0, currentCount - 1) === 0
 					? ""
@@ -1667,7 +1682,24 @@ export const createTweetElement = (tweet, config = {}) => {
 		});
 
 		if (!result.success) {
-			toastQueue.add(`<h1>${result.error || "Failed to like tweet"}</h1>`);
+			if (result.error === "You cannot interact with this user") {
+				tweetInteractionsLikeEl.dataset.liked = wasLiked;
+				tweetInteractionsLikeEl.dataset.likeCount = currentCount;
+
+				if (wasLiked) {
+					svg.setAttribute("fill", "#F91980");
+					svg.setAttribute("stroke", "#F91980");
+				} else {
+					svg.setAttribute("fill", "none");
+					svg.setAttribute("stroke", "currentColor");
+				}
+				likeCountSpan.textContent =
+					currentCount === 0 ? "" : formatNumber(currentCount);
+
+				createBlockedModal();
+			} else {
+				toastQueue.add(`<h1>${result.error || "Failed to like tweet"}</h1>`);
+			}
 		}
 	});
 
@@ -1696,11 +1728,6 @@ export const createTweetElement = (tweet, config = {}) => {
 		e.stopPropagation();
 		e.preventDefault();
 
-		if (isBlockedByProfile) {
-			toastQueue.add(`<h1>You have been blocked by this user</h1>`);
-			return;
-		}
-
 		await openTweet(tweet);
 
 		requestAnimationFrame(() => {
@@ -1713,6 +1740,7 @@ export const createTweetElement = (tweet, config = {}) => {
 	const tweetInteractionsRetweetEl = document.createElement("button");
 	tweetInteractionsRetweetEl.className = "engagement";
 	tweetInteractionsRetweetEl.dataset.retweeted = tweet.retweeted_by_user;
+	tweetInteractionsRetweetEl.dataset.retweetCount = tweet.retweet_count || 0;
 	tweetInteractionsRetweetEl.style.setProperty("--color", "0, 186, 124");
 
 	const retweetColor = tweet.retweeted_by_user ? "#00BA7C" : "currentColor";
@@ -1749,10 +1777,17 @@ export const createTweetElement = (tweet, config = {}) => {
 				title: "Retweet",
 				onClick: async () => {
 					try {
-						if (isBlockedByProfile) {
-							toastQueue.add(`<h1>You have been blocked by this user</h1>`);
-							return;
-						}
+						const wasRetweeted =
+							tweetInteractionsRetweetEl.dataset.retweeted === "true";
+						const svgPaths =
+							tweetInteractionsRetweetEl.querySelectorAll("svg path");
+						const retweetCountSpan =
+							tweetInteractionsRetweetEl.querySelector(".retweet-count");
+						const currentCount = parseInt(
+							tweetInteractionsRetweetEl.dataset.retweetCount || "0",
+							10,
+						);
+
 						const result = await query(`/tweets/${tweet.id}/retweet`, {
 							method: "POST",
 						});
@@ -1761,31 +1796,31 @@ export const createTweetElement = (tweet, config = {}) => {
 							const newIsRetweeted = result.retweeted;
 							tweetInteractionsRetweetEl.dataset.retweeted = newIsRetweeted;
 
-							const svgPaths =
-								tweetInteractionsRetweetEl.querySelectorAll("svg path");
-							const retweetCountSpan =
-								tweetInteractionsRetweetEl.querySelector(".retweet-count");
-							const currentCount = parseInt(
-								retweetCountSpan.textContent || "0",
-								10,
-							);
-
 							if (newIsRetweeted) {
 								svgPaths.forEach((path) => {
 									path.setAttribute("stroke", "#00BA7C");
 								});
+								tweetInteractionsRetweetEl.dataset.retweetCount =
+									currentCount + 1;
 								retweetCountSpan.textContent =
-									currentCount + 1 ? formatNumber(currentCount + 1) : "";
+									currentCount + 1 === 0 ? "" : formatNumber(currentCount + 1);
 							} else {
 								svgPaths.forEach((path) => {
 									path.setAttribute("stroke", "currentColor");
 								});
-								retweetCountSpan.textContent = Math.max(0, currentCount - 1)
-									? formatNumber(Math.max(0, currentCount - 1))
-									: "";
+								const newCount = Math.max(0, currentCount - 1);
+								tweetInteractionsRetweetEl.dataset.retweetCount = newCount;
+								retweetCountSpan.textContent =
+									newCount === 0 ? "" : formatNumber(newCount);
 							}
 						} else {
-							toastQueue.add(`<h1>${result.error || "Failed to retweet"}</h1>`);
+							if (result.error === "You cannot interact with this user") {
+								createBlockedModal();
+							} else {
+								toastQueue.add(
+									`<h1>${result.error || "Failed to retweet"}</h1>`,
+								);
+							}
 						}
 					} catch (error) {
 						console.error("Error retweeting:", error);
@@ -2510,20 +2545,6 @@ export const createTweetElement = (tweet, config = {}) => {
 			});
 		});
 	});
-
-	if (isBlockedByProfile) {
-		[
-			tweetInteractionsLikeEl,
-			tweetInteractionsRetweetEl,
-			tweetInteractionsReplyEl,
-		].forEach((btn) => {
-			try {
-				btn.disabled = true;
-				btn.setAttribute("aria-disabled", "true");
-				btn.classList.add("blocked-interaction");
-			} catch (_) {}
-		});
-	}
 
 	const replyRestriction = tweet.reply_restriction || "everyone";
 	let restrictionEl = null;

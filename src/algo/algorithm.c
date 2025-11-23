@@ -599,7 +599,11 @@ double calculate_score(
     int user_gold,
     int follower_count,
     int has_community_note,
-    double user_super_tweeter_boost
+    double user_super_tweeter_boost,
+    int blocked_by_count,
+    int muted_by_count,
+    double spam_score,
+    double account_age_days
 ) {
     if (created_at < 0) created_at = 0;
     if (like_count < 0) like_count = 0;
@@ -621,6 +625,10 @@ double calculate_score(
     if (follower_count < 0) follower_count = 0;
     if (has_community_note < 0) has_community_note = 0;
     if (!isfinite(user_super_tweeter_boost) || user_super_tweeter_boost < 0.0) user_super_tweeter_boost = 0.0;
+    if (blocked_by_count < 0) blocked_by_count = 0;
+    if (muted_by_count < 0) muted_by_count = 0;
+    if (!isfinite(spam_score) || spam_score < 0.0) spam_score = 0.0;
+    if (!isfinite(account_age_days) || account_age_days < 0.0) account_age_days = 0.0;
     
     time_t now = time(NULL);
     double age_hours = compute_age_hours(now, created_at);
@@ -636,6 +644,37 @@ double calculate_score(
             return 0.001;
         }
         return 0.0;
+    }
+    
+    double reputation_penalty = 1.0;
+    if (blocked_by_count > 0) {
+        double block_penalty = 1.0 / (1.0 + (double)blocked_by_count * 0.08);
+        if (blocked_by_count > 10) block_penalty *= 0.7;
+        if (blocked_by_count > 50) block_penalty *= 0.5;
+        if (blocked_by_count > 100) block_penalty *= 0.3;
+        reputation_penalty *= block_penalty;
+    }
+    
+    if (muted_by_count > 0) {
+        double mute_penalty = 1.0 / (1.0 + (double)muted_by_count * 0.05);
+        if (muted_by_count > 20) mute_penalty *= 0.8;
+        if (muted_by_count > 100) mute_penalty *= 0.6;
+        reputation_penalty *= mute_penalty;
+    }
+    
+    if (spam_score > 0.0) {
+        double spam_penalty = 1.0 / (1.0 + spam_score * 0.5);
+        if (spam_score > 0.5) spam_penalty *= 0.6;
+        if (spam_score > 0.8) spam_penalty *= 0.3;
+        reputation_penalty *= spam_penalty;
+    }
+    
+    double account_age_boost = 1.0;
+    if (account_age_days > 30.0) {
+        account_age_boost = 1.0 + safe_log(account_age_days / 30.0) * 0.08;
+        if (account_age_boost > 1.35) account_age_boost = 1.35;
+    } else if (account_age_days < 7.0) {
+        account_age_boost = 0.85 + (account_age_days / 7.0) * 0.15;
     }
     
     double super_tweet_boost = 1.0;
@@ -829,7 +868,9 @@ double calculate_score(
                         diversity_penalty *
                         verified_boost *
                         random_multiplier *
-                        super_tweet_boost;
+                        super_tweet_boost *
+                        reputation_penalty *
+                        account_age_boost;
 
     if (all_seen_flag) {
         final_score += random_component * 2.5;
@@ -935,7 +976,11 @@ void rank_tweets(Tweet *tweets, size_t count) {
             tweets[i].user_gold,
             tweets[i].follower_count,
             tweets[i].has_community_note,
-            tweets[i].user_super_tweeter_boost
+            tweets[i].user_super_tweeter_boost,
+            tweets[i].blocked_by_count,
+            tweets[i].muted_by_count,
+            tweets[i].spam_score,
+            tweets[i].account_age_days
         );
 
         tweets[i].score = base_score;
@@ -1115,7 +1160,11 @@ void rank_tweets(Tweet *tweets, size_t count) {
             tweets[i].user_gold,
             tweets[i].follower_count,
             tweets[i].has_community_note,
-            tweets[i].user_super_tweeter_boost
+            tweets[i].user_super_tweeter_boost,
+            tweets[i].blocked_by_count,
+            tweets[i].muted_by_count,
+            tweets[i].spam_score,
+            tweets[i].account_age_days
         );
 
         double penalty2 = 1.0;

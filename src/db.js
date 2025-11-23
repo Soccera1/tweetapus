@@ -45,11 +45,15 @@ CREATE TABLE IF NOT EXISTS users (
   account_login_transparency TEXT DEFAULT NULL,
   super_tweeter BOOLEAN DEFAULT FALSE,
   super_tweeter_boost REAL DEFAULT 50.0,
-  transparency_location_display TEXT DEFAULT 'full'
+  transparency_location_display TEXT DEFAULT 'full',
+  blocked_by_count INTEGER DEFAULT 0,
+  muted_by_count INTEGER DEFAULT 0,
+  spam_score REAL DEFAULT 0.0
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_lower ON users(LOWER(username));
+CREATE INDEX IF NOT EXISTS idx_users_spam_score ON users(spam_score);
 CREATE INDEX IF NOT EXISTS idx_users_suspended ON users(suspended);
 CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
 CREATE INDEX IF NOT EXISTS idx_users_super_tweeter ON users(super_tweeter) WHERE super_tweeter = TRUE;
@@ -342,6 +346,19 @@ CREATE TABLE IF NOT EXISTS blocks (
 
 CREATE INDEX IF NOT EXISTS idx_blocks_blocker_id ON blocks(blocker_id);
 CREATE INDEX IF NOT EXISTS idx_blocks_blocked_id ON blocks(blocked_id);
+
+CREATE TABLE IF NOT EXISTS mutes (
+  id TEXT PRIMARY KEY,
+  muter_id TEXT NOT NULL,
+  muted_id TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (muter_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (muted_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE(muter_id, muted_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mutes_muter_id ON mutes(muter_id);
+CREATE INDEX IF NOT EXISTS idx_mutes_muted_id ON mutes(muted_id);
 
 CREATE TABLE IF NOT EXISTS bookmarks (
   id TEXT PRIMARY KEY,
