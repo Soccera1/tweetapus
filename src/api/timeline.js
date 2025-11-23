@@ -404,8 +404,10 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 			posts = posts.slice(0, limit);
 		}
 
-		const userBlocks = db.query("SELECT blocked_id FROM blocks WHERE blocker_id = ?").all(user.id);
-		const blockedUserIds = new Set(userBlocks.map(b => b.blocked_id));
+		const userBlocks = db
+			.query("SELECT blocked_id FROM blocks WHERE blocker_id = ?")
+			.all(user.id);
+		const blockedUserIds = new Set(userBlocks.map((b) => b.blocked_id));
 
 		const userMap = {};
 		posts.forEach((post) => {
@@ -712,8 +714,10 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 			posts = posts.slice(0, limit);
 		}
 
-		const userBlocks = db.query("SELECT blocked_id FROM blocks WHERE blocker_id = ?").all(user.id);
-		const blockedUserIds = new Set(userBlocks.map(b => b.blocked_id));
+		const userBlocks = db
+			.query("SELECT blocked_id FROM blocks WHERE blocker_id = ?")
+			.all(user.id);
+		const blockedUserIds = new Set(userBlocks.map((b) => b.blocked_id));
 
 		const userMap = {};
 		posts.forEach((post) => {

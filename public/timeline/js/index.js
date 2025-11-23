@@ -79,7 +79,7 @@ let timelineScrollPosition = 0;
 
 		const endpoint =
 			type === "following" ? "/timeline/following" : "/timeline/";
-		
+
 		let queryParams = `limit=${BATCH_SIZE}`;
 		if (oldestTweetId && append) {
 			queryParams += `&before=${oldestTweetId}`;
@@ -134,7 +134,7 @@ let timelineScrollPosition = 0;
 			isLoading = false;
 		}
 	};
-	
+
 	const feedLinks = document.querySelectorAll(".tab-nav a");
 	const tabContainer = document.querySelector(".timeline .tab-nav");
 
