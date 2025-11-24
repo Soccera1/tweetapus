@@ -1236,13 +1236,6 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 					return { error: "Invalid username or password" };
 				}
 
-				console.log(
-					"ip:",
-					headers["cf-ip"] ||
-						headers["cf-connecting-ip"] ||
-						headers["x-forwarded-for"],
-				);
-
 				const existingLoginTransparency = parseTransparencyRecord(
 					user.account_login_transparency,
 				);
