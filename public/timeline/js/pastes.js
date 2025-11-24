@@ -798,14 +798,26 @@ export function initializePastesPage(container) {
 export function openPastesPage() {
 	const container = document.querySelector(".pastes-page");
 	switchPage("pastes", {
-		path: "/pastes",
+		path: window.location.pathname.startsWith("/pastes/p/")
+			? window.location.pathname
+			: "/pastes",
 		recoverState: () => {
-			state.mode = "create";
-			state.view.slug = null;
-			state.view.data = null;
-			state.view.error = "";
-			state.createStatus.result = null;
-			renderApp(container);
+			const { slug, secret } = readLocation();
+			if (slug) {
+				state.mode = "view";
+				state.view.slug = slug;
+				state.view.secret = secret;
+				state.view.data = null;
+				state.view.error = "";
+				loadPaste(slug, secret);
+			} else {
+				state.mode = "create";
+				state.view.slug = null;
+				state.view.data = null;
+				state.view.error = "";
+				state.createStatus.result = null;
+				renderApp(container);
+			}
 		},
 	});
 }

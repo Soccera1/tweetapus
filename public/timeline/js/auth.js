@@ -107,117 +107,128 @@ function saveAccountToStorage(user, token) {
 		e.stopPropagation();
 		e.preventDefault();
 
-		createPopup({
-			triggerElement: accountBtn,
-			items: [
-				{
-					title: "My profile",
+		const popupItems = [
+			{
+				title: "My profile",
 
-					icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
-					onClick: () => {
-						switchPage("profile", {
-							path: `/@${user.username}`,
-							recoverState: async () => {
-								await openProfile(user.username);
-							},
-						});
-					},
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+				onClick: () => {
+					switchPage("profile", {
+						path: `/@${user.username}`,
+						recoverState: async () => {
+							await openProfile(user.username);
+						},
+					});
 				},
-				{
-					title: "Bookmarks",
+			},
+			{
+				title: "Bookmarks",
 
-					icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
-					onClick: () => {
-						openBookmarks();
-					},
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
+				onClick: () => {
+					openBookmarks();
 				},
-				{
-					title: "Pastes",
+			},
+			{
+				title: "Pastes",
 
-					icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/><path d="M9 9h6"/><path d="M9 16h6"/></svg>`,
-					onClick: async () => {
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/><path d="M9 9h6"/><path d="M9 16h6"/></svg>`,
+				onClick: () => {
+					// Use the same pattern as other nav handlers: close the popup and
+					// import the Pastes UI using relative import first. If import
+					// fails, fallback to other known paths before using a hard reload.
+					const tryImports = async () => {
 						try {
-							// Try to prefetch the module first to surface errors early
-							const prefetchResp = await fetch(
-								"/public/timeline/js/pastes.js",
-								{ method: "HEAD" },
-							);
-							if (!prefetchResp.ok) throw new Error("prefetch failed");
+							const { openPastesPage } = await import("./pastes.js");
+							openPastesPage();
+							return true;
+						} catch (_) {}
+						try {
 							const { openPastesPage } = await import(
 								"/public/timeline/js/pastes.js"
 							);
 							openPastesPage();
-						} catch (error) {
-							console.error("Failed to load pastes UI module:", error);
-							// Try alternate import path before falling back
-							try {
-								const { openPastesPage } = await import(
-									"/timeline/js/pastes.js"
-								);
-								openPastesPage();
-							} catch (_) {
-								// Final fallback: navigate to paste route directly, but avoid loops
-								if (window.location.pathname.startsWith("/pastes")) {
-									const container = document.querySelector(".pastes-page");
-									if (container) {
-										container.innerHTML =
-											"<div class='error-text'>Failed to load Pastes UI. Please try again later.</div>";
-									}
-								} else {
-									window.location.href = "/pastes";
+							return true;
+						} catch (_) {}
+						try {
+							const { openPastesPage } = await import("/timeline/js/pastes.js");
+							openPastesPage();
+							return true;
+						} catch (_) {
+							return false;
+						}
+					};
+
+					try {
+						popupObj?.close?.();
+					} catch (_) {}
+
+					tryImports().then((ok) => {
+						if (!ok) {
+							if (window.location.pathname.startsWith("/pastes")) {
+								const container = document.querySelector(".pastes-page");
+								if (container) {
+									container.innerHTML =
+										"<div class='error-text'>Failed to load Pastes UI. Please try again later.</div>";
 								}
+							} else {
+								window.location.href = "/pastes";
 							}
 						}
-					},
+					});
 				},
-				{
-					title: "Change user",
+			},
+			{
+				title: "Change user",
 
-					icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-					onClick: async () => {
-						const { openAccountSwitcher } = await import(
-							"../../shared/account-switcher.js"
-						);
-						openAccountSwitcher();
-					},
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+				onClick: async () => {
+					const { openAccountSwitcher } = await import(
+						"../../shared/account-switcher.js"
+					);
+					openAccountSwitcher();
 				},
-				{
-					title: "Settings",
+			},
+			{
+				title: "Settings",
 
-					icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
-					onClick: async () => {
-						const { openSettingsModal } = await import("./settings.js");
-						openSettingsModal("account");
-					},
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
+				onClick: async () => {
+					const { openSettingsModal } = await import("./settings.js");
+					openSettingsModal("account");
 				},
-				{
-					title: "Sign out",
-					icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
-					onClick: () => {
-						localStorage.removeItem("authToken");
+			},
+			{
+				title: "Sign out",
+				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
+				onClick: () => {
+					localStorage.removeItem("authToken");
 
-						if (window.cookieStore) {
-							window.cookieStore.delete("agree");
-						}
+					if (window.cookieStore) {
+						window.cookieStore.delete("agree");
+					}
 
-						try {
-							// biome-ignore lint/suspicious/noDocumentCookie: idgaf bro
-							document.cookie =
-								"agree=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;";
-						} catch {}
+					try {
+						// biome-ignore lint/suspicious/noDocumentCookie: idgaf bro
+						document.cookie =
+							"agree=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;";
+					} catch {}
 
-						document.querySelector(".loader").style.opacity = "0";
-						document.querySelector(".loader").style.display = "flex";
-						setTimeout(() => {
-							document.querySelector(".loader").style.opacity = "1";
-						}, 1);
+					document.querySelector(".loader").style.opacity = "0";
+					document.querySelector(".loader").style.display = "flex";
+					setTimeout(() => {
+						document.querySelector(".loader").style.opacity = "1";
+					}, 1);
 
-						setTimeout(() => {
-							window.location.href = "/";
-						}, 100);
-					},
+					setTimeout(() => {
+						window.location.href = "/";
+					}, 100);
 				},
-			],
+			},
+		];
+		const popupObj = createPopup({
+			triggerElement: accountBtn,
+			items: popupItems,
 		});
 	});
 

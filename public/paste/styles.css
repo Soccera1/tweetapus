@@ -23,15 +23,16 @@
      justify-content: space-between;
      gap: 12px;
      flex-wrap: wrap;
-     padding-bottom: 12px;
+     padding-bottom: 16px;
      border-bottom: 1px solid var(--border-primary);
      width: 100%;
    }
 
    & .paste-nav-left {
      display: flex;
-     align-items: center;
-     gap: 12px;
+     align-items: flex-start;
+     flex-direction: column;
+     gap: 4px;
      min-width: 240px;
      flex: 1 1 auto;
    }
@@ -40,6 +41,7 @@
      font-size: 1.75rem;
      font-weight: 700;
      color: var(--text-primary);
+     line-height: 1.2;
    }
 
    & .nav-actions {
@@ -100,6 +102,13 @@
      min-width: 140px;
      padding: 0 12px;
      height: 44px;
+   }
+
+   & .open-form .btn {
+     width: auto;
+     min-width: 96px;
+     margin-bottom: 0;
+     flex: 0 0 auto;
    }
 
    & .card {
@@ -232,7 +241,7 @@
      padding: 20px;
      display: flex;
      flex-direction: column;
-     gap: 12px;
+     gap: 14px;
      background-color: rgba(var(--primary-rgb), 0.05);
      box-sizing: border-box;
    }
@@ -242,6 +251,15 @@
      display: flex;
      flex-wrap: wrap;
      gap: 10px;
+   }
+
+   & .link-row .btn,
+   & .command-bar .btn,
+   & .result-card .btn,
+   & .chip-row .btn {
+     width: auto;
+     min-width: 96px;
+     margin-bottom: 0;
    }
 
    & .chip {
@@ -287,11 +305,21 @@
      background-color: var(--bg-primary);
      transition: all 0.15s ease;
      box-sizing: border-box;
+     display: flex;
+     flex-direction: column;
+     gap: 12px;
 
      &:hover {
        border-color: var(--border-hover);
        background-color: var(--bg-overlay-light);
        cursor: pointer;
+     }
+
+     & .btn {
+       width: auto;
+       margin-bottom: 0;
+       align-self: flex-end;
+       min-width: 88px;
      }
    }
 
@@ -319,7 +347,7 @@
      gap: 12px;
      border-radius: 12px;
      border: 1px solid var(--border-primary);
-     padding: 16px;
+     padding: 20px;
      background-color: var(--bg-secondary);
      box-sizing: border-box;
    }
@@ -344,11 +372,21 @@
 
  @media (max-width: 720px) {
    .paste-app {
-     padding: 20px;
+     padding: 16px;
+
+     & .paste-shell {
+       gap: 20px;
+     }
 
      & .paste-nav {
        flex-direction: column;
        align-items: flex-start;
+       gap: 16px;
+     }
+
+     & .paste-nav-left {
+       min-width: 0;
+       width: 100%;
      }
 
      & .nav-actions {
@@ -359,6 +397,7 @@
 
      & .open-form {
        width: 100%;
+       flex: 1 1 100%;
      }
 
      & .open-form input {
@@ -366,19 +405,34 @@
      }
 
      & .command-bar {
-       flex-direction: column;
-       align-items: stretch;
+       flex-direction: row;
+       flex-wrap: wrap;
      }
 
      & .command-bar .btn {
+       flex: 1 1 auto;
+       min-width: 120px;
+     }
+
+     & .card {
+       padding: 20px;
+     }
+
+     & .toggle-row {
+       flex-direction: column;
+       gap: 10px;
+     }
+
+     & .toggle-row label {
        width: 100%;
-       text-align: center;
      }
    }
  }
 
  @media (max-width: 480px) {
    .paste-app {
+     padding: 12px;
+
      & .paste-shell {
        gap: 18px;
      }
@@ -387,15 +441,51 @@
        font-size: 1.5rem;
      }
 
+     & .paste-nav {
+       gap: 12px;
+     }
+
      & .nav-actions {
        width: 100%;
        flex-direction: column;
        align-items: stretch;
+       gap: 10px;
      }
 
-     & .nav-btn,
+     & .nav-btn {
+       width: 100%;
+     }
+
      & .open-form {
        width: 100%;
+       flex-direction: column;
+       gap: 10px;
+     }
+
+     & .open-form input,
+     & .open-form .btn {
+       width: 100%;
+       flex: 1 1 auto;
+     }
+
+     & .card {
+       padding: 16px;
+     }
+
+     & .command-bar {
+       flex-direction: column;
+       gap: 8px;
+     }
+
+     & .command-bar .btn,
+     & .link-row .btn {
+       width: 100%;
+       min-width: 0;
+     }
+
+     & .list-item .btn {
+       width: 100%;
+       align-self: stretch;
      }
    }
  }
