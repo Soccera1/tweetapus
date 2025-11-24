@@ -307,6 +307,17 @@ WHERE u.id = ?
     ORDER BY ml.created_at DESC
     LIMIT ? OFFSET ?
   `),
+	searchModerationLogs: db.prepare(`
+    SELECT ml.*, u.username as moderator_username, u.name as moderator_name
+    FROM moderation_logs ml
+    JOIN users u ON ml.moderator_id = u.id
+    WHERE ml.action LIKE ? OR ml.target_type LIKE ? OR ml.target_id LIKE ? OR u.username LIKE ? OR u.name LIKE ? OR ml.details LIKE ?
+    ORDER BY ml.created_at DESC
+    LIMIT ? OFFSET ?
+  `),
+	searchModerationLogsCount: db.prepare(
+		"SELECT COUNT(*) as count FROM moderation_logs ml JOIN users u ON ml.moderator_id = u.id WHERE ml.action LIKE ? OR ml.target_type LIKE ? OR ml.target_id LIKE ? OR u.username LIKE ? OR u.name LIKE ? OR ml.details LIKE ?",
+	),
 	getAffiliateRequestsForTarget: db.prepare(`
     SELECT ar.*, req.username as requester_username, req.name as requester_name, req.avatar as requester_avatar, req.verified as requester_verified, req.gold as requester_gold
     FROM affiliate_requests ar
@@ -1369,13 +1380,9 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 
 			// Prevent repeated actions (e.g., suspending an already suspended user),
 			// but allow combinations such as restricting and shadowbanning the same user.
-			if (action === "suspend") {
-				if (targetUser.suspended) return { error: "User is already suspended" };
-				// Do not allow suspending a user who is currently restricted or shadowbanned.
-				if (targetUser.restricted || targetUser.shadowbanned) {
-					return { error: "Cannot suspend a restricted or shadowbanned user" };
-				}
-			}
+			// if (action === "suspend") {
+			// 	if (targetUser.suspended) return { error: "User is already suspended" };
+			// }
 			if (action === "restrict" && targetUser.restricted) {
 				return { error: "User is already restricted" };
 			}
@@ -1406,6 +1413,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				db.query("UPDATE users SET shadowbanned = FALSE WHERE id = ?").run(
 					params.id,
 				);
+				db.query("DELETE FROM dm_messages WHERE sender_id = ?").run(params.id);
 			} else if ((action || "suspend") === "restrict") {
 				// Apply a restriction without touching other flags (allow combining with shadowban)
 				adminQueries.updateUserRestricted.run(true, params.id);
@@ -1414,6 +1422,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				db.query("UPDATE users SET shadowbanned = TRUE WHERE id = ?").run(
 					params.id,
 				);
+				db.query("DELETE FROM dm_messages WHERE sender_id = ?").run(params.id);
 			}
 
 			const moderationActionName =
@@ -3371,9 +3380,33 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 			const page = parseInt(query.page, 10) || 1;
 			const limit = parseInt(query.limit, 10) || 50;
 			const offset = (page - 1) * limit;
+			const search = query.search ? `%${query.search}%` : null;
 
-			const logs = adminQueries.getModerationLogs.all(limit, offset);
-			const totalCount = adminQueries.getModerationLogsCount.get();
+			let logs, totalCount;
+
+			if (search) {
+				logs = adminQueries.searchModerationLogs.all(
+					search,
+					search,
+					search,
+					search,
+					search,
+					search,
+					limit,
+					offset,
+				);
+				totalCount = adminQueries.searchModerationLogsCount.get(
+					search,
+					search,
+					search,
+					search,
+					search,
+					search,
+				);
+			} else {
+				logs = adminQueries.getModerationLogs.all(limit, offset);
+				totalCount = adminQueries.getModerationLogsCount.get();
+			}
 
 			const logsWithDetails = logs.map((log) => ({
 				...log,
@@ -3397,6 +3430,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 			query: t.Object({
 				page: t.Optional(t.String()),
 				limit: t.Optional(t.String()),
+				search: t.Optional(t.String()),
 			}),
 			response: t.Any(),
 		},

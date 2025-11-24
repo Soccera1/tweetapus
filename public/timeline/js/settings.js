@@ -544,7 +544,18 @@ const createAccountContent = () => {
 								</div>
 								<div style="display: flex; flex-direction: column; gap: 4px;">
 									<span style="font-size: 13px; color: var(--text-secondary);">Spam score</span>
-									<span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${(algoData.spam_score * 100).toFixed(1)}%</span>
+									<div style="display: flex; align-items: center; gap: 8px;">
+										<span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">${(algoData.spam_score * 100).toFixed(1)}%</span>
+										<button 
+											onclick="window.showSpamScoreDetails('${user.username}')" 
+											style="padding: 4px 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-secondary); font-size: 11px; cursor: pointer; transition: all 0.2s;"
+											onmouseover="this.style.background='var(--bg-primary)'; this.style.borderColor='var(--border-primary)'"
+											onmouseout="this.style.background='var(--bg-secondary)'; this.style.borderColor='var(--border-color)'"
+										>
+											<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+											Details
+										</button>
+									</div>
 								</div>
 								<div style="display: flex; flex-direction: column; gap: 4px;">
 									<span style="font-size: 13px; color: var(--text-secondary);">Account age</span>
@@ -3221,3 +3232,158 @@ export const openSettingsModal = (section = "account") => {
 
 	return modal;
 };
+
+// Spam score details modal
+window.showSpamScoreDetails = async (username) => {
+	try {
+		const data = await query(`/profile/${username}/spam-score`);
+		
+		if (data.error) {
+			toastQueue.add(`<h1>Error</h1><p>${data.error}</p>`);
+			return;
+		}
+
+		const metrics = data.accountMetrics;
+		const scoreColor = data.spamScore > 0.5 ? "#f44336" : data.spamScore > 0.3 ? "#ff9800" : data.spamScore > 0.1 ? "#ffeb3b" : "#4caf50";
+
+		// Helper to get status color
+		const getStatusColor = (status) => {
+			return status === 'warning' ? '#f44336' : status === 'caution' ? '#ff9800' : '#4caf50';
+		};
+
+		// Helper to get status icon
+		const getStatusIcon = (status) => {
+			return status === 'warning' ? '🔴' : status === 'caution' ? '🟡' : '🟢';
+		};
+
+		// Generate indicators HTML
+		const indicatorsHTML = data.indicators.slice(0, 9).map(ind => {
+			const statusColor = getStatusColor(ind.status);
+			const statusIcon = getStatusIcon(ind.status);
+			const scorePercent = (ind.score * 100).toFixed(0);
+			
+			return `
+				<div style="background: var(--bg-primary); border-radius: 8px; padding: 16px; border-left: 3px solid ${statusColor};">
+					<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+						<div style="flex: 1;">
+							<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+								<span style="font-size: 14px;">${statusIcon}</span>
+								<span style="font-weight: 600; color: var(--text-primary); font-size: 14px;">${ind.displayName}</span>
+								<span style="padding: 2px 8px; background: ${statusColor}22; color: ${statusColor}; border-radius: 4px; font-size: 11px; font-weight: 600;">${scorePercent}%</span>
+							</div>
+							<div style="font-size: 12px; color: var(--text-secondary);">${ind.details}</div>
+						</div>
+						<div style="text-align: right; min-width: 80px;">
+							<div style="font-size: 11px; color: var(--text-secondary);">Weight: ${(ind.weight * 100).toFixed(0)}%</div>
+							<div style="font-size: 11px; color: ${statusColor}; font-weight: 600;">Impact: ${ind.contribution}</div>
+						</div>
+					</div>
+					<div style="background: var(--bg-secondary); border-radius: 4px; height: 6px; overflow: hidden;">
+						<div style="background: ${statusColor}; height: 100%; width: ${scorePercent}%; transition: width 0.3s ease;"></div>
+					</div>
+				</div>
+			`;
+		}).join('');
+
+		const modal = document.createElement("div");
+		modal.className = "modal";
+		modal.style.cssText = "display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; animation: fadeIn 0.2s;";
+		
+		modal.innerHTML = `
+			<div style="background: var(--bg-primary); border-radius: 16px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: slideUp 0.3s;">
+				<div style="padding: 24px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; background: var(--bg-primary); z-index: 1;">
+					<div style="display: flex; justify-content: space-between; align-items: center;">
+						<h2 style="margin: 0; font-size: 20px; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+							🔍 Spam Score Analysis
+						</h2>
+						<button onclick="this.closest('.modal').remove()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 20px; cursor: pointer; padding: 4px 12px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-secondary)'">&times;</button>
+					</div>
+				</div>
+				
+				<div style="padding: 24px;">
+					<!-- Overall Score -->
+					<div style="text-align: center; margin-bottom: 28px; padding: 20px; background: var(--bg-secondary); border-radius: 12px;">
+						<div style="font-size: 64px; font-weight: bold; color: ${scoreColor}; line-height: 1; margin-bottom: 12px;">${data.spamPercentage.toFixed(1)}%</div>
+						<div style="font-size: 16px; color: var(--text-primary); font-weight: 600; margin-bottom: 6px;">
+							${data.message}
+						</div>
+						<div style="font-size: 13px; color: var(--text-secondary);">
+							Based on analysis of ${metrics.totalPosts} posts
+						</div>
+					</div>
+
+					<!-- Quick Stats -->
+					<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 28px;">
+						<div style="background: var(--bg-secondary); padding: 16px; border-radius: 10px; text-align: center;">
+							<div style="font-size: 24px; font-weight: bold; color: var(--text-primary);">${metrics.followerCount}</div>
+							<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Followers</div>
+						</div>
+						<div style="background: var(--bg-secondary); padding: 16px; border-radius: 10px; text-align: center;">
+							<div style="font-size: 24px; font-weight: bold; color: var(--text-primary);">${metrics.followingCount}</div>
+							<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Following</div>
+						</div>
+						<div style="background: var(--bg-secondary); padding: 16px; border-radius: 10px; text-align: center;">
+							<div style="font-size: 24px; font-weight: bold; color: var(--text-primary);">${metrics.accountAgeDays}</div>
+							<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Days Old</div>
+						</div>
+						<div style="background: var(--bg-secondary); padding: 16px; border-radius: 10px; text-align: center;">
+							<div style="font-size: 24px; font-weight: bold; color: var(--text-primary);">${metrics.postsLastDay}</div>
+							<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Posts Today</div>
+						</div>
+					</div>
+
+					<!-- Indicator Breakdown -->
+					<div style="margin-bottom: 24px;">
+						<h3 style="margin: 0 0 16px 0; font-size: 17px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+							Spam Indicators Breakdown
+						</h3>
+						<div style="display: flex; flex-direction: column; gap: 12px;">
+							${indicatorsHTML}
+						</div>
+					</div>
+
+					<!--How to Improve -->
+					<div style="background: linear-gradient(135deg, ${scoreColor}15 0%, ${scoreColor}05 100%); border-radius: 12px; padding: 20px; border: 1px solid ${scoreColor}30;">
+						<h3 style="margin: 0 0 12px 0; font-size: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+							How to Improve Your Score
+						</h3>
+						<ul style="margin: 0; padding-left: 20px; color: var(--text-secondary); font-size: 14px; line-height: 1.8;">
+							${data.spamPercentage > 10 ? `
+								<li><strong>Reduce posting frequency:</strong> Space out your posts to under 10 per hour</li>
+								<li><strong>Avoid duplicates:</strong> Post unique, varied content</li>
+								${metrics.followerCount < 20 ? '<li><strong>Grow your audience:</strong> Engage authentically to gain followers</li>' : ''}
+							` : `
+								<li>✅ Your spam score is excellent! Keep maintaining good posting habits.</li>
+								<li>${metrics.followerCount >= 50 ? '✅ Strong follower base helps reduce spam indicators' : '💡 Continue building your follower base naturally'}</li>
+							`}
+						</ul>
+					</div>
+
+					<!-- Technical Details -->
+					<details style="margin-top: 20px;">
+						<summary style="cursor: pointer; padding: 12px; background: var(--bg-secondary); border-radius: 8px; color: var(--text-primary); font-size: 14px; user-select: none;">
+							📊 Technical Details
+						</summary>
+						<div style="padding: 16px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; background: var(--bg-secondary); border-radius: 0 0 8px 8px; margin-top: -8px;">
+							<p style="margin: 0 0 8px 0;"><strong>Score Calculation:</strong> Each indicator has a weight representing its importance. Your score is the weighted sum of all indicators.</p>
+							<p style="margin: 0 0 8px 0;"><strong>Total Posts Analyzed:</strong> ${metrics.totalPosts}</p>
+							<p style="margin: 0 0 8px 0;"><strong>Recent Activity:</strong> ${metrics.postsLastHour} posts in last hour, ${metrics.postsLast6Hours} in last 6 hours, ${metrics.postsLastDay} in last 24 hours</p>
+							<p style="margin: 0;"><strong>Follow Ratio:</strong> ${metrics.followRatio} (following/followers)</p>
+						</div>
+					</details>
+				</div>
+			</div>
+		`;
+
+		document.body.appendChild(modal);
+		modal.addEventListener('click', (e) => {
+			if (e.target === modal) modal.remove();
+		});
+	} catch (error) {
+		console.error('Failed to load spam score details:', error);
+		toastQueue.add('<h1>Error</h1><p>Failed to load spam score details</p>');
+	}
+};
+

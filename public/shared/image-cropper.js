@@ -279,7 +279,7 @@ export function openImageCropper(file, options = {}) {
 				outCanvas.width = outSize;
 				outCanvas.height = Math.round(outSize / aspect);
 				const outCtx = outCanvas.getContext("2d");
-				outCtx.fillStyle = "#0000";
+				outCtx.fillStyle = "#FFFFFF";
 				outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
 
 				const dwCss = canvas.width / ratio;

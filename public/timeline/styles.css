@@ -76,41 +76,37 @@ body {
   margin: 12px 0;
 }
 
-/* Small custom restricted banner - does not hide profile banner/avatar or tweets */
 .profile .restricted-account-banner.small-restricted-banner {
-  /* Use a clearer contrast color palette for readability */
-  background: #fff4e5;
-  /* high-contrast warning-like background */
-  border: 1px solid #ffd6a5;
-  /* subtle border */
-  color: #3c2415;
-  /* darker text color for readability */
+  border: 1px solid var(--border-hover);
   border-radius: 8px;
   padding: 10px 14px;
   margin: 8px 0 12px 0;
   display: flex;
   align-items: center;
   gap: 12px;
-}
 
-.profile .restricted-account-banner.small-restricted-banner .restricted-banner-inner svg {
-  width: 18px;
-  height: 18px;
-  stroke: currentColor;
-}
+  svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+  }
 
-.profile .restricted-account-banner.small-restricted-banner .restricted-banner-text {
-  font-size: 13px;
-  color: inherit;
-  line-height: 1.3;
-}
+  .restricted-banner-text {
+    font-size: 13px;
+    color: inherit;
+    line-height: 1.3;
+  }
 
-.profile .restricted-account-banner.small-restricted-banner strong {
-  display: block;
-  font-weight: 600;
-  color: inherit;
-}
+  strong {
+    display: block;
+    font-weight: 600;
+    color: inherit;
+  }
 
+  p {
+    margin: 0px;
+  }
+}
 
 .tweet-preview.unavailable-quote {
   padding: 16px;

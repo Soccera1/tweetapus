@@ -19,7 +19,7 @@ const getNotifications = db.prepare(`
     u.avatar as actor_avatar, u.verified as actor_verified, u.gold as actor_gold, u.avatar_radius as actor_avatar_radius, u.selected_community_tag
   FROM notifications n
   LEFT JOIN users u ON n.actor_id = u.id
-  WHERE n.user_id = ? 
+  WHERE n.user_id = ? AND (u.id IS NULL OR (u.suspended = 0 AND u.shadowbanned = 0))
   ORDER BY n.created_at DESC 
   LIMIT ?
 `);
@@ -31,6 +31,7 @@ const getNotificationsBefore = db.prepare(`
   FROM notifications n
   LEFT JOIN users u ON n.actor_id = u.id
   WHERE n.user_id = ? AND n.created_at < (SELECT created_at FROM notifications WHERE id = ?)
+  AND (u.id IS NULL OR (u.suspended = 0 AND u.shadowbanned = 0))
   ORDER BY n.created_at DESC 
   LIMIT ?
 `);
@@ -81,8 +82,9 @@ const markAllAsRead = db.prepare(`
 
 const getUnreadCount = db.prepare(`
   SELECT COUNT(*) as count 
-  FROM notifications 
-  WHERE user_id = ? AND read = FALSE
+  FROM notifications n
+  LEFT JOIN users u ON n.actor_id = u.id
+  WHERE n.user_id = ? AND n.read = FALSE AND (u.id IS NULL OR (u.suspended = 0 AND u.shadowbanned = 0))
 `);
 
 const createNotification = db.prepare(`

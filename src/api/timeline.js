@@ -135,14 +135,14 @@ const getQuotedTweet = db.query(`
   SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with
   FROM posts
   JOIN users ON posts.user_id = users.id
-  WHERE posts.id = ?
+  WHERE posts.id = ? AND users.suspended = 0 AND users.shadowbanned = 0
 `);
 
 const getTopReply = db.query(`
   SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with
   FROM posts
   JOIN users ON posts.user_id = users.id
-  WHERE posts.reply_to = ?
+  WHERE posts.reply_to = ? AND users.suspended = 0 AND users.shadowbanned = 0
   ORDER BY posts.like_count DESC, posts.retweet_count DESC, posts.created_at ASC
   LIMIT 1
 `);

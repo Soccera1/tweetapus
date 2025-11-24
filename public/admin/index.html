@@ -281,10 +281,17 @@
                 <i class="bi bi-journal-text"></i>
                 Moderation Logs
               </h4>
-              <button class="btn btn-secondary" onclick="adminPanel.loadModerationLogs()">
-                <i class="bi bi-arrow-clockwise"></i>
-                Refresh
-              </button>
+              <div class="d-flex gap-2">
+                <input type="text" class="form-control" id="moderationLogSearch" placeholder="Search logs..."
+                  style="width: 250px" />
+                <button class="btn btn-primary" onclick="adminPanel.searchModerationLogs()">
+                  <i class="bi bi-search"></i>
+                </button>
+                <button class="btn btn-secondary" onclick="adminPanel.loadModerationLogs()">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  Refresh
+                </button>
+              </div>
             </div>
 
             <div class="card">

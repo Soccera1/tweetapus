@@ -138,18 +138,24 @@ ORDER BY level DESC, created_at ASC;
 `);
 
 const getTweetReplies = db.query(`
-  SELECT *
+  SELECT posts.*
   FROM posts
+  JOIN users ON posts.user_id = users.id
   WHERE reply_to = ?
-  ORDER BY created_at ASC
+  AND (users.suspended = 0)
+  AND (users.shadowbanned = 0 OR posts.user_id = ? OR ? = 1)
+  ORDER BY posts.created_at ASC
   LIMIT ?
 `);
 
 const getTweetRepliesBefore = db.query(`
-  SELECT *
+  SELECT posts.*
   FROM posts
-  WHERE reply_to = ? AND created_at < (SELECT created_at FROM posts WHERE id = ?)
-  ORDER BY created_at ASC
+  JOIN users ON posts.user_id = users.id
+  WHERE reply_to = ? AND posts.created_at < (SELECT created_at FROM posts WHERE id = ?)
+  AND (users.suspended = 0)
+  AND (users.shadowbanned = 0 OR posts.user_id = ? OR ? = 1)
+  ORDER BY posts.created_at ASC
   LIMIT ?
 `);
 
@@ -230,7 +236,7 @@ const getTweetLikes = db.query(`
   SELECT users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius
   FROM likes
   JOIN users ON likes.user_id = users.id
-  WHERE likes.post_id = ?
+  WHERE likes.post_id = ? AND users.suspended = 0 AND users.shadowbanned = 0
   ORDER BY likes.created_at DESC
   LIMIT 3
 `);
@@ -239,7 +245,7 @@ const getTweetRetweets = db.query(`
   SELECT users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius
   FROM retweets
   JOIN users ON retweets.user_id = users.id
-  WHERE retweets.post_id = ?
+  WHERE retweets.post_id = ? AND users.suspended = 0 AND users.shadowbanned = 0
   ORDER BY retweets.created_at DESC
   LIMIT 3
 `);
@@ -248,7 +254,7 @@ const getTweetQuotes = db.query(`
   SELECT users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius
   FROM posts
   JOIN users ON posts.user_id = users.id
-  WHERE posts.quote_tweet_id = ?
+  WHERE posts.quote_tweet_id = ? AND users.suspended = 0 AND users.shadowbanned = 0
   ORDER BY posts.created_at DESC
   LIMIT 3
 `);
@@ -1166,8 +1172,19 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 
 		let threadPosts = getTweetWithThread.all(id);
 		let replies = before
-			? getTweetRepliesBefore.all(id, before, parseInt(limit, 10))
-			: getTweetReplies.all(id, parseInt(limit, 10));
+			? getTweetRepliesBefore.all(
+					id,
+					before,
+					currentUser.id,
+					currentUser.admin ? 1 : 0,
+					parseInt(limit, 10),
+				)
+			: getTweetReplies.all(
+					id,
+					currentUser.id,
+					currentUser.admin ? 1 : 0,
+					parseInt(limit, 10),
+				);
 
 		const allPostIds = [
 			...threadPosts.map((p) => p.id),

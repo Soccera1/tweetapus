@@ -127,10 +127,17 @@ class AdminPanel {
 		});
 
 		document
-			.getElementById("dmSearchInput")
 			.addEventListener("keypress", (e) => {
 				if (e.key === "Enter") {
 					this.searchDMs();
+				}
+			});
+
+		document
+			.getElementById("moderationLogSearch")
+			.addEventListener("keypress", (e) => {
+				if (e.key === "Enter") {
+					this.searchModerationLogs();
 				}
 			});
 	}
@@ -4891,11 +4898,20 @@ class AdminPanel {
 	}
 
 	async loadModerationLogs(page = 1) {
-		const data = await this.apiCall(
-			`/api/admin/moderation-logs?page=${page}&limit=50`,
-		);
+		const searchInput = document.getElementById("moderationLogSearch");
+		const searchQuery = searchInput ? searchInput.value.trim() : "";
+		let url = `/api/admin/moderation-logs?page=${page}&limit=50`;
+		if (searchQuery) {
+			url += `&search=${encodeURIComponent(searchQuery)}`;
+		}
+
+		const data = await this.apiCall(url);
 		this.currentPage.moderationLogs = page;
 		this.renderModerationLogs(data.logs, data.pagination);
+	}
+
+	searchModerationLogs() {
+		this.loadModerationLogs(1);
 	}
 
 	renderModerationLogs(logs, pagination) {

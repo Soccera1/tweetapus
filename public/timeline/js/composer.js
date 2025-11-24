@@ -199,6 +199,10 @@ export const useComposer = (
 				canvas.width = img.width;
 				canvas.height = img.height;
 
+				// Fill with white background to prevent transparency issues
+				ctx.fillStyle = "#FFFFFF";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
 				ctx.drawImage(img, 0, 0);
 
 				canvas.toBlob(
