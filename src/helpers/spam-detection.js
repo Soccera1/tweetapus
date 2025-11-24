@@ -644,6 +644,73 @@ export const calculateSpamScore = (userId) => {
 		console.log("─".repeat(60) + "\n");
 	}
 
+	// Automated Action: Shadowban if score is very high
+	if (spamScore > 0.95) {
+		const user = db.prepare("SELECT shadowbanned FROM users WHERE id = ?").get(userId);
+		if (user && !user.shadowbanned) {
+			const suspensionId = Bun.randomUUIDv7();
+			const reportId = Bun.randomUUIDv7();
+			const now = new Date().toISOString();
+
+			// 1. Shadowban user
+			db.prepare("UPDATE users SET shadowbanned = TRUE WHERE id = ?").run(userId);
+
+			// 2. Create suspension record
+			db.prepare(`
+				INSERT INTO suspensions (id, user_id, suspended_by, reason, action, status, created_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?)
+			`).run(
+				suspensionId,
+				userId,
+				"system", // System ID
+				"Automated: High Spam Score",
+				"shadowban",
+				"active",
+				now,
+			);
+
+			// 3. Create report for moderators
+			db.prepare(`
+				INSERT INTO reports (id, reporter_id, reported_type, reported_id, reason, status, created_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?)
+			`).run(
+				reportId,
+				"system",
+				"user",
+				userId,
+				`Automated: High Spam Score (${spamScore.toFixed(3)})`,
+				"pending",
+				now,
+			);
+
+			// 4. Delete DMs (as per stricter rules)
+			db.prepare("DELETE FROM dm_messages WHERE sender_id = ?").run(userId);
+
+			// 5. Log moderation action
+			const logId = Bun.randomUUIDv7();
+			db.prepare(`
+				INSERT INTO moderation_logs (id, moderator_id, action, target_type, target_id, details, created_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?)
+			`).run(
+				logId,
+				"system", // System ID
+				"shadowban_user",
+				"user",
+				userId,
+				JSON.stringify({
+					reason: "Automated: High Spam Score",
+					score: spamScore,
+					auto: true,
+				}),
+				now,
+			);
+
+			console.log(
+				`[Auto-Mod] Shadowbanned user ${userId} due to high spam score: ${spamScore}`,
+			);
+		}
+	}
+
 	return spamScore;
 };
 

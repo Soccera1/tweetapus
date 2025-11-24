@@ -2630,16 +2630,22 @@ export const handleProfileDropdown = (e) => {
 	getUser()
 		.then(async (currentUser) => {
 			try {
+				let popupInstance = null;
+				const navigateToPastes = () => {
+					try {
+						popupInstance?.close?.();
+					} catch (_) {}
+					import("./pastes.js").then(({ openPastesPage }) => {
+						openPastesPage();
+					});
+				};
 				const baseItems = [
 					{
 						id: "open-pastes",
 						icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path><path d="M9 9h6"></path><path d="M9 16h6"></path></svg>`,
 						title: "Pastes",
 						description: "Create and browse snippets",
-						onClick: async () => {
-							const { openPastesPage } = await import("./pastes.js");
-							openPastesPage();
-						},
+						onClick: navigateToPastes,
 					},
 					{
 						title: "Copy link",
@@ -2747,7 +2753,7 @@ export const handleProfileDropdown = (e) => {
 					});
 				}
 
-				createPopup({
+				popupInstance = createPopup({
 					triggerElement: triggerEl,
 					items,
 				});

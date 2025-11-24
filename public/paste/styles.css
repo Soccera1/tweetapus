@@ -1,11 +1,17 @@
  .paste-app {
    min-height: 100vh;
-   padding: 32px;
+   padding: 24px;
    display: flex;
-   justify-content: center;
+   flex-direction: column;
+   justify-content: flex-start;
+   align-items: center;
+   width: 100%;
+   box-sizing: border-box;
 
    & .paste-shell {
-     width: min(960px, 100%);
+     width: 100%;
+     max-width: 960px;
+     margin: 0 auto;
      display: flex;
      flex-direction: column;
      gap: 24px;
@@ -19,12 +25,15 @@
      flex-wrap: wrap;
      padding-bottom: 12px;
      border-bottom: 1px solid var(--border-primary);
+     width: 100%;
    }
 
    & .paste-nav-left {
      display: flex;
      align-items: center;
      gap: 12px;
+     min-width: 240px;
+     flex: 1 1 auto;
    }
 
    & .paste-title {
@@ -38,6 +47,8 @@
      gap: 8px;
      align-items: center;
      flex-wrap: wrap;
+     flex: 1 1 auto;
+     justify-content: flex-end;
    }
 
    & .nav-btn {
@@ -81,10 +92,12 @@
      display: flex;
      gap: 8px;
      align-items: center;
+     flex: 1 1 240px;
    }
 
    & .open-form input {
-     width: 200px;
+     flex: 1 1 auto;
+     min-width: 140px;
      padding: 0 12px;
      height: 44px;
    }
@@ -97,6 +110,7 @@
      display: flex;
      flex-direction: column;
      gap: 16px;
+     box-sizing: border-box;
    }
 
    & .card strong {
@@ -127,6 +141,8 @@
      color: var(--text-primary);
      font-family: inherit;
      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+     box-sizing: border-box;
+     width: 100%;
 
      &::placeholder {
        color: var(--text-secondary);
@@ -218,6 +234,7 @@
      flex-direction: column;
      gap: 12px;
      background-color: rgba(var(--primary-rgb), 0.05);
+     box-sizing: border-box;
    }
 
    & .link-row,
@@ -244,6 +261,7 @@
      padding: 16px;
      overflow: auto;
      max-height: 500px;
+     box-sizing: border-box;
    }
 
    & pre {
@@ -268,6 +286,7 @@
      padding: 16px;
      background-color: var(--bg-primary);
      transition: all 0.15s ease;
+     box-sizing: border-box;
 
      &:hover {
        border-color: var(--border-hover);
@@ -302,6 +321,7 @@
      border: 1px solid var(--border-primary);
      padding: 16px;
      background-color: var(--bg-secondary);
+     box-sizing: border-box;
    }
 
    & .command-bar {
@@ -318,6 +338,7 @@
      background-color: rgba(var(--error-color), 0.1);
      border-radius: 8px;
      border: 1px solid rgba(var(--error-color), 0.2);
+     box-sizing: border-box;
    }
  }
 

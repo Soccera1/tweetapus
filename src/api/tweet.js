@@ -1337,37 +1337,67 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 			);
 		}
 
-		const processedThreadPosts = threadPosts.map((post) => ({
-			...post,
-			liked_by_user: likedPosts.has(post.id),
-			retweeted_by_user: retweetedPosts.has(post.id),
-			author: userMap.get(post.user_id),
-			poll: getPollDataForTweet(post.id, currentUser.id),
-			quoted_tweet: getQuotedTweetData(post.quote_tweet_id, currentUser.id),
-			attachments: getTweetAttachments(post.id),
-			article_preview: post.article_id
-				? articleMap.get(post.article_id) || null
-				: null,
-			reaction_count: countReactionsForPost.get(post.id)?.total || 0,
-			top_reactions: getTopReactionsForPost.all(post.id),
-			fact_check: getFactCheckForPost.get(post.id) || null,
-			interactive_card: getCardDataForTweet(post.id),
-		}));
+		const processedThreadPosts = threadPosts
+			.filter((post) => {
+				const author = userMap.get(post.user_id);
+				if (!author) return false;
+				if (author.suspended) return false;
+				if (author.shadowbanned) {
+					if (
+						currentUser &&
+						(currentUser.admin || currentUser.id === author.id)
+					)
+						return true;
+					return false;
+				}
+				return true;
+			})
+			.map((post) => ({
+				...post,
+				liked_by_user: likedPosts.has(post.id),
+				retweeted_by_user: retweetedPosts.has(post.id),
+				author: userMap.get(post.user_id),
+				poll: getPollDataForTweet(post.id, currentUser.id),
+				quoted_tweet: getQuotedTweetData(post.quote_tweet_id, currentUser.id),
+				attachments: getTweetAttachments(post.id),
+				article_preview: post.article_id
+					? articleMap.get(post.article_id) || null
+					: null,
+				reaction_count: countReactionsForPost.get(post.id)?.total || 0,
+				top_reactions: getTopReactionsForPost.all(post.id),
+				fact_check: getFactCheckForPost.get(post.id) || null,
+				interactive_card: getCardDataForTweet(post.id),
+			}));
 
-		const processedReplies = replies.map((reply) => ({
-			...reply,
-			liked_by_user: likedPosts.has(reply.id),
-			retweeted_by_user: retweetedPosts.has(reply.id),
-			author: userMap.get(reply.user_id),
-			poll: getPollDataForTweet(reply.id, currentUser.id),
-			quoted_tweet: getQuotedTweetData(reply.quote_tweet_id, currentUser.id),
-			attachments: getTweetAttachments(reply.id),
-			article_preview: reply.article_id
-				? articleMap.get(reply.article_id) || null
-				: null,
-			fact_check: getFactCheckForPost.get(reply.id) || null,
-			interactive_card: getCardDataForTweet(reply.id),
-		}));
+		const processedReplies = replies
+			.filter((reply) => {
+				const author = userMap.get(reply.user_id);
+				if (!author) return false;
+				if (author.suspended) return false;
+				if (author.shadowbanned) {
+					if (
+						currentUser &&
+						(currentUser.admin || currentUser.id === author.id)
+					)
+						return true;
+					return false;
+				}
+				return true;
+			})
+			.map((reply) => ({
+				...reply,
+				liked_by_user: likedPosts.has(reply.id),
+				retweeted_by_user: retweetedPosts.has(reply.id),
+				author: userMap.get(reply.user_id),
+				poll: getPollDataForTweet(reply.id, currentUser.id),
+				quoted_tweet: getQuotedTweetData(reply.quote_tweet_id, currentUser.id),
+				attachments: getTweetAttachments(reply.id),
+				article_preview: reply.article_id
+					? articleMap.get(reply.article_id) || null
+					: null,
+				fact_check: getFactCheckForPost.get(reply.id) || null,
+				interactive_card: getCardDataForTweet(reply.id),
+			}));
 
 		const extendedStats = {
 			likes: getTweetLikes.all(tweet.id),

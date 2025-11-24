@@ -2715,6 +2715,20 @@ nav {
   }
 }
 
+.pastes-page {
+  display: none;
+  flex-direction: column;
+  width: 100%;
+  flex: 1 1 auto;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+
+  .paste-app {
+    width: 100%;
+  }
+}
+
 .profile-suspended {
   display: none;
   align-items: flex-start;

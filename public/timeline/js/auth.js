@@ -97,6 +97,11 @@ function saveAccountToStorage(user, token) {
 		user.restricted = true;
 	}
 
+	if (user.shadowbanned) {
+		const { showCaptchaModal } = await import("./captcha.js");
+		showCaptchaModal();
+	}
+
 	const accountBtn = document.querySelector(".account");
 	accountBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
