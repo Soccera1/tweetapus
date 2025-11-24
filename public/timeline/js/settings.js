@@ -3379,6 +3379,18 @@ window.showSpamScoreDetails = async (username) => {
 					.replace(/'/g, "&#039;");
 			};
 
+			const formatDecayWeight = (decayWeight) => {
+				if (decayWeight === undefined || decayWeight === null) return "";
+				const pct = (decayWeight * 100).toFixed(0);
+				const color =
+					decayWeight > 0.7
+						? "#4caf50"
+						: decayWeight > 0.3
+							? "#ff9800"
+							: "#9e9e9e";
+				return `<span style="font-size: 10px; color: ${color}; margin-left: 8px; padding: 1px 6px; background: ${color}22; border-radius: 8px;">${pct}% impact</span>`;
+			};
+
 			const tweetsModal = document.createElement("div");
 			tweetsModal.className = "modal";
 			tweetsModal.style.cssText =
@@ -3390,8 +3402,8 @@ window.showSpamScoreDetails = async (username) => {
 					(t) => `
 				<div style="background: var(--bg-secondary); padding: 12px; border-left: 3px solid ${statusColor};">
 					<div style="font-size: 13px; color: var(--text-primary); margin-bottom: 6px; word-break: break-word;">${escapeHtml(t.content || "No content")}${(t.content?.length || 0) >= 80 ? "..." : ""}</div>
-					<div style="display: flex; justify-content: space-between; align-items: center;">
-						<span style="font-size: 11px; color: ${statusColor}; font-weight: 500;">${escapeHtml(t.reason)}</span>
+					<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+						<span style="font-size: 11px; color: ${statusColor}; font-weight: 500;">${escapeHtml(t.reason)}${formatDecayWeight(t.decayWeight)}</span>
 						<a href="/${username}/status/${t.id}" target="_blank" style="font-size: 11px; color: var(--accent-color); text-decoration: none;">View →</a>
 					</div>
 				</div>
@@ -3408,6 +3420,7 @@ window.showSpamScoreDetails = async (username) => {
 							</h3>
 							<button style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; padding: 4px 8px;">&times;</button>
 						</div>
+						<div style="font-size: 11px; color: var(--text-secondary); margin-top: 8px;">Older tweets have less impact on your score (7-day half-life)</div>
 					</div>
 					<div style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
 						${tweetsHTML}

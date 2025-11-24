@@ -258,6 +258,12 @@ const exponentialRecencyWeight = (
 	return Math.exp(-ageMs / decayMs);
 };
 
+const tweetAgeDecayWeight = (createdAt, now = Date.now(), halfLifeDays = 7) => {
+	const ageMs = now - new Date(createdAt).getTime();
+	const halfLifeMs = halfLifeDays * 24 * 60 * 60 * 1000;
+	return 0.5 ** (ageMs / halfLifeMs);
+};
+
 const logistic = (x, k = 8, x0 = 0.5) => {
 	// Map x in [0,1] into logistic value in (0,1)
 	const xx = Math.min(1, Math.max(0, x));
@@ -280,6 +286,7 @@ const getSpamAnalysis = (userId) => {
 			};
 		}
 
+		const now = Date.now();
 		const indicators = [];
 
 		const recentPosts = originalPosts.slice(0, 60);
@@ -298,6 +305,8 @@ const getSpamAnalysis = (userId) => {
 					id: post.id,
 					content: post.content?.slice(0, 100),
 					reason: "Exact duplicate",
+					created_at: post.created_at,
+					decayWeight: tweetAgeDecayWeight(post.created_at, now),
 				});
 			}
 		}
@@ -344,6 +353,8 @@ const getSpamAnalysis = (userId) => {
 							id: recentPosts[i].id,
 							content: recentPosts[i].content?.slice(0, 80),
 							reason: `${(sim * 100).toFixed(0)}% similar to another post`,
+							created_at: recentPosts[i].created_at,
+							decayWeight: tweetAgeDecayWeight(recentPosts[i].created_at, now),
 						});
 					}
 				}
@@ -367,7 +378,6 @@ const getSpamAnalysis = (userId) => {
 			impactingTweets: nearDupPairs,
 		});
 
-		const now = Date.now();
 		const oneHourAgo = now - 3600000;
 		const sixHoursAgo = now - 6 * 3600000;
 		const oneDayAgo = now - 24 * 3600000;
@@ -421,13 +431,13 @@ const getSpamAnalysis = (userId) => {
 			score: frequencyScore,
 			weight: 0.11,
 			details: `${postsInLastHour.length} posts/hour (${repliesInLastHour} replies), ${postsInLastDay.length} posts/day (${repliesInLastDay} replies)`,
-			impactingTweets: postsInLastHour
-				.slice(0, 10)
-				.map((p) => ({
-					id: p.id,
-					content: p.content?.slice(0, 80),
-					reason: "Posted in last hour",
-				})),
+			impactingTweets: postsInLastHour.slice(0, 10).map((p) => ({
+				id: p.id,
+				content: p.content?.slice(0, 80),
+				reason: "Posted in last hour",
+				created_at: p.created_at,
+				decayWeight: tweetAgeDecayWeight(p.created_at, now),
+			})),
 		});
 
 		const timestamps = originalPosts
@@ -474,6 +484,8 @@ const getSpamAnalysis = (userId) => {
 						suspiciousUrls.length > 0
 							? `${suspiciousUrls.length} suspicious URL(s)`
 							: `${urls.length} URL(s)`,
+					created_at: p.created_at,
+					decayWeight: tweetAgeDecayWeight(p.created_at, now),
 				});
 			}
 			return {
@@ -517,6 +529,8 @@ const getSpamAnalysis = (userId) => {
 					id: p.id,
 					content: p.content?.slice(0, 80),
 					reason: `${hashtags.length} hashtags`,
+					created_at: p.created_at,
+					decayWeight: tweetAgeDecayWeight(p.created_at, now),
 				});
 			}
 			return {
@@ -559,6 +573,8 @@ const getSpamAnalysis = (userId) => {
 					id: p.id,
 					content: p.content?.slice(0, 80),
 					reason: `${mentions.length} mentions`,
+					created_at: p.created_at,
+					decayWeight: tweetAgeDecayWeight(p.created_at, now),
 				});
 			}
 			return {
@@ -615,6 +631,8 @@ const getSpamAnalysis = (userId) => {
 					id: p.id,
 					content: content.slice(0, 80),
 					reason: reasons.join(", "),
+					created_at: p.created_at,
+					decayWeight: tweetAgeDecayWeight(p.created_at, now),
 				});
 			}
 
@@ -675,6 +693,8 @@ const getSpamAnalysis = (userId) => {
 						id: reply.id,
 						content: reply.content?.slice(0, 80),
 						reason: "Duplicate reply",
+						created_at: reply.created_at,
+						decayWeight: tweetAgeDecayWeight(reply.created_at, now),
 					});
 				}
 			}
@@ -720,6 +740,8 @@ const getSpamAnalysis = (userId) => {
 					id: p.id,
 					content: p.content?.slice(0, 80),
 					reason: "0 engagement",
+					created_at: p.created_at,
+					decayWeight: tweetAgeDecayWeight(p.created_at, now),
 				});
 			}
 			return {
