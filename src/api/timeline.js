@@ -194,6 +194,22 @@ const getCardDataForTweet = (tweetId) => {
 	};
 };
 
+// Fetch posts by ID list while applying per-user visibility filters similar to getTimelinePosts
+const getTimelinePostsByIds = (ids, userId, isAdmin) => {
+	if (!ids || ids.length === 0) return [];
+	const placeholders = ids.map(() => "?").join(",");
+	const query = `SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with, users.selected_community_tag, users.super_tweeter, users.super_tweeter_boost
+			FROM posts
+			JOIN users ON posts.user_id = users.id
+			LEFT JOIN blocks ON (posts.user_id = blocks.blocked_id AND blocks.blocker_id = ?)
+			LEFT JOIN follows ON (posts.user_id = follows.following_id AND follows.follower_id = ?)
+			WHERE posts.id IN (${placeholders}) AND posts.reply_to IS NULL AND blocks.id IS NULL AND posts.pinned = 0 AND users.suspended = 0 AND posts.community_only = FALSE AND (users.shadowbanned = 0 OR posts.user_id = ? OR ? = 1) AND (users.private = 0 OR follows.id IS NOT NULL OR posts.user_id = ?)
+			ORDER BY posts.created_at DESC, posts.id DESC`;
+	const stmt = db.query(query);
+	// Arguments: blocker_id, follower_id, shadowbanned_userid, adminFlag, private_userid, ...ids
+	return stmt.all(userId, userId, userId, isAdmin ? 1 : 0, userId, ...ids);
+};
+
 const getQuotedTweetData = (quoteTweetId, userId) => {
 	if (!quoteTweetId) return null;
 
@@ -395,8 +411,46 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 			const seenMeta = new Map(
 				seenTweets.map((row) => [row.tweet_id, row.seen_at]),
 			);
-			// Rank across a larger candidate set to avoid repetition
-			posts = rankTweets(posts, seenMeta, limit);
+
+			// Ask the C algorithm for globally-ranked candidate IDs from DB
+			let cResult = null;
+			try {
+				cResult = processTimeline({ limit: fetchLimit });
+			} catch {
+				cResult = null;
+			}
+
+			if (cResult?.timeline?.length > 0) {
+				const cIds = cResult.timeline.map((t) => t.id);
+				// Fetch those posts but applying per-user constraints
+				const fetched = getTimelinePostsByIds(
+					cIds,
+					user.id,
+					user.admin ? 1 : 0,
+				);
+				// Map ID -> entry and reorder according to cIds
+				const postMap = new Map(fetched.map((p) => [p.id, p]));
+				const ordered = [];
+				for (const id of cIds) {
+					const p = postMap.get(id);
+					if (p) ordered.push(p);
+				}
+				// If the ordered result is insufficient, fall back to JS ranking to fill remaining slots
+				if (ordered.length < limit) {
+					// Use earlier posts as fallback
+					const fallback = rankTweets(posts, seenMeta, limit);
+					// Merge ordered and fallback while removing duplicates
+					const seen = new Set(ordered.map((p) => p.id));
+					for (const f of fallback) {
+						if (ordered.length >= limit) break;
+						if (!seen.has(f.id)) ordered.push(f);
+					}
+				}
+				posts = ordered.slice(0, Math.min(limit, ordered.length));
+			} else {
+				// If C failed or returned nothing, fallback to current JS ranking
+				posts = rankTweets(posts, seenMeta, limit);
+			}
 
 			for (const post of posts.slice(0, Math.min(limit, posts.length))) {
 				markTweetsAsSeen.run(Bun.randomUUIDv7(), user.id, post.id);

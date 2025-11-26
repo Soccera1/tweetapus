@@ -2,6 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -O2 -fPIC
 SOURCES = algorithm.c
 OBJECTS = $(SOURCES:.c=.o)
+LIBS = -lm -lsqlite3
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -18,7 +19,7 @@ endif
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $(TARGET) $(OBJECTS) -lm
+	$(CC) $(LDFLAGS) -o $(TARGET) $(OBJECTS) $(LIBS)
 
 %.o: %.c algorithm.h
 	$(CC) $(CFLAGS) -c $< -o $@

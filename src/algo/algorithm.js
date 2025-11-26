@@ -7,58 +7,76 @@ const libPath = path.join(import.meta.dir, `algorithm.${suffix}`);
 let lib = null;
 
 if (existsSync(libPath)) {
+	// basic/core exports we always expect
+	const coreExports = {
+		calculate_score: {
+			args: [
+				FFIType.i64,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.double,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.double,
+				FFIType.double,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.double,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.double,
+				FFIType.double,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.i32,
+				FFIType.double,
+				FFIType.double,
+				FFIType.i32,
+				FFIType.double,
+				FFIType.double,
+				FFIType.double,
+				FFIType.i32,
+			],
+			returns: FFIType.double,
+		},
+	};
+
+	// timeline exports are optional; try to load with them first
+	const timelineExports = Object.assign({}, coreExports, {
+		process_timeline: {
+			args: [FFIType.cstring],
+			returns: FFIType.cstring,
+		},
+		free_timeline_json: {
+			args: [FFIType.ptr],
+			returns: FFIType.void,
+		},
+	});
+
 	try {
-		lib = dlopen(libPath, {
-			calculate_score: {
-				args: [
-					FFIType.i64,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.double,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.double,
-					FFIType.double,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.double,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.double,
-					FFIType.double,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.i32,
-					FFIType.double,
-					FFIType.double,
-					FFIType.i32,
-					FFIType.double,
-					FFIType.double,
-					FFIType.double,
-					FFIType.i32,
-				],
-				returns: FFIType.double,
-			},
-		});
-	} catch (error) {
-		console.warn("Failed to load C algorithm library");
-		console.warn("Error:", error.message);
+		lib = dlopen(libPath, timelineExports);
+	} catch {
+		// fall back to minimal/core symbols only
+		try {
+			lib = dlopen(libPath, coreExports);
+		} catch (error) {
+			console.warn("Failed to load C algorithm library");
+			console.warn("Error:", error.message);
+		}
 	}
 } else {
 	console.error(
 		`C algorithm library not found at ${libPath} (possibly not compiled?)`,
 	);
-	console.warn(
-		"-> run 'make' in src/algo/ to compile the C algorithm",
-	);
+	console.warn("-> run 'make' in src/algo/ to compile the C algorithm");
 }
 
 export const calculateScore = (
@@ -632,6 +650,73 @@ export const rankTweets = (
 
 	const finalArray = [...selected, ...remaining];
 	return finalArray.map(({ _score, ...rest }) => rest);
+};
+
+const EMPTY_TIMELINE = { timeline: [] };
+
+const encodeTimelineInput = (options) => {
+	if (!options) {
+		return null;
+	}
+	if (typeof options === "string") {
+		return options;
+	}
+	if (typeof options === "object" && Object.keys(options).length === 0) {
+		return null;
+	}
+	try {
+		return JSON.stringify(options);
+	} catch {
+		return null;
+	}
+};
+
+const releaseTimelineBuffer = (result) => {
+	if (!result) {
+		return;
+	}
+	const ptr =
+		typeof result === "object" && result !== null && "ptr" in result
+			? result.ptr
+			: result;
+	if (ptr === undefined || ptr === null) {
+		return;
+	}
+	try {
+		lib?.symbols?.free_timeline_json?.(ptr);
+	} catch {}
+};
+
+const parseTimelineResult = (result) => {
+	if (!result) {
+		return EMPTY_TIMELINE;
+	}
+	let payload = "";
+	try {
+		payload = result.toString();
+	} catch {
+		payload = "";
+	}
+	releaseTimelineBuffer(result);
+	if (!payload) {
+		return EMPTY_TIMELINE;
+	}
+	try {
+		const parsed = JSON.parse(payload);
+		if (parsed && typeof parsed === "object") {
+			return parsed;
+		}
+	} catch {}
+	return EMPTY_TIMELINE;
+};
+
+export const processTimeline = (options = null) => {
+	if (!lib || !lib.symbols?.process_timeline) {
+		return EMPTY_TIMELINE;
+	}
+	const input = encodeTimelineInput(options);
+	const result = lib.symbols.process_timeline(input);
+	return parseTimelineResult(result);
 };
 
 export const isAlgorithmAvailable = () => lib !== null;

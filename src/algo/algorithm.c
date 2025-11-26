@@ -6,6 +6,8 @@
 #include <math.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <stdarg.h>
+#include <sqlite3.h>
 
 #define MAX_AGE_HOURS 168
 #define MAX_TOKENS 12
@@ -19,6 +21,164 @@
 #define MIN_ENGAGEMENT_RATIO 0.01
 #define SUPER_FRESH_HOURS 2
 #define ENGAGEMENT_FLOOR_DENOM 25
+#define DEFAULT_TIMELINE_LIMIT 20
+#define MIN_TIMELINE_LIMIT 1
+#define MAX_TIMELINE_LIMIT 60
+#define MAX_DB_FETCH 240
+#define DB_PATH_ENV "TWEETAPUSES_DB_PATH"
+#define DEFAULT_DB_PATH "./.data/db.sqlite"
+
+typedef struct {
+    char *id;
+    size_t count;
+} AuthorCounter;
+
+typedef struct {
+    char *data;
+    size_t len;
+    size_t cap;
+} JsonBuffer;
+
+static const char *TIMELINE_QUERY =
+    "SELECT "
+    "  p.id, "
+    "  COALESCE(p.content, ''), "
+    "  COALESCE(strftime('%s', p.created_at), 0), "
+    "  p.like_count, "
+    "  p.retweet_count, "
+    "  p.reply_count, "
+    "  p.quote_count, "
+    "  EXISTS(SELECT 1 FROM attachments a WHERE a.post_id = p.id) AS has_media, "
+    "  u.id AS author_id, "
+    "  u.verified, "
+    "  u.gold, "
+    "  COALESCE(u.follower_count, 0), "
+    "  u.super_tweeter, "
+    "  COALESCE(u.super_tweeter_boost, 0.0), "
+    "  COALESCE(u.blocked_by_count, 0), "
+    "  COALESCE(u.muted_by_count, 0), "
+    "  COALESCE(u.spam_score, 0.0), "
+    "  COALESCE(julianday('now') - julianday(u.created_at), 0.0), "
+    "  EXISTS(SELECT 1 FROM fact_checks fc WHERE fc.post_id = p.id) AS has_note "
+    "FROM posts p "
+    "JOIN users u ON p.user_id = u.id "
+    "WHERE p.reply_to IS NULL "
+    "  AND p.community_only = 0 "
+    "  AND p.pinned = 0 "
+    "  AND u.suspended = 0 "
+    "  AND u.shadowbanned = 0 "
+    "ORDER BY p.created_at DESC, p.id DESC "
+    "LIMIT ?;";
+
+static const char *resolve_db_path(void) {
+    const char *env_path = getenv(DB_PATH_ENV);
+    if (env_path && env_path[0] != '\0') {
+        return env_path;
+    }
+    return DEFAULT_DB_PATH;
+}
+
+static char *dup_c_string(const char *src) {
+    if (!src) return NULL;
+    size_t len = strlen(src);
+    char *copy = (char *)malloc(len + 1);
+    if (!copy) return NULL;
+    memcpy(copy, src, len + 1);
+    return copy;
+}
+
+static char *dup_sqlite_text(const unsigned char *src) {
+    return src ? dup_c_string((const char *)src) : NULL;
+}
+
+static int json_buffer_init(JsonBuffer *buf, size_t initial_cap) {
+    if (!buf) return -1;
+    if (initial_cap < 64) initial_cap = 64;
+    buf->data = (char *)malloc(initial_cap);
+    if (!buf->data) return -1;
+    buf->len = 0;
+    buf->cap = initial_cap;
+    buf->data[0] = '\0';
+    return 0;
+}
+
+static void json_buffer_free(JsonBuffer *buf) {
+    if (!buf) return;
+    free(buf->data);
+    buf->data = NULL;
+    buf->len = 0;
+    buf->cap = 0;
+}
+
+static int json_buffer_append(JsonBuffer *buf, const char *fmt, ...) {
+    if (!buf || !fmt) return -1;
+    va_list args;
+    va_start(args, fmt);
+    int needed = vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+    if (needed < 0) return -1;
+    size_t required = buf->len + (size_t)needed + 1;
+    if (required > buf->cap) {
+        size_t new_cap = buf->cap ? buf->cap : 64;
+        while (new_cap < required) new_cap *= 2;
+        char *tmp = (char *)realloc(buf->data, new_cap);
+        if (!tmp) return -1;
+        buf->data = tmp;
+        buf->cap = new_cap;
+    }
+    va_start(args, fmt);
+    vsnprintf(buf->data + buf->len, buf->cap - buf->len, fmt, args);
+    va_end(args);
+    buf->len += (size_t)needed;
+    return 0;
+}
+
+static inline char hex_digit(unsigned int value) {
+    return (value < 10) ? (char)('0' + value) : (char)('a' + (value - 10));
+}
+
+static char *json_escape(const char *src) {
+    if (!src) return dup_c_string("");
+    size_t len = 0;
+    size_t extra = 0;
+    const unsigned char *ptr = (const unsigned char *)src;
+    while (*ptr) {
+        unsigned char c = *ptr++;
+        if (c == '"' || c == '\\') extra++;
+        else if (c == '\b' || c == '\f' || c == '\n' || c == '\r' || c == '\t') extra++;
+        else if (c < 0x20) extra += 5;
+        len++;
+    }
+    char *out = (char *)malloc(len + extra + 1);
+    if (!out) return NULL;
+    char *dst = out;
+    ptr = (const unsigned char *)src;
+    while (*ptr) {
+        unsigned char c = *ptr++;
+        switch (c) {
+            case '"': *dst++ = '\\'; *dst++ = '"'; break;
+            case '\\': *dst++ = '\\'; *dst++ = '\\'; break;
+            case '\b': *dst++ = '\\'; *dst++ = 'b'; break;
+            case '\f': *dst++ = '\\'; *dst++ = 'f'; break;
+            case '\n': *dst++ = '\\'; *dst++ = 'n'; break;
+            case '\r': *dst++ = '\\'; *dst++ = 'r'; break;
+            case '\t': *dst++ = '\\'; *dst++ = 't'; break;
+            default:
+                if (c < 0x20) {
+                    *dst++ = '\\';
+                    *dst++ = 'u';
+                    *dst++ = '0';
+                    *dst++ = '0';
+                    *dst++ = hex_digit((c >> 4) & 0xF);
+                    *dst++ = hex_digit(c & 0xF);
+                } else {
+                    *dst++ = (char)c;
+                }
+        }
+    }
+    *dst = '\0';
+    return out;
+}
 
 static inline double safe_log(double x) {
     return (x > 0.0) ? log(x + 1.0) : 0.0;
@@ -1812,7 +1972,247 @@ cleanup:
     return;
 }
 
+static void free_tweet_array(Tweet *tweets, size_t count) {
+    if (!tweets) return;
+    for (size_t i = 0; i < count; i++) {
+        free(tweets[i].id);
+        free(tweets[i].content);
+    }
+    free(tweets);
+}
+
+static void free_author_counters(AuthorCounter *arr, size_t len) {
+    if (!arr) return;
+    for (size_t i = 0; i < len; i++) {
+        free(arr[i].id);
+    }
+    free(arr);
+}
+
+static size_t bump_author_counter(
+    AuthorCounter **arr,
+    size_t *len,
+    size_t *cap,
+    const unsigned char *author_id
+) {
+    if (!author_id || author_id[0] == '\0') {
+        return 0;
+    }
+    if (*arr) {
+        for (size_t i = 0; i < *len; i++) {
+            if (strcmp((*arr)[i].id, (const char *)author_id) == 0) {
+                (*arr)[i].count++;
+                return (*arr)[i].count;
+            }
+        }
+    }
+    if (*len >= *cap) {
+        size_t new_cap = (*cap == 0) ? 16 : (*cap * 2);
+        AuthorCounter *tmp = (AuthorCounter *)realloc(*arr, new_cap * sizeof(AuthorCounter));
+        if (!tmp) return 0;
+        *arr = tmp;
+        *cap = new_cap;
+    }
+    char *copy = dup_sqlite_text(author_id);
+    if (!copy) return 0;
+    (*arr)[*len].id = copy;
+    (*arr)[*len].count = 1;
+    (*len)++;
+    return 1;
+}
+
+static int fetch_candidates_from_db(size_t desired, Tweet **out_tweets, size_t *out_count) {
+    if (!out_tweets || !out_count) return -1;
+    *out_tweets = NULL;
+    *out_count = 0;
+    if (desired == 0) desired = 1;
+    if (desired > MAX_DB_FETCH) desired = MAX_DB_FETCH;
+
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    Tweet *tweets = NULL;
+    size_t capacity = desired < 8 ? 8 : desired;
+    size_t count = 0;
+    AuthorCounter *authors = NULL;
+    size_t author_len = 0;
+    size_t author_cap = 0;
+
+    tweets = (Tweet *)calloc(capacity, sizeof(Tweet));
+    if (!tweets) goto fail;
+
+    int rc = sqlite3_open(resolve_db_path(), &db);
+    if (rc != SQLITE_OK) goto fail;
+
+    rc = sqlite3_prepare_v2(db, TIMELINE_QUERY, -1, &stmt, NULL);
+    if (rc != SQLITE_OK) goto fail;
+
+    rc = sqlite3_bind_int(stmt, 1, (int)desired);
+    if (rc != SQLITE_OK) goto fail;
+
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+        if (count >= capacity) {
+            size_t new_cap = capacity * 2;
+            if (new_cap < capacity) { rc = SQLITE_NOMEM; break; }
+            Tweet *tmp = (Tweet *)realloc(tweets, new_cap * sizeof(Tweet));
+            if (!tmp) { rc = SQLITE_NOMEM; break; }
+            for (size_t i = capacity; i < new_cap; i++) {
+                memset(&tmp[i], 0, sizeof(Tweet));
+            }
+            tweets = tmp;
+            capacity = new_cap;
+        }
+        char *row_id = dup_sqlite_text(sqlite3_column_text(stmt, 0));
+        if (!row_id) { rc = SQLITE_NOMEM; break; }
+        char *row_content = dup_sqlite_text(sqlite3_column_text(stmt, 1));
+        if (!row_content) {
+            free(row_id);
+            rc = SQLITE_NOMEM;
+            break;
+        }
+        Tweet *tw = &tweets[count];
+        memset(tw, 0, sizeof(Tweet));
+        tw->id = row_id;
+        tw->content = row_content;
+        tw->created_at = sqlite3_column_int64(stmt, 2);
+        tw->like_count = sqlite3_column_int(stmt, 3);
+        tw->retweet_count = sqlite3_column_int(stmt, 4);
+        tw->reply_count = sqlite3_column_int(stmt, 5);
+        tw->quote_count = sqlite3_column_int(stmt, 6);
+        tw->has_media = sqlite3_column_int(stmt, 7);
+        const unsigned char *author_id = sqlite3_column_text(stmt, 8);
+        size_t seen = bump_author_counter(&authors, &author_len, &author_cap, author_id);
+        if (seen > 0) tw->author_repeats = (int)(seen - 1);
+        tw->user_verified = sqlite3_column_int(stmt, 9);
+        tw->user_gold = sqlite3_column_int(stmt, 10);
+        tw->follower_count = sqlite3_column_int(stmt, 11);
+        int super_flag = sqlite3_column_int(stmt, 12);
+        double super_boost = sqlite3_column_double(stmt, 13);
+        tw->user_super_tweeter_boost = super_flag ? super_boost : 0.0;
+        tw->blocked_by_count = sqlite3_column_int(stmt, 14);
+        tw->muted_by_count = sqlite3_column_int(stmt, 15);
+        tw->spam_score = sqlite3_column_double(stmt, 16);
+        tw->account_age_days = sqlite3_column_double(stmt, 17);
+        tw->has_community_note = sqlite3_column_int(stmt, 18);
+        tw->hours_since_seen = -1.0;
+        tw->novelty_factor = 1.0;
+        tw->random_factor = 0.0;
+        tw->all_seen_flag = 0;
+        tw->content_repeats = 0;
+        tw->score = 0.0;
+        count++;
+    }
+
+    if (rc != SQLITE_DONE) goto fail;
+
+    if (stmt) sqlite3_finalize(stmt);
+    if (db) sqlite3_close(db);
+    free_author_counters(authors, author_len);
+    *out_tweets = tweets;
+    *out_count = count;
+    return 0;
+
+fail:
+    if (stmt) sqlite3_finalize(stmt);
+    if (db) sqlite3_close(db);
+    free_author_counters(authors, author_len);
+    free_tweet_array(tweets, count);
+    return -1;
+}
+
+static int parse_limit_from_json(const char *json_input) {
+    if (!json_input) return DEFAULT_TIMELINE_LIMIT;
+    const char *cursor = strstr(json_input, "limit");
+    while (cursor) {
+        const char *colon = strchr(cursor, ':');
+        if (!colon) break;
+        colon++;
+        while (*colon == ' ' || *colon == '\t' || *colon == '\n') colon++;
+        if (*colon == '\0') break;
+        if (*colon == '"' || *colon == '\'') colon++;
+        if (!isdigit((unsigned char)*colon)) {
+            cursor = strstr(colon, "limit");
+            continue;
+        }
+        long value = strtol(colon, NULL, 10);
+        if (value > 0) return (int)value;
+        cursor = strstr(colon, "limit");
+    }
+    return DEFAULT_TIMELINE_LIMIT;
+}
+
+static char *build_timeline_json(const Tweet *tweets, size_t count, size_t limit) {
+    if (!tweets || count == 0 || limit == 0) {
+        return dup_c_string("{\"timeline\":[]}");
+    }
+    if (limit > count) limit = count;
+    JsonBuffer buf;
+    if (json_buffer_init(&buf, limit * 256 + 64) != 0) {
+        return NULL;
+    }
+    if (json_buffer_append(&buf, "{\"timeline\":[") != 0) {
+        json_buffer_free(&buf);
+        return NULL;
+    }
+    for (size_t i = 0; i < limit; i++) {
+        const char *id = tweets[i].id ? tweets[i].id : "";
+        char *escaped = json_escape(tweets[i].content ? tweets[i].content : "");
+        if (!escaped) {
+            json_buffer_free(&buf);
+            return NULL;
+        }
+        if (json_buffer_append(
+                &buf,
+                "{\"id\":\"%s\",\"content\":\"%s\",\"created_at\":%lld,\"score\":%.6f}",
+                id,
+                escaped,
+                (long long)tweets[i].created_at,
+                tweets[i].score) != 0) {
+            free(escaped);
+            json_buffer_free(&buf);
+            return NULL;
+        }
+        free(escaped);
+        if (i + 1 < limit) {
+            if (json_buffer_append(&buf, ",") != 0) {
+                json_buffer_free(&buf);
+                return NULL;
+            }
+        }
+    }
+    if (json_buffer_append(&buf, "]}") != 0) {
+        json_buffer_free(&buf);
+        return NULL;
+    }
+    return buf.data;
+}
+
 char *process_timeline(const char *json_input) {
-    (void)json_input;
-    return strdup("{\"ranked_ids\":[]}");
+    int requested = parse_limit_from_json(json_input);
+    if (requested < MIN_TIMELINE_LIMIT) requested = MIN_TIMELINE_LIMIT;
+    if (requested > MAX_TIMELINE_LIMIT) requested = MAX_TIMELINE_LIMIT;
+    size_t fetch_target = (size_t)requested * 4;
+    if (fetch_target < (size_t)requested) fetch_target = (size_t)requested;
+    if (fetch_target > MAX_DB_FETCH) fetch_target = MAX_DB_FETCH;
+
+    Tweet *tweets = NULL;
+    size_t tweet_count = 0;
+    if (fetch_candidates_from_db(fetch_target, &tweets, &tweet_count) != 0 || !tweets || tweet_count == 0) {
+        free_tweet_array(tweets, tweet_count);
+        return dup_c_string("{\"timeline\":[]}");
+    }
+
+    rank_tweets(tweets, tweet_count);
+
+    char *json = build_timeline_json(tweets, tweet_count, (size_t)requested);
+    free_tweet_array(tweets, tweet_count);
+    if (!json) {
+        return dup_c_string("{\"timeline\":[]}");
+    }
+    return json;
+}
+
+void free_timeline_json(char *json_output) {
+    if (json_output) {
+        free(json_output);
+    }
 }
