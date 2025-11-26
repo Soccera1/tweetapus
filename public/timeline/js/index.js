@@ -283,7 +283,7 @@ addRoute(
 		setTimeout(() => window.scrollTo(0, timelineScrollPosition), 0);
 	},
 );
-
+// don't let the cursor be stuck
 addRoute(
 	(pathname) => pathname === "/articles",
 	() => {
