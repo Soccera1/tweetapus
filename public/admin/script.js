@@ -2152,6 +2152,18 @@ class AdminPanel {
 				  <div class="row g-4">
 					<div class="col-md-6">
 					  <h6 class="fw-bold">Last Login</h6>
+					  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+						<button type="button" class="btn btn-outline-primary btn-sm location-picker-btn" data-location-picker="login" data-location-control="true">
+						  <i class="bi bi-geo-alt"></i>
+						  Pick via Google Maps
+						</button>
+						<button type="button" class="btn btn-outline-secondary btn-sm location-clear-btn" data-location-clear="login" data-location-control="true">
+						  Clear
+						</button>
+					  </div>
+					  <div class="mb-3">
+						<div class="small text-muted" id="loginLocationPreview"></div>
+					  </div>
 					  <div class="mb-3">
 						<label class="form-label">City</label>
 						<input type="text" class="form-control" id="editProfileLoginCity" value="${this.escapeHtml(
@@ -2206,6 +2218,18 @@ class AdminPanel {
 					</div>
 					<div class="col-md-6">
 					  <h6 class="fw-bold">Account Creation</h6>
+					  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+						<button type="button" class="btn btn-outline-primary btn-sm location-picker-btn" data-location-picker="creation" data-location-control="true">
+						  <i class="bi bi-map"></i>
+						  Pick via Google Maps
+						</button>
+						<button type="button" class="btn btn-outline-secondary btn-sm location-clear-btn" data-location-clear="creation" data-location-control="true">
+						  Clear
+						</button>
+					  </div>
+					  <div class="mb-3">
+						<div class="small text-muted" id="creationLocationPreview"></div>
+					  </div>
 					  <div class="mb-3">
 						<label class="form-label">City</label>
 						<input type="text" class="form-control" id="editProfileCreationCity" value="${this.escapeHtml(
@@ -2487,6 +2511,10 @@ class AdminPanel {
 					}
 				});
 			}
+
+			this.setupLocationPickerControls();
+			this.syncLocationPreview("login");
+			this.syncLocationPreview("creation");
 		} catch {
 			this.showError("Failed to load user details");
 		}
