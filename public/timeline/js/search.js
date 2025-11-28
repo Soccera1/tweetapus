@@ -205,8 +205,8 @@ ${
 			const date = new Date(
 				event
 					.querySelector(".current-events-title .summary")
-					.replace(/\u00A0/g, " ")
-					.innerText.split(" (")[0],
+					.innerText.replace(/\u00A0/g, " ")
+					.split(" (")[0],
 			);
 
 			const isToday = date.toDateString() === new Date().toDateString();
