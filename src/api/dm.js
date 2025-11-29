@@ -2,7 +2,10 @@ import { jwt } from "@elysiajs/jwt";
 import { Elysia, t } from "elysia";
 import db from "../db.js";
 import { generateAIDMResponse } from "../helpers/ai-assistant.js";
-import { getRateLimitMiddleware } from "../helpers/customRateLimit.js";
+import {
+	getRateLimitMiddleware,
+	grantCapBypass,
+} from "../helpers/customRateLimit.js";
 import cap from "./cap.js";
 import { addNotification } from "./notifications.js";
 
@@ -411,6 +414,7 @@ export default new Elysia({ prefix: "/dm", tags: ["DM"] })
 					if (!capResult.success) {
 						return { error: "Captcha verification failed" };
 					}
+					grantCapBypass(token);
 				}
 
 				const payload = JSON.parse(atob(token.split(".")[1]));

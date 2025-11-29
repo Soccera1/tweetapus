@@ -8,11 +8,10 @@ an independent, fully-featured Twitter/X clone built with Bun. badly vibe-coded.
 
 1. install bun
 2. clone the repo
-3. run `bun install`
+3. `bun install`
 4. create the following directories: `.data`, `.data/uploads`, `.data/extensions`
 5. fill in your API credentials in `.env`
-6. (optional) generate VAPID keys for push notifications: `npx web-push generate-vapid-keys` and add them to `.env` as `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`
-7. `bun run start`
+6. `bun dev`
 
 ## features
 
