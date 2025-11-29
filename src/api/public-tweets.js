@@ -41,8 +41,8 @@ const getAttachments = db.query(`SELECT * FROM attachments WHERE post_id = ?`);
 export default new Elysia({ prefix: "/public-tweets", tags: ["Public"] })
 	.use(
 		rateLimit({
-			duration: 60_000,
-			max: 60,
+			duration: 240_000,
+			max: 300,
 			scoping: "scoped",
 			generator: ratelimit,
 		}),

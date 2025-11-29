@@ -349,8 +349,8 @@ export default new Elysia({ prefix: "/search", tags: ["Search"] })
 	.use(jwt({ name: "jwt", secret: JWT_SECRET }))
 	.use(
 		rateLimit({
-			duration: 10_000,
-			max: 30,
+			duration: 240_000,
+			max: 200,
 			scoping: "scoped",
 			generator: ratelimit,
 		}),

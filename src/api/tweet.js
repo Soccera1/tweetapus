@@ -509,8 +509,8 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 	.use(jwt({ name: "jwt", secret: JWT_SECRET }))
 	.use(
 		rateLimit({
-			duration: 60_000,
-			max: 10,
+			duration: 240_000,
+			max: 150,
 			scoping: "scoped",
 			generator: ratelimit,
 		}),

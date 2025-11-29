@@ -2,27 +2,23 @@ const rateLimitStore = new Map();
 const violationStore = new Map();
 const capBypassStore = new Map();
 
+const FOUR_MINUTES = 240000;
+
 const RATE_LIMITS = {
-	default: { max: 30, duration: 10000 },
-	auth: { max: 5, duration: 60000 },
-	upload: { max: 10, duration: 60000 },
-	dm: { max: 20, duration: 10000 },
-	post: { max: 15, duration: 60000 },
-	sensitive: { max: 3, duration: 60000 },
-	search: { max: 20, duration: 10000 },
-	timeline: { max: 25, duration: 10000 },
-	like: { max: 10, duration: 2000 },
-	likeBurst: { max: 100, duration: 7200000 },
-	reply: { max: 5, duration: 10000 },
-	replyBurst: { max: 50, duration: 3600000 },
-	retweet: { max: 10, duration: 5000 },
-	retweetBurst: { max: 60, duration: 3600000 },
-	follow: { max: 5, duration: 5000 },
-	followBurst: { max: 50, duration: 3600000 },
-	block: { max: 2, duration: 5000 },
-	blockBurst: { max: 10, duration: 3600000 },
-	mute: { max: 2, duration: 5000 },
-	muteBurst: { max: 10, duration: 3600000 },
+	default: { max: 500, duration: FOUR_MINUTES },
+	auth: { max: 20, duration: FOUR_MINUTES },
+	upload: { max: 50, duration: FOUR_MINUTES },
+	dm: { max: 200, duration: FOUR_MINUTES },
+	post: { max: 100, duration: FOUR_MINUTES },
+	sensitive: { max: 15, duration: FOUR_MINUTES },
+	search: { max: 150, duration: FOUR_MINUTES },
+	timeline: { max: 300, duration: FOUR_MINUTES },
+	like: { max: 200, duration: FOUR_MINUTES },
+	reply: { max: 100, duration: FOUR_MINUTES },
+	retweet: { max: 150, duration: FOUR_MINUTES },
+	follow: { max: 100, duration: FOUR_MINUTES },
+	block: { max: 50, duration: FOUR_MINUTES },
+	mute: { max: 50, duration: FOUR_MINUTES },
 };
 
 function cleanupExpired() {
@@ -48,6 +44,12 @@ setInterval(cleanupExpired, 60000);
 
 export function grantCapBypass(identifier) {
 	capBypassStore.set(identifier, Date.now() + 30000);
+	for (const [key] of rateLimitStore.entries()) {
+		if (key.endsWith(`:${identifier}`)) {
+			rateLimitStore.delete(key);
+		}
+	}
+	violationStore.delete(identifier);
 }
 
 export function hasCapBypass(identifier) {
@@ -121,15 +123,11 @@ export function checkMultipleRateLimits(identifier, limitTypes) {
 }
 
 export function getRateLimitMiddleware(limitType = "default") {
-	return ({ headers, set }) => {
+	return ({ headers, request, set }) => {
+		if (request.method === "GET") return;
 		const token = headers.authorization?.split(" ")[1];
-		const ip =
-			headers["cf-connecting-ip"] ||
-			headers["x-forwarded-for"]?.split(",")[0] ||
-			"0.0.0.0";
-
-		const identifier = token || ip;
-		const result = checkRateLimit(identifier, limitType);
+		if (!token) return;
+		const result = checkRateLimit(token, limitType);
 
 		set.headers["X-RateLimit-Limit"] = result.limit.toString();
 		set.headers["X-RateLimit-Remaining"] = result.remaining.toString();

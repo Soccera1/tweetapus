@@ -206,8 +206,8 @@ export default new Elysia({ prefix: "/bookmarks", tags: ["Bookmarks"] })
 	.use(jwt({ name: "jwt", secret: JWT_SECRET }))
 	.use(
 		rateLimit({
-			duration: 10_000,
-			max: 50,
+			duration: 240_000,
+			max: 200,
 			scoping: "scoped",
 			generator: ratelimit,
 		}),

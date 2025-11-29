@@ -114,8 +114,8 @@ function getPasskeyByCredId(credId) {
 export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 	.use(
 		rateLimit({
-			duration: 30_000,
-			max: 5,
+			duration: 240_000,
+			max: 50,
 			scoping: "scoped",
 			generator: ratelimit,
 		}),
@@ -164,18 +164,17 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 				set.status = 400;
 				return { success: false, error: "Cap token is required" };
 			}
-			const verified = await cap.verifyToken(capToken);
-			if (!verified) {
+			const { success } = await cap.validateToken(capToken);
+			if (!success) {
 				set.status = 401;
 				return { success: false, error: "Invalid Cap token" };
 			}
 			const token = headers.authorization?.split(" ")[1];
-			const ip =
-				headers["cf-connecting-ip"] ||
-				headers["x-forwarded-for"]?.split(",")[0] ||
-				"0.0.0.0";
-			const identifier = token || ip;
-			grantCapBypass(identifier);
+			if (!token) {
+				set.status = 401;
+				return { success: false, error: "Authentication required" };
+			}
+			grantCapBypass(token);
 			return { success: true, message: "Rate limit bypass granted" };
 		},
 		{

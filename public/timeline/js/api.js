@@ -1,7 +1,5 @@
 import toastQueue from "../../shared/toasts.js";
 
-console.log("[API] Rate limit captcha module loaded v2");
-
 const shownToasts = new Set();
 let rateLimitModal = null;
 let pendingRateLimitResolve = null;
@@ -31,16 +29,12 @@ async function showRateLimitCaptcha() {
 		rateLimitModal.className = "rate-limit-modal";
 		rateLimitModal.innerHTML = `
 			<div class="rate-limit-modal-content">
-				<div class="rate-limit-header">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<circle cx="12" cy="12" r="10"/>
-						<polyline points="12 6 12 12 16 14"/>
-					</svg>
-					<h2>Slow down!</h2>
-				</div>
-				<p>You're making requests too fast. Complete this quick verification to continue.</p>
 				<div class="cap-container"></div>
-				<p class="rate-limit-status">Solving automatically...</p>
+				<p class="rate-limit-status">Please wait while we check your browser…</p>
+
+				<div class="progress-bar">
+					<div class="progress-bar-inner"></div>
+				</div>
 			</div>
 		`;
 
@@ -68,39 +62,26 @@ async function showRateLimitCaptcha() {
 				text-align: center;
 				box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 			}
-			.rate-limit-header {
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				gap: 10px;
-				margin-bottom: 12px;
-			}
-			.rate-limit-header svg {
-				color: var(--accent, #1d9bf0);
-			}
-			.rate-limit-header h2 {
-				margin: 0;
-				font-size: 20px;
-				color: var(--text-primary, #000);
-			}
 			.rate-limit-modal-content p {
-				margin: 0 0 16px 0;
-				color: var(--text-secondary, #666);
-				font-size: 14px;
+				margin: 0px;
+				padding-top: 1em;
+				font-size: 15px;
 			}
-			.rate-limit-status {
-				font-size: 13px !important;
-				color: var(--text-tertiary, #999) !important;
-				margin-top: 12px !important;
+			.progress-bar {
+				width: 100%;
+				height: 8px;
+				background-color: var(--border-primary);
+				border-radius: 4px;
+				overflow: hidden;
+				max-width: 250px;
+				margin: auto;
+				margin-top: 40px;
+				margin-bottom: 1em;
 			}
-			.cap-container {
-				display: flex;
-				justify-content: center;
-			}
-			.cap-container cap-widget {
-				--cap-background: var(--bg-secondary, #f7f9f9);
-				--cap-border-color: var(--border, #eff3f4);
-				--cap-color: var(--text-primary, #0f1419);
+			.progress-bar-inner {
+				width: 0%;
+				height: 100%;
+				background-color: var(--primary);
 			}
 			@keyframes fadeIn {
 				from { opacity: 0; }
@@ -114,11 +95,23 @@ async function showRateLimitCaptcha() {
 		const statusEl = rateLimitModal.querySelector(".rate-limit-status");
 
 		const capWidget = document.createElement("cap-widget");
+		capWidget.style.position = "fixed";
+		capWidget.style.top = "-1000px";
+		capWidget.style.left = "0";
 		capWidget.setAttribute("data-cap-api-endpoint", "/api/auth/cap/");
 		capContainer.appendChild(capWidget);
 
 		capWidget.addEventListener("solve", async (e) => {
-			statusEl.textContent = "Verified! Resuming...";
+			if (rateLimitModal) {
+				rateLimitModal.style.display = "none";
+
+				setTimeout(() => {
+					rateLimitModal.remove();
+					style.remove();
+					rateLimitModal = null;
+				}, 3_000);
+			}
+
 			const capToken = e.detail.token;
 			const token = localStorage.getItem("authToken");
 
@@ -134,31 +127,40 @@ async function showRateLimitCaptcha() {
 
 				if (bypassRes.ok) {
 					setTimeout(() => {
-						if (rateLimitModal) {
-							rateLimitModal.remove();
-							rateLimitModal = null;
-						}
 						if (pendingRateLimitResolve) {
 							pendingRateLimitResolve(true);
 							pendingRateLimitResolve = null;
 						}
 					}, 500);
 				} else {
-					statusEl.textContent = "Verification failed. Try again.";
+					statusEl.textContent = "Verification failed";
 					capWidget.reset();
 				}
-			} catch (_err) {
-				statusEl.textContent = "Network error. Try again.";
+			} catch {
+				statusEl.textContent = "Network error";
 				capWidget.reset();
 			}
 		});
 
 		capWidget.addEventListener("error", () => {
-			statusEl.textContent = "Verification failed. Click to retry.";
+			statusEl.textContent = "Verification failed, you're going too fast!";
+
+			const progressBarInner = rateLimitModal.querySelector(
+				".progress-bar-inner",
+			);
+			if (progressBarInner) {
+				progressBarInner.style.width = `100%`;
+				progressBarInner.style.backgroundColor = "var(--error-color)";
+			}
 		});
 
 		capWidget.addEventListener("progress", (e) => {
-			statusEl.textContent = `Verifying... ${e.detail.progress}%`;
+			const progressBarInner = rateLimitModal.querySelector(
+				".progress-bar-inner",
+			);
+			if (progressBarInner) {
+				progressBarInner.style.width = `${e.detail.progress}%`;
+			}
 		});
 
 		setTimeout(() => {
@@ -193,7 +195,14 @@ async function apiQuery(url, options = {}) {
 			},
 		});
 
-		console.log(`[API] ${url} responded with status ${res.status}`);
+		if (res.status === 429) {
+			const solved = await showRateLimitCaptcha();
+
+			if (solved) {
+				return await apiQuery(url, options);
+			}
+			return { error: "Rate limited", rateLimited: true };
+		}
 
 		let parsed = null;
 		try {
@@ -201,16 +210,6 @@ async function apiQuery(url, options = {}) {
 		} catch {
 			const text = await res.text();
 			parsed = text;
-		}
-
-		if (res.status === 429) {
-			console.log("[API] 429 detected! Showing captcha modal...");
-			const solved = await showRateLimitCaptcha();
-			console.log("[API] Captcha result:", solved);
-			if (solved) {
-				return await apiQuery(url, options);
-			}
-			return { error: "Rate limited", rateLimited: true };
 		}
 
 		if (parsed?.restricted) {

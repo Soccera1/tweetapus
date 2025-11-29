@@ -38,8 +38,8 @@ export default new Elysia({ prefix: "/upload", tags: ["Upload"] })
 	.use(jwt({ name: "jwt", secret: JWT_SECRET }))
 	.use(
 		rateLimit({
-			duration: 60_000,
-			max: 20,
+			duration: 240_000,
+			max: 100,
 			scoping: "scoped",
 			generator: ratelimit,
 		}),
