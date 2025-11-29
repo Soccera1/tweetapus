@@ -1,5 +1,7 @@
 import toastQueue from "../../shared/toasts.js";
 
+console.log("[API] Rate limit captcha module loaded v2");
+
 const shownToasts = new Set();
 let rateLimitModal = null;
 let pendingRateLimitResolve = null;
@@ -191,6 +193,8 @@ async function apiQuery(url, options = {}) {
 			},
 		});
 
+		console.log(`[API] ${url} responded with status ${res.status}`);
+
 		let parsed = null;
 		try {
 			parsed = await res.json();
@@ -200,9 +204,9 @@ async function apiQuery(url, options = {}) {
 		}
 
 		if (res.status === 429) {
-			console.log("[API] 429 detected, showing captcha modal");
+			console.log("[API] 429 detected! Showing captcha modal...");
 			const solved = await showRateLimitCaptcha();
-			console.log("[API] Captcha solved:", solved);
+			console.log("[API] Captcha result:", solved);
 			if (solved) {
 				return await apiQuery(url, options);
 			}
