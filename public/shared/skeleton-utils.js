@@ -37,6 +37,20 @@ export function createDMConversationSkeleton() {
 	return skeleton;
 }
 
+export function createDMMessageSkeleton(isOwn = false) {
+	const skeleton = document.createElement("div");
+	skeleton.className = `skeleton-dm-msg skeleton-container${isOwn ? " own" : ""}`;
+	const avatar = isOwn ? "" : '<div class="skeleton-loader skeleton-dm-msg-avatar"></div>';
+	skeleton.innerHTML = `
+		${avatar}
+		<div class="skeleton-dm-msg-wrapper">
+			<div class="skeleton-loader skeleton-dm-msg-bubble"></div>
+			<div class="skeleton-loader skeleton-dm-msg-time"></div>
+		</div>
+	`;
+	return skeleton;
+}
+
 export function createCommunitySkeleton() {
 	const skeleton = document.createElement("div");
 	skeleton.className = "skeleton-community skeleton-container";
@@ -91,6 +105,25 @@ export function createNewsSkeleton() {
 		<div class="skeleton-loader skeleton-news-text"></div>
 		<div class="skeleton-loader skeleton-news-text"></div>
 		<div class="skeleton-loader skeleton-news-text-short"></div>
+	`;
+	return skeleton;
+}
+
+export function createArticleSkeleton() {
+	const skeleton = document.createElement("article");
+	skeleton.className = "skeleton-article skeleton-container";
+	skeleton.innerHTML = `
+		<div class="skeleton-loader skeleton-article-cover"></div>
+		<div class="skeleton-article-body">
+			<div class="skeleton-loader skeleton-article-title"></div>
+			<div class="skeleton-loader skeleton-article-excerpt"></div>
+			<div class="skeleton-loader skeleton-article-excerpt-short"></div>
+			<div class="skeleton-article-meta">
+				<div class="skeleton-loader skeleton-article-avatar"></div>
+				<div class="skeleton-loader skeleton-article-author"></div>
+				<div class="skeleton-loader skeleton-article-date"></div>
+			</div>
+		</div>
 	`;
 	return skeleton;
 }

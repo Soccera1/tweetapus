@@ -205,7 +205,8 @@ new Elysia()
 	.get(
 		"/api/sse",
 		async ({ jwt, query, set, cookie }) => {
-			const token = query?.token || cookie?.__TWEETAPUS_SECRET_SSE_TOKEN__?.value;
+			const token =
+				query?.token || cookie?.__TWEETAPUS_SECRET_SSE_TOKEN__?.value;
 
 			if (!token) {
 				set.status = 401;
@@ -310,7 +311,7 @@ new Elysia()
 	.get("/pastes/p/:slug", () => file("./public/timeline/index.html"))
 	/* Explicit module fallbacks where static plugin may be unreliable behind proxies */
 	.get("/public/timeline/js/pastes.js", () =>
-		file("./public/timeline/js/pastes.js"),
+		file("./public/timeline/js/pastes-extension.js"),
 	)
 	.get("/public/paste/script.js", () => file("./public/paste/script.js"))
 	.get("*", ({ cookie }) => {

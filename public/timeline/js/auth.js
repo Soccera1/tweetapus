@@ -138,24 +138,16 @@ function saveAccountToStorage(user, token) {
 
 				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/><path d="M9 9h6"/><path d="M9 16h6"/></svg>`,
 				onClick: () => {
-					// Use the same pattern as other nav handlers: close the popup and
-					// import the Pastes UI using relative import first. If import
-					// fails, fallback to other known paths before using a hard reload.
 					const tryImports = async () => {
 						try {
-							const { openPastesPage } = await import("./pastes.js");
+							const { openPastesPage } = await import("./pastes-extension.js");
 							openPastesPage();
 							return true;
 						} catch {}
 						try {
 							const { openPastesPage } = await import(
-								"/public/timeline/js/pastes.js"
+								"/public/timeline/js/pastes-extension.js"
 							);
-							openPastesPage();
-							return true;
-						} catch {}
-						try {
-							const { openPastesPage } = await import("/timeline/js/pastes.js");
 							openPastesPage();
 							return true;
 						} catch (_) {
@@ -172,8 +164,12 @@ function saveAccountToStorage(user, token) {
 							if (window.location.pathname.startsWith("/pastes")) {
 								const container = document.querySelector(".pastes-page");
 								if (container) {
-									container.innerHTML =
-										"<div class='error-text'>Failed to load Pastes UI. Please try again later.</div>";
+									container.textContent = "";
+									const errorDiv = document.createElement("div");
+									errorDiv.className = "error-text";
+									errorDiv.textContent =
+										"Failed to load Pastes UI. Please try again later.";
+									container.append(errorDiv);
 								}
 							} else {
 								window.location.href = "/pastes";

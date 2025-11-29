@@ -14,7 +14,7 @@ import { updateTabIndicator } from "../../shared/tab-indicator.js";
 import toastQueue from "../../shared/toasts.js";
 import { createPopup } from "../../shared/ui-utils.js";
 import api from "./api.js";
-import switchPage from "./pages.js";
+import switchPage, { updatePageTitle } from "./pages.js";
 
 const showToast = (message, type = "info") => {
 	const typeMap = {
@@ -345,7 +345,6 @@ export async function loadCommunityDetail(communityId) {
 			switchPage("community-detail", { path: `/communities/${communityId}` });
 		}
 	} catch (_) {
-		// swallow if switchPage isn't available in this environment yet
 	}
 
 	const data = await api(`/communities/${communityId}`);
@@ -357,6 +356,8 @@ export async function loadCommunityDetail(communityId) {
 
 	currentCommunity = data.community;
 	currentMember = data.member;
+
+	updatePageTitle("community-detail", { title: currentCommunity.name });
 
 	const titleEl = document.getElementById("communityDetailTitle");
 	if (titleEl) {

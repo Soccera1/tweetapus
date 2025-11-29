@@ -3983,7 +3983,7 @@ nav {
     margin-bottom: 24px;
   }
 
-  &:has(.search-empty:not([style="display: none;"])) {
+  &:not(:has(.nrf-title)):has(.search-empty:not([style="display: none;"])) {
     .search-filters {
       display: none;
     }
@@ -4134,7 +4134,7 @@ nav {
       }
 
       p {
-        margin-top: -8px;
+        margin-top: 2px;
         color: var(--text-muted);
       }
     }

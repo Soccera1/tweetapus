@@ -1,6 +1,11 @@
 import DOMPurify from "/public/shared/assets/js/dompurify.js";
 import { marked } from "/public/shared/assets/js/marked.js";
 import { isConvertibleImage } from "../../shared/image-utils.js";
+import {
+	createArticleSkeleton,
+	removeSkeletons,
+	showSkeletons,
+} from "../../shared/skeleton-utils.js";
 import toastQueue from "../../shared/toasts.js";
 import query from "./api.js";
 
@@ -219,18 +224,22 @@ const loadArticles = async ({ append } = { append: false }) => {
 	if (loadingArticles || (reachedEnd && append)) return;
 	loadingArticles = true;
 
+	let skeletons = [];
 	try {
 		if (!append) {
 			articleCursor = null;
 			reachedEnd = false;
 			articlesList.innerHTML = "";
 			toggleEmptyState(false);
+			skeletons = showSkeletons(articlesList, createArticleSkeleton, 3);
 		}
 
 		const queryString = articleCursor
 			? `?before=${encodeURIComponent(articleCursor)}`
 			: "";
 		const response = await query(`/articles${queryString}`);
+
+		removeSkeletons(skeletons);
 
 		if (response.error) {
 			toastQueue.add(`<h1>Error</h1><p>${response.error}</p>`);
@@ -258,6 +267,7 @@ const loadArticles = async ({ append } = { append: false }) => {
 			setLoadMoreVisibility(true);
 		}
 	} catch (error) {
+		removeSkeletons(skeletons);
 		console.error("Load articles error:", error);
 		toastQueue.add(`<h1>Failed to load articles</h1>`);
 	} finally {

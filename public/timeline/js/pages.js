@@ -20,6 +20,36 @@ const lazyInitializers = {
 	pastes: false,
 };
 
+let unreadNotifications = 0;
+let unreadDMs = 0;
+
+const getPageTitle = (page, opts = {}) => {
+	const titles = {
+		timeline: () => unreadNotifications > 0 || unreadDMs > 0 ? `(${unreadNotifications + unreadDMs}) tweetapus` : "tweetapus",
+		tweet: () => opts?.title ? `${opts.title} // tweetapus` : "tweetapus",
+		profile: () => opts?.title ? `${opts.title} // tweetapus` : "tweetapus",
+		notifications: () => unreadNotifications > 0 ? `(${unreadNotifications}) notifications // tweetapus` : "notifications // tweetapus",
+		search: () => "search // tweetapus",
+		bookmarks: () => "bookmarks // tweetapus",
+		"direct-messages": () => unreadDMs > 0 ? `(${unreadDMs}) messages // tweetapus` : "messages // tweetapus",
+		"dm-conversation": () => opts?.title ? `${opts.title} // tweetapus` : "messages // tweetapus",
+		communities: () => "communities // tweetapus",
+		"community-detail": () => opts?.title ? `${opts.title} // tweetapus` : "community // tweetapus",
+		pastes: () => "pastes // tweetapus",
+		settings: () => "settings // tweetapus",
+	};
+	return titles[page]?.() || "tweetapus";
+};
+
+export function updatePageTitle(page, opts = {}) {
+	document.title = getPageTitle(page, opts);
+}
+
+export function setUnreadCounts(notifications = 0, dms = 0) {
+	unreadNotifications = notifications;
+	unreadDMs = dms;
+}
+
 const updateNavbar = () => {
 	requestAnimationFrame(() => {
 		const currentPath = window.location.pathname;
@@ -52,7 +82,7 @@ const updateNavbar = () => {
 };
 
 function showPage(page, options = {}) {
-	const { recoverState = () => {} } = options;
+	const { recoverState = () => {}, title } = options;
 
 	if (history.state?.stateId && cleanups[history.state.stateId]) {
 		try {
@@ -75,6 +105,8 @@ function showPage(page, options = {}) {
 		settingsElement.style.display = "none";
 		settingsElement.classList.remove("page-active");
 	}
+
+	updatePageTitle(page, { title });
 
 	if (pages[page]) {
 		pages[page].style.display = "flex";
@@ -108,7 +140,7 @@ function showPage(page, options = {}) {
 
 		if (page === "pastes" && !lazyInitializers.pastes) {
 			lazyInitializers.pastes = true;
-			import("/public/timeline/js/pastes.js")
+			import("/public/timeline/js/pastes-extension.js")
 				.then(({ initializePastesPage }) => {
 					const container = document.querySelector(".pastes-page");
 					initializePastesPage(container);
@@ -117,12 +149,16 @@ function showPage(page, options = {}) {
 					console.error("Failed to initialize pastes page:", error);
 					const container = document.querySelector(".pastes-page");
 					if (container) {
-						container.innerHTML =
-							"<div class='error-text'>Failed to load Pastes UI. Please try again later.</div>";
+						container.textContent = "";
+						const errorDiv = document.createElement("div");
+						errorDiv.className = "error-text";
+						errorDiv.textContent = "Failed to load Pastes UI. Please try again later.";
+						container.append(errorDiv);
 					}
 				});
 		}
 	} else if (page === "settings") {
+		updatePageTitle("settings");
 		requestAnimationFrame(() => {
 			try {
 				recoverState();
@@ -141,7 +177,7 @@ function showPage(page, options = {}) {
 
 export default function switchPage(
 	page,
-	{ recoverState = () => {}, path = "/", cleanup = () => {}, noScroll } = {},
+	{ recoverState = () => {}, path = "/", cleanup = () => {}, noScroll, title } = {},
 ) {
 	if (history.state) {
 		history.replaceState(
@@ -154,7 +190,7 @@ export default function switchPage(
 		);
 	}
 
-	showPage(page, { recoverState, path, cleanup });
+	showPage(page, { recoverState, path, cleanup, title });
 	updateNavbar();
 
 	const stateId = crypto.randomUUID();
@@ -167,6 +203,7 @@ export default function switchPage(
 			stateId,
 			scroll: 0,
 			noScroll,
+			title,
 		},
 		"",
 		path,
@@ -190,6 +227,7 @@ window.addEventListener("popstate", (event) => {
 		stateId = null,
 		scroll = 0,
 		noScroll = false,
+		title = null,
 	} = state || {};
 
 	if (history.state?.stateId && cleanups[history.state.stateId]) {
@@ -203,12 +241,12 @@ window.addEventListener("popstate", (event) => {
 
 	const recoverState = (stateId && states[stateId]) || (() => {});
 
-	showPage(page, { recoverState });
+	showPage(page, { recoverState, title });
 	updateNavbar();
 
 	// Re-initialize pastes page if needed (handle back/forward navigation)
 	if (page === "pastes" && lazyInitializers.pastes) {
-		import("/public/timeline/js/pastes.js")
+		import("/public/timeline/js/pastes-extension.js")
 			.then(({ initializePastesPage }) => {
 				const container = document.querySelector(".pastes-page");
 				initializePastesPage(container);

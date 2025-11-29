@@ -332,7 +332,7 @@ addRoute(
 addRoute(
 	(pathname) => pathname === "/pastes",
 	() => {
-		import("./pastes.js").then(({ openPastesPage }) => {
+		import("./pastes-extension.js").then(({ openPastesPage }) => {
 			openPastesPage();
 		});
 	},
@@ -345,7 +345,7 @@ addRoute(
 		const slug = decodeURIComponent(parts[3]);
 		const params = new URLSearchParams(window.location.search);
 		const secret = params.get("secret") || "";
-		import("./pastes.js").then(({ openPasteView }) => {
+		import("./pastes-extension.js").then(({ openPasteView }) => {
 			openPasteView(slug, secret);
 		});
 	},

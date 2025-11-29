@@ -2,13 +2,14 @@ import { showEmojiPickerPopup } from "../../shared/emoji-picker.js";
 import { openImageFullscreen } from "../../shared/image-viewer.js";
 import {
 	createDMConversationSkeleton,
+	createDMMessageSkeleton,
 	removeSkeletons,
 	showSkeletons,
 } from "../../shared/skeleton-utils.js";
 import toastQueue from "../../shared/toasts.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
-import switchPage, { addRoute } from "./pages.js";
+import switchPage, { addRoute, setUnreadCounts, updatePageTitle } from "./pages.js";
 
 const dmEmojiMap = {};
 (async () => {
@@ -315,7 +316,11 @@ function renderTypingIndicators() {
   `;
 }
 
+let cachedNotificationCount = 0;
+let cachedDMCount = 0;
+
 function displayDMCount(count) {
+	cachedDMCount = count;
 	const countElement = document.getElementById("dmCount");
 	if (countElement) {
 		if (count > 0) {
@@ -325,9 +330,15 @@ function displayDMCount(count) {
 			countElement.style.display = "none";
 		}
 	}
+	setUnreadCounts(cachedNotificationCount, cachedDMCount);
+	const currentPage = window.location.pathname.split("/")[1] || "timeline";
+	if (currentPage === "" || currentPage === "dm" || currentPage === "notifications") {
+		updatePageTitle(currentPage === "" ? "timeline" : currentPage === "dm" ? "direct-messages" : "notifications");
+	}
 }
 
 function displayNotificationCount(count) {
+	cachedNotificationCount = count;
 	const countElement = document.getElementById("notificationCount");
 	if (countElement) {
 		if (count > 0) {
@@ -336,6 +347,11 @@ function displayNotificationCount(count) {
 		} else {
 			countElement.style.display = "none";
 		}
+	}
+	setUnreadCounts(cachedNotificationCount, cachedDMCount);
+	const currentPage = window.location.pathname.split("/")[1] || "timeline";
+	if (currentPage === "" || currentPage === "dm" || currentPage === "notifications") {
+		updatePageTitle(currentPage === "" ? "timeline" : currentPage === "dm" ? "direct-messages" : "notifications");
 	}
 }
 
@@ -614,42 +630,56 @@ function createConversationItem(conversation) {
 }
 
 async function openConversation(conversationId) {
-	try {
-		typingIndicators.clear();
-		for (const timeout of typingTimeouts.values()) {
-			clearTimeout(timeout);
-		}
-		typingTimeouts.clear();
-
-		const data = await query(`/dm/conversations/${conversationId}`);
-
-		if (data.error) {
-			toastQueue.add(data.error);
-			return;
-		}
-
-		currentConversation = data.conversation;
-		currentMessages = (data.messages || []).reverse();
-		messageOffset = currentMessages.length;
-		hasMoreMessages = true;
-		isLoadingMoreMessages = false;
-		// Tr, SQLite ASAP!!!!!!!!
-		switchPage("dm-conversation", {
-			path: `/dm/${conversationId}`,
-			recoverState: () => {
-				if (currentConversation) {
-					renderConversationHeader();
-					renderMessages();
-					scrollToBottom();
-					markConversationAsRead(conversationId);
-					setupInfiniteScroll();
-				}
-			},
-		});
-	} catch (error) {
-		console.error("Failed to open conversation:", error);
-		toastQueue.add("Failed to open conversation");
+	typingIndicators.clear();
+	for (const timeout of typingTimeouts.values()) {
+		clearTimeout(timeout);
 	}
+	typingTimeouts.clear();
+
+	currentConversation = null;
+	currentMessages = [];
+
+	switchPage("dm-conversation", {
+		path: `/dm/${conversationId}`,
+		recoverState: async () => {
+			const messagesElement = document.getElementById("dmMessages");
+			if (!messagesElement) return;
+
+			messagesElement.innerHTML = "";
+
+			const skeletons = [];
+			for (let i = 0; i < 6; i++) {
+				skeletons.push(...showSkeletons(messagesElement, () => createDMMessageSkeleton(i % 3 === 0), 1));
+			}
+
+			try {
+				const data = await query(`/dm/conversations/${conversationId}`);
+
+				removeSkeletons(skeletons);
+
+				if (data.error) {
+					toastQueue.add(data.error);
+					return;
+				}
+
+				currentConversation = data.conversation;
+				currentMessages = (data.messages || []).reverse();
+				messageOffset = currentMessages.length;
+				hasMoreMessages = true;
+				isLoadingMoreMessages = false;
+
+				renderConversationHeader();
+				renderMessages();
+				scrollToBottom();
+				markConversationAsRead(conversationId);
+				setupInfiniteScroll();
+			} catch (error) {
+				removeSkeletons(skeletons);
+				console.error("Failed to open conversation:", error);
+				toastQueue.add("Failed to open conversation");
+			}
+		},
+	});
 }
 
 function renderConversationHeader() {

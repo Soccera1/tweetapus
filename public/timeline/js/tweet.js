@@ -5,7 +5,7 @@ import {
 } from "../../shared/skeleton-utils.js";
 import toastQueue from "../../shared/toasts.js";
 import { createComposer } from "./composer.js";
-import switchPage, { addRoute } from "./pages.js";
+import switchPage, { addRoute, updatePageTitle } from "./pages.js";
 import { createTweetElement } from "./tweets.js";
 
 export default async function openTweet(
@@ -59,8 +59,13 @@ export default async function openTweet(
 
 	const renderedTweets = new Map();
 
+	const authorName = finalTweet.author?.name || finalTweet.author?.username || "Post";
+	const tweetContent = finalTweet.content?.slice(0, 30) || "";
+	const pageTitle = `${authorName}: "${tweetContent}${tweetContent.length >= 30 ? "..." : ""}"`;
+
 	switchPage("tweet", {
 		path: `/tweet/${finalTweet.id}`,
+		title: pageTitle,
 		cleanup: () => {
 			if (scrollHandler) {
 				window.removeEventListener("scroll", scrollHandler);
@@ -175,6 +180,10 @@ export default async function openTweet(
 				finalTweet = apiOutput.tweet;
 				finalTweet.extendedStats = apiOutput.extendedStats || [];
 				hasMoreReplies = apiOutput?.hasMoreReplies || false;
+
+				const loadedAuthorName = finalTweet.author?.name || finalTweet.author?.username || "Post";
+				const loadedContent = finalTweet.content?.slice(0, 30) || "";
+				updatePageTitle("tweet", { title: `${loadedAuthorName}: "${loadedContent}${loadedContent.length >= 30 ? "..." : ""}"` });
 
 				if ((needsThreadData || !finalThread) && apiOutput.threadPosts) {
 					const newThreadPosts = apiOutput.threadPosts;

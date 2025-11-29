@@ -12,7 +12,7 @@ import toastQueue from "../../shared/toasts.js";
 import { createModal, createPopup } from "../../shared/ui-utils.js";
 import query from "./api.js";
 import getUser, { authToken } from "./auth.js";
-import switchPage from "./pages.js";
+import switchPage, { updatePageTitle } from "./pages.js";
 import { addTweetToTimeline, createTweetElement } from "./tweets.js";
 
 let currentProfile = null;
@@ -79,6 +79,7 @@ export default async function openProfile(username) {
 
 	switchPage("profile", {
 		path: `/@${username}`,
+		title: `@${username}`,
 		recoverState: async () => {
 			const profileContainer = document.getElementById("profileContainer");
 			profileContainer.style.display = "block";
@@ -129,6 +130,10 @@ export default async function openProfile(username) {
 
 			currentProfile = data;
 			renderProfile(data);
+
+			if (data.profile?.name) {
+				updatePageTitle("profile", { title: `${data.profile.name} (@${username})` });
+			}
 
 			const affiliatesData = await query(`/profile/${username}/affiliates`);
 			if (!affiliatesData.error && affiliatesData.affiliates) {
