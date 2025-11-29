@@ -17,7 +17,10 @@ function hash(str) {
 }
 
 async function showRateLimitCaptcha() {
-	if (rateLimitModal) return new Promise((resolve) => { pendingRateLimitResolve = resolve; });
+	if (rateLimitModal)
+		return new Promise((resolve) => {
+			pendingRateLimitResolve = resolve;
+		});
 
 	return new Promise((resolve) => {
 		pendingRateLimitResolve = resolve;

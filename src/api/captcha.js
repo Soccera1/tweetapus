@@ -56,8 +56,7 @@ export default new Elysia({ prefix: "/captcha", tags: ["Captcha"] })
 					const user = db
 						.prepare("SELECT id, shadowbanned FROM users WHERE username = ?")
 						.get(payload.username);
-					if (user && user.shadowbanned) {
-						// Check if shadowban is automated
+					if (user?.shadowbanned) {
 						const suspension = db
 							.prepare(
 								"SELECT * FROM suspensions WHERE user_id = ? AND action = 'shadowban' AND status = 'active' AND reason LIKE 'Automated%'",
