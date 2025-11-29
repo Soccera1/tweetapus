@@ -1685,6 +1685,9 @@ export const createTweetElement = (tweet, config = {}) => {
 		);
 
 		tweet.liked_by_user = newIsLiked;
+		tweet.like_count = newIsLiked
+			? currentCount + 1
+			: Math.max(0, currentCount - 1);
 
 		if (newIsLiked) {
 			svg.setAttribute("fill", "#F91980");
@@ -1826,6 +1829,9 @@ export const createTweetElement = (tweet, config = {}) => {
 						if (result.success) {
 							const newIsRetweeted = result.retweeted;
 							tweet.retweeted_by_user = newIsRetweeted;
+							tweet.retweet_count = newIsRetweeted
+								? tweet.retweet_count + 1
+								: tweet.retweet_count - 1;
 							tweetInteractionsRetweetEl.dataset.retweeted = newIsRetweeted;
 
 							if (newIsRetweeted) {

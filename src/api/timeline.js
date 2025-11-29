@@ -383,7 +383,9 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 			p._normalized_content = cKey;
 		});
 
-		if (isAlgorithmAvailable() && query.latest !== "true") {
+		if (query.latest === "true") {
+			posts = posts.slice(0, limit);
+		} else if (isAlgorithmAvailable()) {
 			const postIds = posts.map((p) => p.id);
 			if (postIds.length > 0) {
 				const attachmentPlaceholders = postIds.map(() => "?").join(",");
