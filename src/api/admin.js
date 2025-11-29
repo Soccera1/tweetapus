@@ -1200,10 +1200,21 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 	.get(
 		"/users/:id",
 		async ({ params }) => {
-			const user = adminQueries.getUserWithDetails.get(params.id);
+			let user = adminQueries.getUserWithDetails.get(params.id);
+			let targetId = params.id;
 			if (!user) {
-				return { error: "User not found" };
+				const fallbackUser = adminQueries.findUserByUsername.get(params.id);
+				if (!fallbackUser) {
+					return { error: "User not found" };
+				}
+				targetId = fallbackUser.id;
+				user = adminQueries.getUserWithDetails.get(targetId);
+				if (!user) {
+					return { error: "User not found" };
+				}
 			}
+
+			user.superadmin = superAdminIds.includes(targetId);
 
 			if (user.affiliate && user.affiliate_with) {
 				const affiliateUser = db
@@ -1214,15 +1225,13 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				}
 			}
 
-			const recentPosts = adminQueries.getUserRecentPosts.all(params.id);
-			const suspensions = adminQueries.getUserSuspensions.all(params.id);
+			const recentPosts = adminQueries.getUserRecentPosts.all(targetId);
+			const suspensions = adminQueries.getUserSuspensions.all(targetId);
 			const incomingAffiliateRequestsRaw =
-				adminQueries.getAffiliateRequestsForTarget.all(params.id);
+				adminQueries.getAffiliateRequestsForTarget.all(targetId);
 			const outgoingAffiliateRequestsRaw =
-				adminQueries.getAffiliateRequestsForRequester.all(params.id);
-			const managedAffiliates = adminQueries.getAffiliatesForUser.all(
-				params.id,
-			);
+				adminQueries.getAffiliateRequestsForRequester.all(targetId);
+			const managedAffiliates = adminQueries.getAffiliatesForUser.all(targetId);
 
 			const incomingAffiliateRequests = incomingAffiliateRequestsRaw.map(
 				(request) => ({
@@ -1256,7 +1265,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				}),
 			);
 
-			const ipHistory = adminQueries.getUserIpHistory.all(params.id);
+			const ipHistory = adminQueries.getUserIpHistory.all(targetId);
 
 			return {
 				user,
@@ -1585,6 +1594,12 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 			}
 
 			if (!sourceUser) return { error: "Source user not found" };
+
+			const sourceIsSuperAdmin = superAdminIds.includes(sourceUser.id);
+			const moderatorIsSuperAdmin = superAdminIds.includes(moderator.id);
+			if (sourceIsSuperAdmin && !moderatorIsSuperAdmin) {
+				return { error: "SuperAdmin access required to clone this account" };
+			}
 
 			const username = body.username?.trim();
 			const name = body.name !== undefined ? body.name : sourceUser.name;

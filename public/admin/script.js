@@ -5636,6 +5636,36 @@ class AdminPanel {
 				return;
 			}
 
+			if (!this.isSuperAdmin) {
+				try {
+					const sourceLookup = await this.apiCall(
+						`/api/admin/users/${encodeURIComponent(sourceId)}`,
+					);
+					const sourceUser = sourceLookup?.user;
+					if (sourceUser?.superadmin) {
+						if (resultEl) {
+							resultEl.className = "error";
+							resultEl.textContent =
+								"Only SuperAdmins can clone SuperAdmin accounts.";
+						} else {
+							this.showError(
+								"Only SuperAdmins can clone SuperAdmin accounts.",
+							);
+						}
+						return;
+					}
+				} catch (lookupErr) {
+					if (resultEl) {
+						resultEl.className = "error";
+						resultEl.textContent =
+							lookupErr?.message || "Source user not found";
+					} else {
+						this.showError(lookupErr?.message || "Source user not found");
+					}
+					return;
+				}
+			}
+
 			try {
 				const payload = { username };
 				if (name) payload.name = name;

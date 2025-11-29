@@ -223,15 +223,26 @@ export const uploadRoutes = new Elysia({
 	tags: ["Upload"],
 }).get(
 	"/:filename",
-	({ params }) => {
+	async ({ params, set }) => {
 		const { filename } = params;
 
-		if (!/^[a-f0-9]{64}\.(webp|mp4|gif)$/i.test(filename)) {
+		if (
+			!/^[a-f0-9]{64}\.(webp|mp4|gif)$/i.test(filename) ||
+			filename.includes("..")
+		) {
 			return new Response("Invalid filename", { status: 400 });
 		}
 
 		const filePath = join(process.cwd(), ".data", "uploads", filename);
-		return file(filePath);
+
+		set.headers["Cache-Control"] = "public, max-age=31536000, immutable";
+
+		const file = Bun.file(filePath);
+
+		if (!(await file.exists())) {
+			return new Response("File not found", { status: 404 });
+		}
+		return file;
 	},
 	{
 		detail: {

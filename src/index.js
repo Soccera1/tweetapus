@@ -204,8 +204,8 @@ new Elysia()
 	.use(jwt({ name: "jwt", secret: process.env.JWT_SECRET }))
 	.get(
 		"/api/sse",
-		async ({ jwt, query, set }) => {
-			const { token } = query;
+		async ({ jwt, query, set, cookie }) => {
+			const token = query?.token || cookie?.__TWEETAPUS_SECRET_SSE_TOKEN__?.value;
 
 			if (!token) {
 				set.status = 401;

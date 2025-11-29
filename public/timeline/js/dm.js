@@ -92,8 +92,10 @@ function connectSSE() {
 	}
 
 	lastSSEConnect = now;
-	const sseUrl = `/api/sse?token=${encodeURIComponent(authToken)}`;
-	eventSource = new EventSource(sseUrl);
+
+	/* biome-ignore lint/suspicious/noDocumentCookie: idgaf */
+	document.cookie = `__TWEETAPUS_SECRET_SSE_TOKEN__=${authToken}; path=/; samesite=strict; max-age=60`;
+	eventSource = new EventSource(`/api/sse`);
 
 	eventSource.onopen = () => {
 		sseFailureCount = 0;
