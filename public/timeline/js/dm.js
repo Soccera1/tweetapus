@@ -2264,31 +2264,22 @@ async function editMessage(messageId) {
 
 		saveButton.disabled = true;
 		saveButton.textContent = "Saving...";
+		// Tr
+		const result = await query(`/dm/messages/${messageId}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ content: newContent }),
+		});
 
-		try {
-			const result = await query(`/dm/messages/${messageId}`, {
-				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ content: newContent }),
-			});
-
-			if (result.success) {
-				const messageIndex = currentMessages.findIndex(
-					(m) => m.id === messageId,
-				);
-				if (messageIndex !== -1) {
-					currentMessages[messageIndex] = result.message;
-					renderMessages();
-				}
-				closeModal();
-			} else {
-				toastQueue.add(result.error || "Failed to update message");
-				saveButton.disabled = false;
-				saveButton.textContent = "Save";
+		if (result.success) {
+			const messageIndex = currentMessages.findIndex((m) => m.id === messageId);
+			if (messageIndex !== -1) {
+				currentMessages[messageIndex] = result.message;
+				renderMessages();
 			}
-		} catch (error) {
-			console.error("Edit message error:", error);
-			toastQueue.add("Failed to update message");
+			closeModal();
+		} else {
+			toastQueue.add(result.error || "Failed to update message");
 			saveButton.disabled = false;
 			saveButton.textContent = "Save";
 		}
