@@ -8,12 +8,13 @@ import ratelimit from "../helpers/ratelimit.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const getIdentifier = (headers, userId) => {
-	return (
+const getIdentifier = (headers) => {
+	const token = headers.authorization?.split(" ")[1];
+	const ip =
 		headers["cf-connecting-ip"] ||
 		headers["x-forwarded-for"]?.split(",")[0] ||
-		userId
-	);
+		"0.0.0.0";
+	return token || ip;
 };
 
 const getUserByUsername = db.prepare(
@@ -109,7 +110,7 @@ export default new Elysia({ prefix: "/blocking", tags: ["Blocking"] })
 				const user = getUserByUsername.get(payload.username);
 				if (!user) return { error: "User not found" };
 
-				const identifier = getIdentifier(headers, user.id);
+				const identifier = getIdentifier(headers);
 				const rateLimitResult = checkMultipleRateLimits(identifier, [
 					"block",
 					"blockBurst",
@@ -212,7 +213,7 @@ export default new Elysia({ prefix: "/blocking", tags: ["Blocking"] })
 				const user = getUserByUsername.get(payload.username);
 				if (!user) return { error: "User not found" };
 
-				const identifier = getIdentifier(headers, user.id);
+				const identifier = getIdentifier(headers);
 				const rateLimitResult = checkMultipleRateLimits(identifier, [
 					"block",
 					"blockBurst",
@@ -339,7 +340,7 @@ export default new Elysia({ prefix: "/blocking", tags: ["Blocking"] })
 				const user = getUserByUsername.get(payload.username);
 				if (!user) return { error: "User not found" };
 
-				const identifier = getIdentifier(headers, user.id);
+				const identifier = getIdentifier(headers);
 				const rateLimitResult = checkMultipleRateLimits(identifier, [
 					"mute",
 					"muteBurst",
@@ -404,7 +405,7 @@ export default new Elysia({ prefix: "/blocking", tags: ["Blocking"] })
 				const user = getUserByUsername.get(payload.username);
 				if (!user) return { error: "User not found" };
 
-				const identifier = getIdentifier(headers, user.id);
+				const identifier = getIdentifier(headers);
 				const rateLimitResult = checkMultipleRateLimits(identifier, [
 					"mute",
 					"muteBurst",

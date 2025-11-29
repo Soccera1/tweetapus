@@ -1749,11 +1749,15 @@ class AdminPanel {
                 </td>
                 <td>
                   <div style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;">
-                    ${suspension.reason}
+                    ${suspension.reason
+															.replaceAll("<", "&lt;")
+															.replaceAll(">", "&gt;")}
                   </div>
                   ${
 										suspension.notes
-											? `<small class="text-muted">Notes: ${suspension.notes}</small>`
+											? `<small class="text-muted">Notes: ${suspension.notes
+															.replaceAll("<", "&lt;")
+															.replaceAll(">", "&gt;")}</small>`
 											: ""
 									}
                 </td>
@@ -1765,7 +1769,6 @@ class AdminPanel {
 												? '<span class="badge bg-warning">Restricted</span>'
 												: `<span class="badge bg-secondary">${this.escapeHtml(suspension.action || "unknown")}</span>`
 									}
-									<!-- severity removed -->
 								</td>
                 <td>
                   <small>@${suspension.suspended_by_username}</small>

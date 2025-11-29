@@ -118,11 +118,15 @@ async function showRateLimitCaptcha() {
 		capWidget.addEventListener("solve", async (e) => {
 			statusEl.textContent = "Verified! Resuming...";
 			const capToken = e.detail.token;
+			const token = localStorage.getItem("authToken");
 
 			try {
 				const bypassRes = await fetch("/api/auth/cap/rate-limit-bypass", {
 					method: "POST",
-					headers: { "Content-Type": "application/json" },
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`,
+					},
 					body: JSON.stringify({ capToken }),
 				});
 
@@ -196,7 +200,9 @@ async function apiQuery(url, options = {}) {
 		}
 
 		if (res.status === 429) {
+			console.log("[API] 429 detected, showing captcha modal");
 			const solved = await showRateLimitCaptcha();
+			console.log("[API] Captcha solved:", solved);
 			if (solved) {
 				return await apiQuery(url, options);
 			}

@@ -1350,7 +1350,7 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 			const currentUser = getUserByUsername.get(payload.username);
 			if (!currentUser) return { error: "User not found" };
 
-			const identifier = getIdentifier(headers, currentUser.id);
+			const identifier = getIdentifier(headers);
 			const rateLimitResult = checkMultipleRateLimits(identifier, [
 				"follow",
 				"followBurst",
@@ -1445,7 +1445,7 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 			const currentUser = getUserByUsername.get(payload.username);
 			if (!currentUser) return { error: "User not found" };
 
-			const identifier = getIdentifier(headers, currentUser.id);
+			const identifier = getIdentifier(headers);
 			const rateLimitResult = checkMultipleRateLimits(identifier, [
 				"follow",
 				"followBurst",
