@@ -11,20 +11,6 @@ import { embeds } from "./helpers/embeds.js";
 export { broadcastToUser, sendUnreadCounts };
 
 const appServer = new Elysia()
-	.onError((err, ctx) => {
-		console.error('Elysia error:', err?.stack || err?.message || err, 'ctx.path=', ctx?.path);
-		// Return a simple error to not leak internals
-		ctx.set.status = 500;
-		return 'Internal Server Error';
-	})
-	.onBeforeHandle(({ path, headers }) => {
-		try {
-			const remote = headers['cf-connecting-ip'] || headers['x-forwarded-for'] || headers['host'];
-			console.log('Incoming request:', path, 'remote=', remote);
-		} catch {
-			// ignore
-		}
-	})
 	.use(embeds)
 	.use(compression)
 	.use(staticPlugin())

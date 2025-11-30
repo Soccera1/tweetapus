@@ -1412,8 +1412,6 @@ export const useComposer = (
 			};
 		}
 
-		tweetButton.disabled = true;
-
 		try {
 			const uploadedFiles = [];
 			for (const fileData of pendingFiles) {
@@ -1595,7 +1593,7 @@ export const useComposer = (
 		} catch {
 			toastQueue.add(`<h1>Network error. Please try again.</h1>`);
 		} finally {
-			tweetButton.disabled = false;
+			charCount.innerText = "";
 		}
 	});
 
