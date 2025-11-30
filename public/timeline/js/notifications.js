@@ -949,6 +949,26 @@ document
 		setTimeout(() => window.scrollTo(0, savedScroll), 0);
 	});
 
+window.addEventListener("new-notification", (e) => {
+	const notification = e.detail;
+	if (!notification) return;
+
+	if (notification.tweet?.user) {
+		notification.tweet.author = notification.tweet.user;
+		delete notification.tweet.user;
+	}
+
+	const exists = currentNotifications.some((n) => n.id === notification.id);
+	if (exists) return;
+
+	currentNotifications.unshift(notification);
+
+	const notificationsPage = document.querySelector(".notifications");
+	if (notificationsPage && notificationsPage.style.display !== "none") {
+		renderNotifications();
+	}
+});
+
 export const handleMarkAllRead = markAllAsRead;
 
 export default { displayUnreadCount };

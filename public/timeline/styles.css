@@ -187,6 +187,7 @@ nav {
   padding-top: 44px;
 
   button {
+    position: relative;
     background-color: transparent;
     border: none;
     font-family: inherit;
@@ -197,19 +198,30 @@ nav {
     gap: 12px;
     color: inherit;
     border-radius: 9999px;
-    transition: background-color 0.15s, color 0.15s, transform 0.15s;
     font-size: 20px;
     font-weight: 400;
     justify-content: flex-start;
     width: fit-content;
     user-select: none;
 
-    &:hover {
-      background-color: rgba(var(--primary-rgb), 0.08);
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      right: 0px;
+      bottom: 0px;
+      border-radius: 9999px;
+      transition: background-color 0.1s, transform .2s;
     }
 
-    &:active {
-      transform: scale(0.97);
+    &:hover:after {
+      background-color: rgba(var(--text-primary), 0.04);
+
+    }
+
+    &:active:after {
+      transform: scale(0.95);
     }
 
     &.active {
@@ -2830,8 +2842,6 @@ nav {
   }
 
   .profile-tabs {
-    .profile-tab-nav {}
-
     .profile-tab-content {
       padding: 0;
     }
@@ -9275,7 +9285,7 @@ emoji-picker.emoji-picker-popup {
   gap: 2px;
   padding: 0px 4px;
   height: 18px;
-  margin-left: 6px;
+  margin-left: 3px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;

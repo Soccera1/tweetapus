@@ -136,6 +136,8 @@ function connectSSE() {
 				handleMessageDelete(data);
 			} else if (data.type === "disappearing-update") {
 				handleDisappearingUpdate(data);
+			} else if (data.type === "notification") {
+				handleNewNotification(data.notification);
 			}
 		} catch (error) {
 			console.error("Error parsing SSE message:", error);
@@ -287,6 +289,12 @@ function handleDisappearingUpdate(data) {
 			: "Disappearing messages disabled";
 		toastQueue.add(statusText);
 	}
+}
+
+function handleNewNotification(notification) {
+	window.dispatchEvent(
+		new CustomEvent("new-notification", { detail: notification }),
+	);
 }
 
 function renderTypingIndicators() {
