@@ -10,7 +10,7 @@ self.addEventListener("push", (event) => {
 
 	const options = {
 		body: data.body || "",
-		icon: "/public/shared/assets/icon.png",
+		icon: data.actorAvatar || "/public/shared/assets/icon.png",
 		badge: "/public/shared/assets/badge.png",
 		tag: data.type || "notification",
 		renotify: true,

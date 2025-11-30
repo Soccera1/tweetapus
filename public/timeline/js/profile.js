@@ -397,7 +397,7 @@ const renderMediaGrid = async (posts) => {
 	for (const post of posts) {
 		const attachments = post.attachments || [];
 		const mediaAttachments = attachments.filter(
-			(att) => att.type === "image" || att.type === "video",
+			(att) => att.file_type?.startsWith("image/") || att.file_type?.startsWith("video/"),
 		);
 
 		if (mediaAttachments.length === 0) continue;
@@ -407,17 +407,17 @@ const renderMediaGrid = async (posts) => {
 			mediaItem.className = "media-grid-item";
 			mediaItem.style.cursor = "pointer";
 
-			if (attachment.type === "image") {
+			if (attachment.file_type?.startsWith("image/")) {
 				const img = document.createElement("img");
-				img.src = attachment.url;
+				img.src = attachment.file_url;
 				img.alt = "Media";
 				img.loading = "lazy";
 				img.style.cssText =
 					"width: 100%; height: 100%; object-fit: cover; display: block;";
 				mediaItem.appendChild(img);
-			} else if (attachment.type === "video") {
+			} else if (attachment.file_type?.startsWith("video/")) {
 				const video = document.createElement("video");
-				video.src = attachment.url;
+				video.src = attachment.file_url;
 				video.style.cssText =
 					"width: 100%; height: 100%; object-fit: cover; display: block;";
 				video.muted = true;
@@ -569,7 +569,7 @@ const loadMoreMedia = async () => {
 	for (const post of media) {
 		const attachments = post.attachments || [];
 		const mediaAttachments = attachments.filter(
-			(att) => att.type === "image" || att.type === "video",
+			(att) => att.file_type?.startsWith("image/") || att.file_type?.startsWith("video/"),
 		);
 
 		if (mediaAttachments.length === 0) continue;
@@ -579,17 +579,17 @@ const loadMoreMedia = async () => {
 			mediaItem.className = "media-grid-item";
 			mediaItem.style.cursor = "pointer";
 
-			if (attachment.type === "image") {
+			if (attachment.file_type?.startsWith("image/")) {
 				const img = document.createElement("img");
-				img.src = attachment.url;
+				img.src = attachment.file_url;
 				img.alt = "Media";
 				img.loading = "lazy";
 				img.style.cssText =
 					"width: 100%; height: 100%; object-fit: cover; display: block;";
 				mediaItem.appendChild(img);
-			} else if (attachment.type === "video") {
+			} else if (attachment.file_type?.startsWith("video/")) {
 				const video = document.createElement("video");
-				video.src = attachment.url;
+				video.src = attachment.file_url;
 				video.style.cssText =
 					"width: 100%; height: 100%; object-fit: cover; display: block;";
 				video.muted = true;

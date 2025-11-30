@@ -155,6 +155,7 @@ export function addNotification(
 		body: content,
 		relatedId,
 		actorUsername,
+		actorAvatar: actorDetails?.avatar || null,
 	}).catch(() => {});
 
 	return id;
