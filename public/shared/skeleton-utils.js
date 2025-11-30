@@ -132,21 +132,119 @@ export function createArticleSkeleton() {
 
 export function createProfileSkeleton() {
 	const skeleton = document.createElement("div");
-	skeleton.className = "skeleton-profile-header skeleton-container";
-	skeleton.innerHTML = `
-		<div class="skeleton-loader skeleton-profile-banner"></div>
-		<div class="skeleton-profile-info">
-			<div class="skeleton-loader skeleton-profile-avatar"></div>
-			<div class="skeleton-loader skeleton-profile-name"></div>
-			<div class="skeleton-loader skeleton-profile-username"></div>
-			<div class="skeleton-loader skeleton-profile-bio"></div>
-			<div class="skeleton-loader skeleton-profile-bio"></div>
-			<div class="skeleton-profile-stats">
-				<div class="skeleton-loader skeleton-profile-stat"></div>
-				<div class="skeleton-loader skeleton-profile-stat"></div>
-			</div>
-		</div>
-	`;
+	skeleton.className = "skeleton-profile skeleton-container";
+
+	const banner = document.createElement("div");
+	banner.className = "skeleton-loader skeleton-profile-banner";
+	skeleton.appendChild(banner);
+
+	const card = document.createElement("div");
+	card.className = "skeleton-profile-card";
+
+	const avatar = document.createElement("div");
+	avatar.className = "skeleton-loader skeleton-profile-avatar";
+	card.appendChild(avatar);
+
+	const actions = document.createElement("div");
+	actions.className = "skeleton-profile-actions";
+	const actionBtn = document.createElement("div");
+	actionBtn.className = "skeleton-loader skeleton-profile-action-btn";
+	actions.appendChild(actionBtn);
+	card.appendChild(actions);
+
+	const info = document.createElement("div");
+	info.className = "skeleton-profile-info";
+
+	const nameRow = document.createElement("div");
+	nameRow.className = "skeleton-profile-name-row";
+	const name = document.createElement("div");
+	name.className = "skeleton-loader skeleton-profile-name";
+	nameRow.appendChild(name);
+	info.appendChild(nameRow);
+
+	const username = document.createElement("div");
+	username.className = "skeleton-loader skeleton-profile-username";
+	info.appendChild(username);
+
+	const bio = document.createElement("div");
+	bio.className = "skeleton-loader skeleton-profile-bio";
+	info.appendChild(bio);
+
+	const bio2 = document.createElement("div");
+	bio2.className = "skeleton-loader skeleton-profile-bio short";
+	info.appendChild(bio2);
+
+	const meta = document.createElement("div");
+	meta.className = "skeleton-profile-meta";
+	const metaItem1 = document.createElement("div");
+	metaItem1.className = "skeleton-loader skeleton-profile-meta-item";
+	const metaItem2 = document.createElement("div");
+	metaItem2.className = "skeleton-loader skeleton-profile-meta-item";
+	meta.appendChild(metaItem1);
+	meta.appendChild(metaItem2);
+	info.appendChild(meta);
+
+	const stats = document.createElement("div");
+	stats.className = "skeleton-profile-stats";
+	const stat1 = document.createElement("div");
+	stat1.className = "skeleton-loader skeleton-profile-stat";
+	const stat2 = document.createElement("div");
+	stat2.className = "skeleton-loader skeleton-profile-stat";
+	stats.appendChild(stat1);
+	stats.appendChild(stat2);
+	info.appendChild(stats);
+
+	card.appendChild(info);
+	skeleton.appendChild(card);
+
+	return skeleton;
+}
+
+export function createFollowerSkeleton() {
+	const skeleton = document.createElement("div");
+	skeleton.className = "skeleton-follower skeleton-container";
+
+	const avatar = document.createElement("div");
+	avatar.className = "skeleton-loader skeleton-follower-avatar";
+	skeleton.appendChild(avatar);
+
+	const info = document.createElement("div");
+	info.className = "skeleton-follower-info";
+
+	const name = document.createElement("div");
+	name.className = "skeleton-loader skeleton-follower-name";
+	info.appendChild(name);
+
+	const username = document.createElement("div");
+	username.className = "skeleton-loader skeleton-follower-username";
+	info.appendChild(username);
+
+	skeleton.appendChild(info);
+
+	return skeleton;
+}
+
+export function createListSkeleton() {
+	const skeleton = document.createElement("div");
+	skeleton.className = "skeleton-list skeleton-container";
+
+	const icon = document.createElement("div");
+	icon.className = "skeleton-loader skeleton-list-icon";
+	skeleton.appendChild(icon);
+
+	const info = document.createElement("div");
+	info.className = "skeleton-list-info";
+
+	const name = document.createElement("div");
+	name.className = "skeleton-loader skeleton-list-name";
+	info.appendChild(name);
+
+	const desc = document.createElement("div");
+	desc.className = "skeleton-loader skeleton-list-desc";
+	info.appendChild(desc);
+
+	skeleton.appendChild(info);
+
 	return skeleton;
 }
 

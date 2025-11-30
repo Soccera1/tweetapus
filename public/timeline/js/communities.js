@@ -403,14 +403,14 @@ export async function loadCommunityDetail(communityId) {
 			} else {
 				const joinBtn = document.createElement("button");
 				joinBtn.className = "profile-btn profile-btn-primary";
-				joinBtn.textContent = "Join Community";
+				joinBtn.textContent = "Join";
 				joinBtn.addEventListener("click", () => joinCommunity(communityId));
 				actionsContainer.appendChild(joinBtn);
 			}
 		} else if (currentMember.role !== "owner") {
 			const leaveBtn = document.createElement("button");
 			leaveBtn.className = "profile-btn profile-btn-secondary";
-			leaveBtn.textContent = "Leave Community";
+			leaveBtn.textContent = "Leave";
 			leaveBtn.addEventListener("click", () => leaveCommunity(communityId));
 			actionsContainer.appendChild(leaveBtn);
 		}
@@ -419,7 +419,7 @@ export async function loadCommunityDetail(communityId) {
 			const actionItems = [];
 			if (canManage) {
 				actionItems.push({
-					title: "Edit Community",
+					title: "Edit",
 					onClick: () => openEditModal(),
 					icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
 				});

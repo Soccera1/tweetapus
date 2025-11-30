@@ -9,7 +9,6 @@ const pages = {
 	"dm-conversation": document.querySelector(".dm-conversation"),
 	communities: document.querySelector(".communities-page"),
 	"community-detail": document.querySelector(".community-detail-page"),
-	pastes: document.querySelector(".pastes-page"),
 	settings: null,
 };
 const states = {};
@@ -17,7 +16,6 @@ const cleanups = {};
 const lazyInitializers = {
 	search: false,
 	communities: false,
-	pastes: false,
 };
 
 let unreadNotifications = 0;
@@ -25,34 +23,28 @@ let unreadDMs = 0;
 
 const getPageTitle = (page, opts = {}) => {
 	const titles = {
-		timeline: () =>
-			unreadNotifications > 0 || unreadDMs > 0
-				? `(${unreadNotifications + unreadDMs}) tweetapus`
-				: "tweetapus",
+		timeline: () => "tweetapus",
 		tweet: () => (opts?.title ? `${opts.title} // tweetapus` : "tweetapus"),
 		profile: () => (opts?.title ? `${opts.title} // tweetapus` : "tweetapus"),
-		notifications: () =>
-			unreadNotifications > 0
-				? `(${unreadNotifications}) notifications // tweetapus`
-				: "notifications // tweetapus",
+		notifications: () => "notifications // tweetapus",
 		search: () => "search // tweetapus",
 		bookmarks: () => "bookmarks // tweetapus",
-		"direct-messages": () =>
-			unreadDMs > 0
-				? `(${unreadDMs}) messages // tweetapus`
-				: "messages // tweetapus",
+		"direct-messages": () => "messages // tweetapus",
 		"dm-conversation": () =>
 			opts?.title ? `${opts.title} // tweetapus` : "messages // tweetapus",
 		communities: () => "communities // tweetapus",
 		"community-detail": () =>
 			opts?.title ? `${opts.title} // tweetapus` : "community // tweetapus",
-		pastes: () => "pastes // tweetapus",
 		settings: () => "settings // tweetapus",
 	};
 	return titles[page]?.() || "tweetapus";
 };
 
 export function updatePageTitle(page, opts = {}) {
+	if (unreadNotifications + unreadDMs) {
+		document.title = `(${unreadNotifications + unreadDMs}) ${getPageTitle(page, opts)}`;
+		return;
+	}
 	document.title = getPageTitle(page, opts);
 }
 

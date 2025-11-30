@@ -233,6 +233,15 @@ let timelineScrollPosition = 0;
 		});
 	}
 
+	const listsBtn = document.getElementById("listsBtn");
+	if (listsBtn) {
+		listsBtn.addEventListener("click", async () => {
+			const { openListsPage, initLists } = await import("./lists.js");
+			initLists();
+			openListsPage();
+		});
+	}
+
 	const handleUrlParams = () => {
 		const urlParams = new URLSearchParams(window.location.search);
 		const tweetId = urlParams.get("tweet");
@@ -329,32 +338,26 @@ addRoute(
 	},
 );
 
-addRoute(
-	(pathname) => pathname === "/pastes",
-	() => {
-		const api = window.tweetapus?.extensions?.pastes;
-		if (api && typeof api.openPastesPage === "function") {
-			api.openPastesPage();
-		}
+addRoute(	(pathname) => pathname === "/lists",
+	async () => {
+		const { openListsPage, initLists } = await import("./lists.js");
+		initLists();
+		openListsPage();
 	},
 );
 
 addRoute(
-	(pathname) => pathname.startsWith("/pastes/p/"),
-	(pathname) => {
-		const parts = pathname.split("/");
-		const slug = decodeURIComponent(parts[3]);
-		const params = new URLSearchParams(window.location.search);
-		const secret = params.get("secret") || "";
-		const api = window.tweetapus?.extensions?.pastes;
-		if (api && typeof api.openPasteView === "function") {
-			api.openPasteView(slug, secret);
-		}
+	(pathname) =>
+		pathname.startsWith("/lists/") && pathname.split("/").length === 3,
+	async (pathname) => {
+		const listId = pathname.split("/")[2];
+		const { openListDetail, initLists } = await import("./lists.js");
+		initLists();
+		openListDetail(listId);
 	},
 );
 
-addRoute(
-	(pathname) => pathname.startsWith("/@"),
+addRoute(	(pathname) => pathname.startsWith("/@"),
 	(pathname) => {
 		const username = pathname.slice(2);
 
