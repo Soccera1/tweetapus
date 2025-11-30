@@ -672,9 +672,8 @@ async function showMembersTab() {
 	const content = document.getElementById("membersContent");
 	if (!content) return;
 
-	const { createFollowerSkeleton, removeSkeletons, showSkeletons } = await import(
-		"../../shared/skeleton-utils.js"
-	);
+	const { createFollowerSkeleton, removeSkeletons, showSkeletons } =
+		await import("../../shared/skeleton-utils.js");
 
 	content.innerHTML = "";
 	const skeletons = showSkeletons(content, createFollowerSkeleton, 5);
@@ -847,9 +846,8 @@ async function showRequestsTab() {
 	const content = document.getElementById("requestsContent");
 	if (!content) return;
 
-	const { createFollowerSkeleton, removeSkeletons, showSkeletons } = await import(
-		"../../shared/skeleton-utils.js"
-	);
+	const { createFollowerSkeleton, removeSkeletons, showSkeletons } =
+		await import("../../shared/skeleton-utils.js");
 
 	content.innerHTML = "";
 	const skeletons = showSkeletons(content, createFollowerSkeleton, 3);

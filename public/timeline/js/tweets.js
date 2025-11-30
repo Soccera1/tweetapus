@@ -626,8 +626,12 @@ async function showInteractionsModal(tweetId, initialTab = "likes") {
 	const { observeTabContainer, updateTabIndicator } = await import(
 		"../../shared/tab-indicator.js"
 	);
-	const { createTweetSkeleton, createUserSkeleton, removeSkeletons, showSkeletons } =
-		await import("../../shared/skeleton-utils.js");
+	const {
+		createTweetSkeleton,
+		createUserSkeleton,
+		removeSkeletons,
+		showSkeletons,
+	} = await import("../../shared/skeleton-utils.js");
 
 	const modalContent = document.createElement("div");
 	modalContent.className = "interactions-modal-content";

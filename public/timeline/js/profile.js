@@ -447,7 +447,7 @@ const renderMediaGrid = async (posts) => {
 
 			mediaItem.addEventListener("click", async () => {
 				const { default: openTweet } = await import("./tweet.js");
-				openTweet(post.id);
+				openTweet(post);
 			});
 
 			container.appendChild(mediaItem);
@@ -621,7 +621,7 @@ const loadMoreMedia = async () => {
 
 			mediaItem.addEventListener("click", async () => {
 				const { default: openTweet } = await import("./tweet.js");
-				openTweet(post.id);
+				openTweet(post);
 			});
 
 			container.appendChild(mediaItem);
