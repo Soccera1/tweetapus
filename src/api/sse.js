@@ -111,8 +111,7 @@ cleanupExpiredMessages();
 export default new Elysia({ name: "sse" }).get(
 	"/api/sse",
 	async ({ jwt, query, set, cookie }) => {
-		const token =
-			query?.token || cookie?.__TWEETAPUS_SECRET_SSE_TOKEN__?.value;
+		const token = query?.token || cookie?.__TWEETAPUS_SECRET_SSE_TOKEN__?.value;
 
 		if (!token) {
 			set.status = 401;
@@ -162,8 +161,7 @@ export default new Elysia({ name: "sse" }).get(
 					try {
 						controller.enqueue(`:ping\n\n`);
 					} catch {
-						if (streamClient?.keepAlive)
-							clearInterval(streamClient.keepAlive);
+						if (streamClient?.keepAlive) clearInterval(streamClient.keepAlive);
 						const clients = sseConnections.get(userId);
 						if (clients) {
 							clients.delete(streamClient);

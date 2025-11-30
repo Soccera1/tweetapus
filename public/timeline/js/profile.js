@@ -2535,19 +2535,21 @@ document.querySelector(".back-button").addEventListener("click", (e) => {
 	history.back();
 });
 
-document.querySelectorAll(".profile-tab-btn").forEach((btn) => {
-	btn.addEventListener("click", () => {
-		document.querySelectorAll(".profile-tab-btn").forEach((b) => {
-			b.classList.remove("active");
+window.addEventListener("DOMContentLoaded", () => {
+	document.querySelectorAll(".profile-tab-btn").forEach((btn) => {
+		btn.addEventListener("click", () => {
+			document.querySelectorAll(".profile-tab-btn").forEach((b) => {
+				b.classList.remove("active");
+			});
+			btn.classList.add("active");
+
+			const tabContainer = document.querySelector(".profile-tab-nav");
+			if (tabContainer) {
+				updateTabIndicator(tabContainer, btn);
+			}
+
+			switchTab(btn.dataset.tab);
 		});
-		btn.classList.add("active");
-
-		const tabContainer = document.querySelector(".profile-tab-nav");
-		if (tabContainer) {
-			updateTabIndicator(tabContainer, btn);
-		}
-
-		switchTab(btn.dataset.tab);
 	});
 });
 document
