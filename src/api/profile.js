@@ -1872,13 +1872,18 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 			}
 
 			const { newUsername } = body;
-			if (!newUsername || newUsername.length < 3 || newUsername.length > 20) {
-				return { error: "Username must be between 3 and 20 characters" };
+			if (!newUsername) {
+				return { error: "Username is required" };
 			}
 
-			if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+			if (newUsername.length > 40) {
+				return { error: "Username must be less than 40 characters" };
+			}
+
+			if (!/^[a-zA-Z0-9._-]+$/.test(newUsername)) {
 				return {
-					error: "Username can only contain letters, numbers, and underscores",
+					error:
+						"Username can only contain lowercase letters, numbers, periods, and hyphens",
 				};
 			}
 

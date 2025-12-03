@@ -27,22 +27,6 @@ const dmEmojiMap = {};
 	} catch (_err) {}
 })();
 
-function renderReactionEmojiHtml(emoji) {
-	if (typeof emoji === "string") {
-		const m = emoji.match(/^:([a-zA-Z0-9_+-]+):$/);
-		if (m) {
-			const name = m[1];
-			const url = dmEmojiMap[name];
-			if (url) {
-				const safeUrl = encodeURI(url);
-				const safeAlt = sanitizeHTML(emoji);
-				return `<img src="${safeUrl}" alt="${safeAlt}" class="inline-emoji" width="20" height="20" loading="lazy"/>`;
-			}
-		}
-	}
-	return sanitizeHTML(emoji);
-}
-
 function sanitizeHTML(str) {
 	const div = document.createElement("div");
 	div.textContent = str;
@@ -736,80 +720,50 @@ function renderConversationHeader() {
 	);
 	const isGroup = currentConversation.type === "group";
 
-	const newAvatarsHTML =
-		isGroup && participants.length > 3
-			? `${participants
-					.slice(0, 3)
-					.map((p) => {
-						const radius =
-							p.avatar_radius !== null && p.avatar_radius !== undefined
-								? `${p.avatar_radius}px`
-								: p.gold
-									? `4px`
-									: `50px`;
-						return `<img src="${
-							p.avatar || "/public/shared/assets/default-avatar.svg"
-						}" alt="${
-							p.name || p.username
-						}" style="border-radius: ${radius};" />`;
-					})
-					.join("")}<div class="avatar-more">+${participants.length - 3}</div>`
-			: participants
-					.map((p) => {
-						const radius =
-							p.avatar_radius !== null && p.avatar_radius !== undefined
-								? `${p.avatar_radius}px`
-								: p.gold
-									? `4px`
-									: `50px`;
-						return `<img src="${
-							p.avatar || "/public/shared/assets/default-avatar.svg"
-						}" alt="${p.name || p.username}" style="border-radius: ${radius};" />`;
-					})
-					.join("");
-
-	if (avatarsElement.innerHTML !== newAvatarsHTML) {
-		avatarsElement.innerHTML = newAvatarsHTML;
+	avatarsElement.innerHTML = "";
+	const visibleParticipants = isGroup ? participants.slice(0, 3) : participants;
+	for (const p of visibleParticipants) {
+		const radius =
+			p.avatar_radius !== null && p.avatar_radius !== undefined
+				? `${p.avatar_radius}px`
+				: p.gold
+					? `4px`
+					: `50px`;
+		const img = document.createElement("img");
+		img.src = p.avatar || "/public/shared/assets/default-avatar.svg";
+		img.alt = p.name || p.username;
+		img.style.borderRadius = radius;
+		avatarsElement.appendChild(img);
+	}
+	if (isGroup && participants.length > 3) {
+		const more = document.createElement("div");
+		more.className = "avatar-more";
+		more.textContent = `+${participants.length - 3}`;
+		avatarsElement.appendChild(more);
 	}
 
 	if (isGroup) {
-		const newTitle = currentConversation.title || "Group Chat";
-		const newCount = `${participants.length + 1} participants`;
-		if (titleElement.textContent !== newTitle) {
-			titleElement.textContent = newTitle;
-		}
-		if (countElement.textContent !== newCount) {
-			countElement.textContent = newCount;
-		}
-
-		if (actionsElement) {
-			const newActions = `<button class="dm-action-btn" onclick="openGroupSettings()" title="Group Settings">⚙️</button>`;
-			if (actionsElement.innerHTML !== newActions) {
-				actionsElement.innerHTML = newActions;
-			}
-		}
+		titleElement.textContent = currentConversation.title || "Group Chat";
+		countElement.textContent = `${participants.length + 1} participants`;
+	} else if (participants.length === 1) {
+		titleElement.textContent = participants[0].name || participants[0].username;
+		countElement.textContent = `@${participants[0].username}`;
 	} else {
-		let newTitle, newCount;
-		if (participants.length === 1) {
-			newTitle = participants[0].name || participants[0].username;
-			newCount = `@${participants[0].username}`;
-		} else {
-			newTitle = "Direct Message";
-			newCount = "1-on-1 chat";
-		}
-		if (titleElement.textContent !== newTitle) {
-			titleElement.textContent = newTitle;
-		}
-		if (countElement.textContent !== newCount) {
-			countElement.textContent = newCount;
-		}
+		titleElement.textContent = "Direct Message";
+		countElement.textContent = "1-on-1 chat";
+	}
 
-		if (actionsElement) {
-			const newActions = `<button class="dm-action-btn" onclick="openDirectSettings()" title="Conversation Settings">⚙️</button>`;
-			if (actionsElement.innerHTML !== newActions) {
-				actionsElement.innerHTML = newActions;
-			}
-		}
+	if (actionsElement) {
+		actionsElement.innerHTML = "";
+		const settingsBtn = document.createElement("button");
+		settingsBtn.className = "dm-action-btn";
+		settingsBtn.title = isGroup ? "Group Settings" : "Conversation Settings";
+		settingsBtn.textContent = "⚙️";
+		settingsBtn.addEventListener(
+			"click",
+			isGroup ? openGroupSettings : openDirectSettings,
+		);
+		actionsElement.appendChild(settingsBtn);
 	}
 }
 
@@ -818,29 +772,38 @@ function renderMessages() {
 	if (!messagesElement || !currentMessages) return;
 
 	const currentUser = getCurrentUsername();
+	const existingMessages = new Map();
 
-	messagesElement.innerHTML = currentMessages
-		.map((message) => createMessageElement(message, currentUser))
-		.join("");
+	for (const el of messagesElement.querySelectorAll(".dm-message")) {
+		const id = el.dataset.messageId;
+		if (id) existingMessages.set(id, el);
+	}
 
-	setupAttachmentClickHandlers();
-}
+	const messageIds = new Set(currentMessages.map((m) => m.id));
 
-function setupAttachmentClickHandlers() {
-	const messagesElement = document.getElementById("dmMessages");
-	if (!messagesElement) return;
+	for (const [id, el] of existingMessages) {
+		if (!messageIds.has(id)) {
+			el.remove();
+		}
+	}
 
-	messagesElement.querySelectorAll(".dm-attachment-img").forEach((img) => {
-		img.addEventListener("click", (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-			const url = img.dataset.url;
-			const name = img.dataset.name;
-			if (url) {
-				openImageFullscreen(url, name);
-			}
-		});
-	});
+	let lastElement = null;
+	for (const message of currentMessages) {
+		let messageEl = existingMessages.get(message.id);
+
+		if (messageEl) {
+			updateMessageElement(messageEl, message, currentUser);
+		} else {
+			messageEl = createMessageElement(message, currentUser);
+		}
+
+		if (lastElement) {
+			lastElement.after(messageEl);
+		} else if (messagesElement.firstChild !== messageEl) {
+			messagesElement.prepend(messageEl);
+		}
+		lastElement = messageEl;
+	}
 }
 
 function createMessageElement(message, currentUser) {
@@ -855,127 +818,194 @@ function createMessageElement(message, currentUser) {
 	const time = formatTime(new Date(message.created_at));
 	const sanitizedContent = sanitizeHTML(message.content || "");
 	const sanitizedName = sanitizeHTML(message.name || message.username);
-	const editedIndicator = message.edited_at
-		? ' <span style="color: var(--text-secondary); font-size: 11px; font-style: italic;">(edited)</span>'
-		: "";
 
-	const expiresIndicator = message.expires_at
-		? ` <span class="dm-expires-indicator" data-expires="${message.expires_at}" title="This message will disappear">⏱️</span>`
-		: "";
+	const el = document.createElement("div");
+	el.className = `dm-message${isOwn ? " own" : ""}`;
+	el.dataset.messageId = message.id;
 
-	const attachmentsHtml =
-		message.attachments?.length > 0
-			? `
-    <div class="dm-message-attachments">
-      ${message.attachments
-				.map(
-					(att) => `
-        <img src="${sanitizeHTML(att.file_url)}" alt="${sanitizeHTML(
-					att.file_name,
-				)}" data-url="${sanitizeHTML(att.file_url)}" data-name="${sanitizeHTML(
-					att.file_name,
-				)}" class="dm-attachment-img" />
-      `,
-				)
-				.join("")}
-    </div>
-  `
-			: "";
+	const avatarImg = document.createElement("img");
+	avatarImg.src = avatar;
+	avatarImg.alt = sanitizedName;
+	avatarImg.className = "dm-message-avatar";
+	avatarImg.style.borderRadius = radius;
+	el.appendChild(avatarImg);
 
-	const replyHtml = message.reply_to_message
-		? `
-    <div class="dm-reply-preview">
-      <div class="dm-reply-line"></div>
-      <div class="dm-reply-content">
-        <span class="dm-reply-author">${sanitizeHTML(
-					message.reply_to_message.name || message.reply_to_message.username,
-				)}</span>
-        <span class="dm-reply-text">${sanitizeHTML(
-					(message.reply_to_message.content || "").substring(0, 50),
-				)}${message.reply_to_message.content?.length > 50 ? "..." : ""}</span>
-      </div>
-    </div>
-  `
-		: "";
+	const wrapper = document.createElement("div");
+	wrapper.className = "dm-message-wrapper";
 
-	const reactionsHtml =
-		message.reactions?.length > 0
-			? `
-    <div class="dm-reactions">
-      ${message.reactions
-				.map((reaction) => {
-					const hasReacted = message.user_reacted?.includes(reaction.emoji);
-					const emojiForOnclick = (reaction.emoji || "").replaceAll("'", "\\'");
-					const titleText = sanitizeHTML(
-						(reaction.names || []).join(", ") || "",
-					);
-					const emojiHtml = renderReactionEmojiHtml(reaction.emoji);
-					return `
-        <button class="dm-reaction ${hasReacted ? "reacted" : ""}" 
-                onclick="toggleReaction('${message.id}', '${emojiForOnclick}')" 
-                title="${titleText}">
-          <span class="dm-reaction-emoji">${emojiHtml}</span>
-          <span class="dm-reaction-count">${reaction.count}</span>
-        </button>
-      `;
-				})
-				.join("")}
-      <button class="dm-add-reaction" onclick="showReactionPicker('${
-				message.id
-			}')" title="Add reaction">
-        <span>+</span>
-      </button>
-    </div>
-  `
-			: `
-    <div class="dm-reactions">
-      <button class="dm-add-reaction" onclick="showReactionPicker('${message.id}')" title="Add reaction">
-        <span>+</span>
-      </button>
-    </div>
-  `;
+	if (message.reply_to_message) {
+		const replyPreview = document.createElement("div");
+		replyPreview.className = "dm-reply-preview";
+		const replyAuthor = document.createElement("span");
+		replyAuthor.className = "dm-reply-author";
+		replyAuthor.textContent =
+			message.reply_to_message.name || message.reply_to_message.username;
+		const replyText = document.createElement("span");
+		replyText.className = "dm-reply-text";
+		const replyContent = message.reply_to_message.content || "";
+		replyText.textContent =
+			replyContent.length > 50
+				? `${replyContent.substring(0, 50)}...`
+				: replyContent;
+		replyPreview.appendChild(replyAuthor);
+		replyPreview.appendChild(replyText);
+		wrapper.appendChild(replyPreview);
+	}
 
-	return `
-		<div class="dm-message ${isOwn ? "own" : ""}" data-message-id="${message.id}">
-			<img src="${avatar}" alt="${sanitizedName}" class="dm-message-avatar" style="border-radius: ${radius};" />
-			<div class="dm-message-wrapper">
-				<div class="dm-message-content">
-					${replyHtml}
-					${sanitizedContent ? `<p class="dm-message-text">${sanitizedContent}</p>` : ""}
-					${attachmentsHtml}
-				</div>
-				${reactionsHtml}
-				<div class="dm-message-actions">
-					<button class="dm-message-action-btn" onclick="replyToMessage('${
-						message.id
-					}', '${sanitizedName}', '${sanitizedContent
-						.substring(0, 50)
-						.replaceAll("'", "\\'")
-						.replaceAll('"', "&quot;")}')" title="Reply">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/>
-						</svg>
-					</button>
-					${
-						isOwn
-							? `<button class="dm-message-action-btn" onclick="editMessage('${message.id}')" title="Edit">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-							<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-						</svg>
-					</button>
-					<button class="dm-message-action-btn dm-delete-btn" onclick="deleteMessage('${message.id}')" title="Delete">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-						</svg>
-					</button>`
-							: ""
-					}
-					<span class="dm-message-time">${time}${editedIndicator}${expiresIndicator}</span>
-				</div>
-			</div>
-		</div>
-	`;
+	const content = document.createElement("div");
+	content.className = "dm-message-content";
+
+	if (sanitizedContent) {
+		const bubble = document.createElement("div");
+		bubble.className = "dm-message-bubble";
+		bubble.textContent = message.content || "";
+		content.appendChild(bubble);
+	}
+
+	if (message.attachments?.length > 0) {
+		const attachments = document.createElement("div");
+		attachments.className = "dm-message-attachments";
+		for (const att of message.attachments) {
+			const img = document.createElement("img");
+			img.src = att.file_url;
+			img.alt = att.file_name;
+			img.dataset.url = att.file_url;
+			img.dataset.name = att.file_name;
+			img.className = "dm-attachment-img";
+			img.addEventListener("click", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				openImageFullscreen(att.file_url, att.file_name);
+			});
+			attachments.appendChild(img);
+		}
+		content.appendChild(attachments);
+	}
+
+	const reactions = createReactionsElement(message);
+	content.appendChild(reactions);
+
+	wrapper.appendChild(content);
+
+	const footer = document.createElement("div");
+	footer.className = "dm-message-footer";
+
+	const timeSpan = document.createElement("span");
+	timeSpan.className = "dm-message-time";
+	timeSpan.textContent = time;
+	if (message.edited_at) {
+		timeSpan.textContent += " (edited)";
+	}
+	footer.appendChild(timeSpan);
+
+	const actions = document.createElement("div");
+	actions.className = "dm-message-actions";
+
+	const replyBtn = document.createElement("button");
+	replyBtn.className = "dm-message-action-btn";
+	replyBtn.title = "Reply";
+	replyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h10a5 5 0 0 1 5 5v6"/><path d="m3 10 5 5"/><path d="m3 10 5-5"/></svg>`;
+	replyBtn.addEventListener("click", () => {
+		replyToMessage(
+			message.id,
+			sanitizedName,
+			sanitizedContent.substring(0, 50),
+		);
+	});
+	actions.appendChild(replyBtn);
+
+	if (isOwn) {
+		const editBtn = document.createElement("button");
+		editBtn.className = "dm-message-action-btn";
+		editBtn.title = "Edit";
+		editBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+		editBtn.addEventListener("click", () => editMessage(message.id));
+		actions.appendChild(editBtn);
+
+		const deleteBtn = document.createElement("button");
+		deleteBtn.className = "dm-message-action-btn dm-delete-btn";
+		deleteBtn.title = "Delete";
+		deleteBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+		deleteBtn.addEventListener("click", () => deleteMessage(message.id));
+		actions.appendChild(deleteBtn);
+	}
+
+	footer.appendChild(actions);
+	wrapper.appendChild(footer);
+	el.appendChild(wrapper);
+
+	return el;
+}
+
+function createReactionsElement(message) {
+	const container = document.createElement("div");
+	container.className = "dm-reactions";
+
+	if (message.reactions?.length > 0) {
+		for (const reaction of message.reactions) {
+			const hasReacted = message.user_reacted?.includes(reaction.emoji);
+			const btn = document.createElement("button");
+			btn.className = `dm-reaction${hasReacted ? " reacted" : ""}`;
+			btn.title = (reaction.names || []).join(", ");
+
+			const emojiSpan = document.createElement("span");
+			emojiSpan.className = "dm-reaction-emoji";
+			const m = reaction.emoji.match(/^:([a-zA-Z0-9_+-]+):$/);
+			if (m && dmEmojiMap[m[1]]) {
+				const img = document.createElement("img");
+				img.src = dmEmojiMap[m[1]];
+				img.alt = reaction.emoji;
+				img.className = "inline-emoji";
+				img.width = 16;
+				img.height = 16;
+				emojiSpan.appendChild(img);
+			} else {
+				emojiSpan.textContent = reaction.emoji;
+			}
+			btn.appendChild(emojiSpan);
+
+			const countSpan = document.createElement("span");
+			countSpan.className = "dm-reaction-count";
+			countSpan.textContent = reaction.count;
+			btn.appendChild(countSpan);
+
+			btn.addEventListener("click", () =>
+				toggleReaction(message.id, reaction.emoji),
+			);
+			container.appendChild(btn);
+		}
+	}
+
+	const addBtn = document.createElement("button");
+	addBtn.className = "dm-add-reaction";
+	addBtn.title = "Add reaction";
+	addBtn.textContent = "+";
+	addBtn.addEventListener("click", () => showReactionPicker(message.id));
+	container.appendChild(addBtn);
+
+	return container;
+}
+
+function updateMessageElement(el, message, currentUser) {
+	const isOwn = message.username === currentUser;
+	el.className = `dm-message${isOwn ? " own" : ""}`;
+
+	const bubble = el.querySelector(".dm-message-bubble");
+	if (bubble && message.content) {
+		bubble.textContent = message.content;
+	}
+
+	const timeSpan = el.querySelector(".dm-message-time");
+	if (timeSpan) {
+		const time = formatTime(new Date(message.created_at));
+		timeSpan.textContent = message.edited_at ? `${time} (edited)` : time;
+	}
+
+	const oldReactions = el.querySelector(".dm-reactions");
+	if (oldReactions) {
+		const newReactions = createReactionsElement(message);
+		oldReactions.replaceWith(newReactions);
+	}
 }
 
 async function sendMessage() {
@@ -2309,41 +2339,43 @@ function cancelReply() {
 }
 
 function renderReplyPreview() {
-	const composerElement = document.querySelector(".dm-composer");
-	if (!composerElement) return;
-
-	let replyPreviewEl = document.getElementById("dmReplyPreview");
+	const replyPreviewEl = document.getElementById("dmReplyPreview");
+	if (!replyPreviewEl) return;
 
 	if (!replyingTo) {
-		if (replyPreviewEl) {
-			replyPreviewEl.remove();
-		}
+		replyPreviewEl.classList.remove("active");
+		replyPreviewEl.innerHTML = "";
 		return;
 	}
 
-	if (!replyPreviewEl) {
-		replyPreviewEl = document.createElement("div");
-		replyPreviewEl.id = "dmReplyPreview";
-		replyPreviewEl.className = "dm-reply-preview-composer";
-		composerElement.insertBefore(replyPreviewEl, composerElement.firstChild);
-	}
+	replyPreviewEl.classList.add("active");
+	replyPreviewEl.innerHTML = "";
 
-	replyPreviewEl.innerHTML = `
-    <div class="dm-reply-preview-line"></div>
-    <div class="dm-reply-preview-content">
-      <span class="dm-reply-preview-label">Replying to ${sanitizeHTML(
-				replyingTo.authorName,
-			)}</span>
-      <span class="dm-reply-preview-text">${sanitizeHTML(
-				replyingTo.messagePreview,
-			)}</span>
-    </div>
-    <button class="dm-reply-preview-cancel" onclick="cancelReply()" type="button">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M18 6L6 18M6 6l12 12"/>
-      </svg>
-    </button>
-  `;
+	const line = document.createElement("div");
+	line.className = "dm-reply-preview-line";
+	replyPreviewEl.appendChild(line);
+
+	const content = document.createElement("div");
+	content.className = "dm-reply-preview-content";
+
+	const label = document.createElement("span");
+	label.className = "dm-reply-preview-label";
+	label.textContent = `Replying to ${replyingTo.authorName}`;
+	content.appendChild(label);
+
+	const text = document.createElement("span");
+	text.className = "dm-reply-preview-text";
+	text.textContent = replyingTo.messagePreview;
+	content.appendChild(text);
+
+	replyPreviewEl.appendChild(content);
+
+	const cancelBtn = document.createElement("button");
+	cancelBtn.className = "dm-reply-preview-cancel";
+	cancelBtn.type = "button";
+	cancelBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+	cancelBtn.addEventListener("click", cancelReply);
+	replyPreviewEl.appendChild(cancelBtn);
 }
 
 window.toggleReaction = toggleReaction;
