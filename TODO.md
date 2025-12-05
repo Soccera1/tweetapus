@@ -2,8 +2,9 @@
 - automated spam/nsfw detection using openapi or perspective api
 - onboarding
 
-- fix not being able to upload 2 unsplash images in a single tweet
-- autodisplay thread replies
+- fix not being able to upload 2 unsplash images in a single tweet <-- doing
+- show tweet images in notifications <-- doing
+- autodisplay thread replies when author replied to a reply
 - replies algo (author replied first, following and most liked/replied/retweeted after)
 - pull to refresh on timeline and notifications
 - preload autor name, PFP and username on profile page from tweet click

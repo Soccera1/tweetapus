@@ -902,9 +902,6 @@ export const useComposer = (
 						previewEl.className = "attachment-preview-item";
 						previewEl.innerHTML = `
 							<img src="${img.thumb}" alt="Selected Image" />
-							<div class="unsplash-attribution-badge">
-								Photo by ${img.user.name} on Unsplash
-							</div>
 							<button type="button" class="remove-attachment">×</button>
 						`;
 
