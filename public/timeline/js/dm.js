@@ -2066,6 +2066,100 @@ document.addEventListener("DOMContentLoaded", () => {
 	dmSendBtn?.addEventListener("click", sendMessage);
 	dmAttachmentBtn?.addEventListener("click", () => dmFileInput?.click());
 
+	const dmGifBtn = document.getElementById("dmGifBtn");
+	const dmGifPicker = document.getElementById("dmGifPicker");
+	const dmGifSearchInput = document.getElementById("dmGifSearchInput");
+	const dmGifResults = document.getElementById("dmGifResults");
+	const dmGifPickerClose = document.getElementById("dmGifPickerClose");
+	let gifSearchTimeout;
+
+	dmGifBtn?.addEventListener("click", () => {
+		if (pendingFiles.length > 0) {
+			toastQueue.add("Remove uploaded files first to select a GIF");
+			return;
+		}
+		const isVisible = dmGifPicker.style.display === "block";
+		dmGifPicker.style.display = isVisible ? "none" : "block";
+		if (!isVisible) {
+			dmGifSearchInput.focus();
+		}
+	});
+
+	dmGifPickerClose?.addEventListener("click", () => {
+		dmGifPicker.style.display = "none";
+	});
+
+	dmGifSearchInput?.addEventListener("input", (e) => {
+		clearTimeout(gifSearchTimeout);
+		gifSearchTimeout = setTimeout(() => {
+			searchDMGifs(e.target.value);
+		}, 500);
+	});
+
+	async function searchDMGifs(q) {
+		if (!q || q.trim().length === 0) {
+			dmGifResults.innerHTML = "";
+			return;
+		}
+
+		dmGifResults.innerHTML = `
+			<div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+				<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><style>.spinner_z9k8 {transform-origin: center;animation: spinner_StKS 0.75s infinite linear;}@keyframes spinner_StKS {100% {transform: rotate(360deg);}}</style><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25" fill="currentColor"></path><path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z" class="spinner_z9k8" fill="currentColor"></path></svg>
+			</div>
+		`;
+
+		try {
+			const { results, error } = await query(`/tenor/search?q=${encodeURIComponent(q)}&limit=12`);
+
+			if (error || !results || results.length === 0) {
+				dmGifResults.innerHTML = `
+					<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary);">
+						<p>${error ? "Failed to load GIFs" : "No GIFs found"}</p>
+					</div>
+				`;
+				return;
+			}
+
+			dmGifResults.innerHTML = "";
+			for (const gif of results) {
+				const gifUrl = gif.media_formats?.tinygif?.url || gif.media_formats?.gif?.url;
+				const previewUrl = gif.media_formats?.tinygif?.url || gif.media_formats?.nanogif?.url;
+
+				const gifEl = document.createElement("div");
+				gifEl.className = "dm-gif-item";
+				const img = document.createElement("img");
+				img.src = previewUrl;
+				img.alt = gif.content_description || "GIF";
+				img.loading = "lazy";
+				gifEl.appendChild(img);
+
+				gifEl.addEventListener("click", () => {
+					pendingFiles = [];
+					pendingFiles.push({
+						hash: null,
+						name: "gif",
+						type: "image/gif",
+						size: 0,
+						url: gifUrl,
+					});
+					renderAttachmentPreviews();
+					updateSendButton();
+					dmGifPicker.style.display = "none";
+					dmGifSearchInput.value = "";
+				});
+
+				dmGifResults.appendChild(gifEl);
+			}
+		} catch (error) {
+			console.error("GIF search error:", error);
+			dmGifResults.innerHTML = `
+				<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary);">
+					<p>Failed to load GIFs</p>
+				</div>
+			`;
+		}
+	}
+
 	groupSettingsModalClose?.addEventListener("click", closeGroupSettings);
 	cancelGroupSettings?.addEventListener("click", closeGroupSettings);
 	saveGroupSettingsBtn?.addEventListener("click", saveGroupSettings);

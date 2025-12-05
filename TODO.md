@@ -1,6 +1,5 @@
 - better settings, and fixing settings ui
 - automated spam/nsfw detection using openapi or perspective api
-- onboarding
 
 - dm gifs
 - autodisplay thread replies when author replied to a reply
@@ -10,7 +9,7 @@
 
 **other things:**
 
-- personalized algorithm
+- personalized algorithm + onboarding
 - installation cli guide
 
 - finish proper rate-limiting
@@ -18,7 +17,6 @@
 
 - tweetapus circles like twiter circle
 
-- nicer animations, such as when navigating between tweets and threads
 - look into all XSS and similar vulnerabitilies
 - optimize client and server
 
