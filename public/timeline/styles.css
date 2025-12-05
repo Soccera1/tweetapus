@@ -5483,8 +5483,8 @@ nav {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background-color: var(--bg-tertiary);
-    border: 2px solid var(--bg-primary);
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-primary);
     margin-left: -8px;
     display: flex;
     align-items: center;

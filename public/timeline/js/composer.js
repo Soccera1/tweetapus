@@ -61,7 +61,7 @@ export const useComposer = (
 	let pendingFiles = [];
 	let replyRestriction = "everyone";
 	let selectedGif = null;
-	let selectedUnsplashImage = null;
+	let selectedUnsplashImages = [];
 	let scheduledFor = null;
 
 	const CIRCLE_CIRCUMFERENCE = 87.96;
@@ -92,7 +92,7 @@ export const useComposer = (
 			const hasExtras =
 				(pendingFiles && pendingFiles.length > 0) ||
 				!!selectedGif ||
-				!!selectedUnsplashImage ||
+				selectedUnsplashImages.length > 0 ||
 				pollEnabled ||
 				!!interactiveCard ||
 				!!article;
@@ -104,7 +104,7 @@ export const useComposer = (
 			const hasExtras =
 				(pendingFiles && pendingFiles.length > 0) ||
 				!!selectedGif ||
-				!!selectedUnsplashImage ||
+				selectedUnsplashImages.length > 0 ||
 				pollEnabled ||
 				!!interactiveCard ||
 				!!article;
@@ -369,7 +369,7 @@ export const useComposer = (
 				);
 				return;
 			}
-			if (selectedGif || selectedUnsplashImage) {
+			if (selectedGif || selectedUnsplashImages.length > 0) {
 				toastQueue.add(
 					`<h1>Cannot add files</h1><p>Remove the GIF or Photo first to upload files</p>`,
 				);
@@ -386,7 +386,7 @@ export const useComposer = (
 				e.target.value = "";
 				return;
 			}
-			if (selectedGif || selectedUnsplashImage) {
+			if (selectedGif || selectedUnsplashImages.length > 0) {
 				toastQueue.add(
 					`<h1>Cannot add files</h1><p>Remove the GIF or Photo first to upload files</p>`,
 				);
@@ -689,7 +689,7 @@ export const useComposer = (
 				);
 				return;
 			}
-			if (pendingFiles.length > 0 || selectedUnsplashImage) {
+			if (pendingFiles.length > 0 || selectedUnsplashImages.length > 0) {
 				toastQueue.add(
 					`<h1>Cannot add GIF</h1><p>Remove uploaded files or Photo first to select a GIF</p>`,
 				);
@@ -821,6 +821,12 @@ export const useComposer = (
 			if (pendingFiles.length > 0 || selectedGif) {
 				toastQueue.add(
 					`<h1>Cannot add Photo</h1><p>Remove uploaded files or GIF first to select a Photo</p>`,
+				);
+				return;
+			}
+			if (selectedUnsplashImages.length >= 4) {
+				toastQueue.add(
+					`<h1>Maximum images reached</h1><p>You can only add up to 4 photos</p>`,
 				);
 				return;
 			}
