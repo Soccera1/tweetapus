@@ -45,7 +45,7 @@ const getUserByUsername = db.prepare(
 );
 
 const getUserCustomBadges = db.prepare(`
-  SELECT cb.id, cb.name, cb.svg_content, cb.image_url, cb.color, cb.description
+	SELECT cb.id, cb.name, cb.svg_content, cb.image_url, cb.color, cb.action_type, cb.action_value, cb.description
   FROM user_custom_badges ucb
   JOIN custom_badges cb ON ucb.badge_id = cb.id
   WHERE ucb.user_id = ?

@@ -207,6 +207,36 @@ const getTweetAttachments = (tweetId) => {
 	return getAttachmentsByPostId.all(tweetId);
 };
 
+const getBadgesForUsers = (userIds) => {
+	if (!userIds || userIds.length === 0) return new Map();
+	const uniqueIds = [...new Set(userIds.filter(Boolean))];
+	if (uniqueIds.length === 0) return new Map();
+	const placeholders = uniqueIds.map(() => "?").join(",");
+	const stmt = db.query(
+		`SELECT ucb.user_id, cb.id, cb.name, cb.svg_content, cb.image_url, cb.color, cb.action_type, cb.action_value, cb.description
+		FROM user_custom_badges ucb
+		JOIN custom_badges cb ON ucb.badge_id = cb.id
+		WHERE ucb.user_id IN (${placeholders})
+		ORDER BY ucb.granted_at ASC`,
+	);
+	const rows = stmt.all(...uniqueIds);
+	const map = new Map();
+	for (const row of rows) {
+		if (!map.has(row.user_id)) map.set(row.user_id, []);
+		map.get(row.user_id).push({
+			id: row.id,
+			name: row.name,
+			svg_content: row.svg_content,
+			image_url: row.image_url,
+			color: row.color,
+			action_type: row.action_type || "none",
+			action_value: row.action_value,
+			description: row.description,
+		});
+	}
+	return map;
+};
+
 const getCardByPostId = db.query(`
   SELECT * FROM interactive_cards WHERE post_id = ?
 `);
@@ -240,7 +270,7 @@ const getTimelinePostsByIds = (ids, userId, isAdmin) => {
 	return stmt.all(userId, userId, userId, isAdmin ? 1 : 0, userId, ...ids);
 };
 
-const getQuotedTweetData = (quoteTweetId, userId) => {
+const getQuotedTweetData = (quoteTweetId, userId, badgesMap = null) => {
 	if (!quoteTweetId) return null;
 
 	const quotedTweet = getQuotedTweet.get(quoteTweetId);
@@ -259,6 +289,10 @@ const getQuotedTweetData = (quoteTweetId, userId) => {
 		affiliate: quotedTweet.affiliate || false,
 		affiliate_with: quotedTweet.affiliate_with || null,
 	};
+
+	if (badgesMap?.has(quotedTweet.user_id)) {
+		author.custom_badges = badgesMap.get(quotedTweet.user_id);
+	}
 
 	if (author.affiliate && author.affiliate_with) {
 		const affiliateProfile = db
@@ -280,7 +314,12 @@ const getQuotedTweetData = (quoteTweetId, userId) => {
 	};
 };
 
-const getTopReplyData = (tweetId, userId, tweetAuthorId = null) => {
+const getTopReplyData = (
+	tweetId,
+	userId,
+	tweetAuthorId = null,
+	badgesMap = null,
+) => {
 	let topReply = null;
 	let authorReplied = false;
 	let authorReply = null;
@@ -320,6 +359,10 @@ const getTopReplyData = (tweetId, userId, tweetAuthorId = null) => {
 		affiliate_with: topReply.affiliate_with || null,
 	};
 
+	if (badgesMap?.has(topReply.user_id)) {
+		author.custom_badges = badgesMap.get(topReply.user_id);
+	}
+
 	if (author.affiliate && author.affiliate_with) {
 		const affiliateProfile = db
 			.query(
@@ -355,6 +398,9 @@ const getTopReplyData = (tweetId, userId, tweetAuthorId = null) => {
 			affiliate: authorReply.affiliate || false,
 			affiliate_with: authorReply.affiliate_with || null,
 		};
+		if (badgesMap?.has(authorReply.user_id)) {
+			arAuthor.custom_badges = badgesMap.get(authorReply.user_id);
+		}
 		if (arAuthor.affiliate && arAuthor.affiliate_with) {
 			const affiliateProfile = db
 				.query(
@@ -551,6 +597,8 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 			posts = posts.slice(0, limit);
 		}
 
+		const badgesMap = getBadgesForUsers(posts.map((p) => p.user_id));
+
 		const userBlocks = db
 			.query("SELECT blocked_id FROM blocks WHERE blocker_id = ?")
 			.all(user.id);
@@ -574,6 +622,17 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 				selected_community_tag: post.selected_community_tag || null,
 				blocked_by_user: blockedUserIds.has(post.user_id),
 			};
+
+			if (badgesMap.has(post.user_id)) {
+				author.custom_badges = badgesMap.get(post.user_id);
+			}
+
+			if (badgesMap.has(post.user_id)) {
+				author.custom_badges = badgesMap.get(post.user_id);
+			}
+			if (badgesMap.has(post.user_id)) {
+				author.custom_badges = badgesMap.get(post.user_id);
+			}
 
 			if (author.affiliate && author.affiliate_with) {
 				const affiliateProfile = db
@@ -708,7 +767,12 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 
 		const timeline = posts
 			.map((post) => {
-				const topReply = getTopReplyData(post.id, user.id, post.user_id);
+				const topReply = getTopReplyData(
+					post.id,
+					user.id,
+					post.user_id,
+					badgesMap,
+				);
 				const shouldShowTopReply =
 					topReply &&
 					(topReply.author_replied ||
@@ -736,7 +800,11 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 					reaction_count: countReactionsForPost.get(post.id)?.total || 0,
 					top_reactions: getTopReactionsForPost.all(post.id),
 					poll: getPollDataForTweet(post.id, user.id),
-					quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
+					quoted_tweet: getQuotedTweetData(
+						post.quote_tweet_id,
+						user.id,
+						badgesMap,
+					),
 					top_reply: shouldShowTopReply ? topReply : null,
 					attachments: getTweetAttachments(post.id),
 					article_preview: post.article_id
@@ -1022,7 +1090,7 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 
 		const timeline = posts
 			.map((post) => {
-				const topReply = getTopReplyData(post.id, user.id, post.user_id);
+				const topReply = getTopReplyData(post.id, user.id, post.user_id, badgesMap);
 				const shouldShowTopReply =
 					topReply &&
 					(topReply.author_replied ||
@@ -1050,7 +1118,7 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 					reaction_count: countReactionsForPost.get(post.id)?.total || 0,
 					top_reactions: getTopReactionsForPost.all(post.id),
 					poll: getPollDataForTweet(post.id, user.id),
-					quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id),
+					quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id, badgesMap),
 					top_reply: shouldShowTopReply ? topReply : null,
 					attachments: getTweetAttachments(post.id),
 					article_preview: post.article_id
