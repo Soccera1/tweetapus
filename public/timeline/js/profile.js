@@ -964,7 +964,7 @@ const renderProfile = (data) => {
 			bannerElement.style.height = "200px";
 		} else {
 			bannerElement.style.backgroundImage = "none";
-			bannerElement.style.height = "70px";
+			bannerElement.style.height = "58px";
 		}
 	}
 
@@ -1730,7 +1730,6 @@ function setupNotificationButton(username, initialNotifyState) {
 		const content = document.createElement("div");
 		content.style.cssText = `
       padding: 1.5rem;
-      max-width: 400px;
     `;
 
 		const title = document.createElement("h3");

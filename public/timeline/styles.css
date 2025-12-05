@@ -125,6 +125,40 @@ body {
   }
 }
 
+body:has(.tweet-share-wrapper) {
+  &::before {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    content: "Downloading tweet image…";
+    background-color: var(--bg-primary);
+    z-index: 99999998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgb(var(--text-primary));
+    margin-top: 50px;
+  }
+
+  &::after {
+    content: "";
+    position: fixed;
+    width: 26px;
+    height: 26px;
+    left: 0px;
+    top: calc(50vh - 38px);
+    right: 0px;
+    margin: 0px auto;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: rgb(var(--primary-rgb));
+    z-index: 99999999;
+    animation: spin 1s linear infinite;
+  }
+}
+
 .tweet-share-wrapper {
   position: fixed;
   top: 0px;
@@ -1758,7 +1792,7 @@ nav {
             display: inline-flex;
             align-items: center;
             vertical-align: middle;
-            margin-left: 2px;
+            margin-left: -2px;
 
             svg {
               width: 16px;
