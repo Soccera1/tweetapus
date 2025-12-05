@@ -5062,16 +5062,31 @@ nav {
     display: flex;
     align-items: flex-end;
     gap: 8px;
+
+    &:is(.dm-message.own .dm-message-content) {
+      flex-direction: row-reverse;
+    }
   }
 
   .dm-reply-preview {
     padding: 8px 12px;
     margin-bottom: 4px;
-    border-left: 3px solid var(--primary);
+    border-left: 3px solid transparent;
     background-color: var(--bg-secondary);
-    border-radius: 8px;
     font-size: 13px;
+    position: relative;
     max-width: fit-content;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: var(--primary);
+      border-radius: 9px;
+    }
 
     .dm-reply-author {
       font-weight: 600;

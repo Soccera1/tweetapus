@@ -61,7 +61,7 @@ export const useComposer = (
 	let pendingFiles = [];
 	let replyRestriction = "everyone";
 	let selectedGif = null;
-	let selectedUnsplashImages = [];
+	const selectedUnsplashImages = [];
 	let scheduledFor = null;
 
 	const CIRCLE_CIRCUMFERENCE = 87.96;
@@ -892,20 +892,29 @@ export const useComposer = (
 					`;
 
 					imgEl.addEventListener("click", () => {
-						selectedUnsplashImage = {
+						if (selectedUnsplashImages.length >= 4) {
+							toastQueue.add(
+								`<h1>Maximum images reached</h1><p>You can only add up to 4 photos</p>`,
+							);
+							return;
+						}
+
+						const unsplashImage = {
 							url: img.url,
 							download_location: img.download_location,
 							photographer_name: img.user.name,
 							photographer_username: img.user.username,
 							photographer_url: img.user.link,
+							thumb: img.thumb,
+							tempId: crypto.randomUUID(),
 						};
 
-						pendingFiles = [];
+						selectedUnsplashImages.push(unsplashImage);
 						selectedGif = null;
-						attachmentPreview.innerHTML = "";
 
 						const previewEl = document.createElement("div");
 						previewEl.className = "attachment-preview-item";
+						previewEl.dataset.tempId = unsplashImage.tempId;
 						previewEl.innerHTML = `
 							<img src="${img.thumb}" alt="Selected Image" />
 							<button type="button" class="remove-attachment">×</button>
@@ -914,7 +923,10 @@ export const useComposer = (
 						previewEl
 							.querySelector(".remove-attachment")
 							.addEventListener("click", () => {
-								selectedUnsplashImage = null;
+								const idx = selectedUnsplashImages.findIndex(
+									(u) => u.tempId === unsplashImage.tempId,
+								);
+								if (idx !== -1) selectedUnsplashImages.splice(idx, 1);
 								previewEl.remove();
 								updateCharacterCount();
 							});
@@ -1382,7 +1394,7 @@ export const useComposer = (
 		const hasExtras =
 			(pendingFiles && pendingFiles.length > 0) ||
 			!!selectedGif ||
-			!!selectedUnsplashImage ||
+			selectedUnsplashImages.length > 0 ||
 			pollEnabled ||
 			!!interactiveCard ||
 			!!article;
@@ -1458,8 +1470,8 @@ export const useComposer = (
 					requestBody.gif_url = selectedGif;
 				}
 
-				if (selectedUnsplashImage) {
-					requestBody.unsplash = selectedUnsplashImage;
+				if (selectedUnsplashImages.length > 0) {
+					requestBody.unsplash_images = selectedUnsplashImages;
 				}
 
 				if (poll) {
@@ -1487,6 +1499,7 @@ export const useComposer = (
 				pendingFiles = [];
 				selectedGif = null;
 				scheduledFor = null;
+				selectedUnsplashImages.length = 0;
 				attachmentPreview.innerHTML = "";
 
 				if (scheduleBtn) {
@@ -1545,8 +1558,8 @@ export const useComposer = (
 				requestBody.gif_url = selectedGif;
 			}
 
-			if (selectedUnsplashImage) {
-				requestBody.unsplash = selectedUnsplashImage;
+			if (selectedUnsplashImages.length > 0) {
+				requestBody.unsplash_images = selectedUnsplashImages;
 			}
 
 			if (poll) {
@@ -1577,6 +1590,7 @@ export const useComposer = (
 
 			pendingFiles = [];
 			selectedGif = null;
+			selectedUnsplashImages.length = 0;
 			attachmentPreview.innerHTML = "";
 			interactiveCard = null;
 			selectedVibe = "normal";
@@ -1595,7 +1609,8 @@ export const useComposer = (
 			callback(tweet);
 		} catch {
 			toastQueue.add(`<h1>Network error. Please try again.</h1>`);
-		} finally { // check discord ASAP, stuck cursor.
+		} finally {
+			// check discord ASAP, stuck cursor.
 			charCount.innerText = "";
 		}
 	});
