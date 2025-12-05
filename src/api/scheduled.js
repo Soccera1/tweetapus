@@ -68,6 +68,7 @@ export default new Elysia({ prefix: "/scheduled", tags: ["Scheduling"] })
 				gif_url,
 				reply_restriction,
 				unsplash,
+				unsplash_images,
 			} = body;
 
 			if (!content || content.trim().length === 0) {
@@ -117,6 +118,25 @@ export default new Elysia({ prefix: "/scheduled", tags: ["Scheduling"] })
 					size: 0,
 					url: unsplash.url,
 				});
+			}
+
+			if (Array.isArray(unsplash_images) && unsplash_images.length > 0) {
+				for (const unsplashImg of unsplash_images) {
+					const attributionData = JSON.stringify({
+						user_name: unsplashImg.photographer_name,
+						user_username: unsplashImg.photographer_username,
+						user_link: unsplashImg.photographer_url,
+						download_location: unsplashImg.download_location,
+					});
+
+					filesData.push({
+						hash: attributionData,
+						name: "unsplash.jpg",
+						type: "image/jpeg",
+						size: 0,
+						url: unsplashImg.url,
+					});
+				}
 			}
 
 			const scheduledPost = createScheduledPost.get(

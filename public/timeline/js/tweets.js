@@ -2101,30 +2101,65 @@ export const createTweetElement = (tweet, config = {}) => {
 					const tweetElClone = document.createElement("div");
 					tweetElClone.innerHTML = tweetEl.outerHTML;
 
+					tweetElClone.querySelectorAll(".tweet-actions").forEach((el) => { el.remove(); });
+					tweetElClone.querySelectorAll(".tweet-menu-btn").forEach((el) => { el.remove(); });
+					tweetElClone.querySelectorAll(".spoiler-overlay").forEach((el) => { el.remove(); });
+
+					const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue("--primary").trim() || "#1d9bf0";
+					const computedPrimaryFg = getComputedStyle(document.documentElement).getPropertyValue("--primary-fg").trim() || "#ffffff";
+					const computedBgPrimary = getComputedStyle(document.documentElement).getPropertyValue("--bg-primary").trim() || "#ffffff";
+					const computedTextPrimary = getComputedStyle(document.documentElement).getPropertyValue("--text-primary").trim() || "#0f1419";
+
+					tweetElClone.querySelectorAll(".verification-badge svg path").forEach((path) => {
+						const fill = path.getAttribute("fill");
+						const stroke = path.getAttribute("stroke");
+						if (fill === "var(--primary)") path.setAttribute("fill", computedPrimary);
+						if (stroke === "var(--primary-fg)") path.setAttribute("stroke", computedPrimaryFg);
+					});
+
 					const wrapper = document.createElement("div");
 					wrapper.className = "tweet-share-wrapper";
+					wrapper.style.backgroundColor = computedPrimary;
 
 					const attribution = document.createElement("div");
 					attribution.className = "tweet-share-attribution";
 					attribution.innerHTML = `Tweetapus`;
+					attribution.style.color = computedPrimaryFg;
 					wrapper.appendChild(attribution);
 
 					const tweetContainer = document.createElement("div");
 					tweetContainer.className = "tweet-share-container";
+					tweetContainer.style.backgroundColor = computedBgPrimary;
+					tweetContainer.style.color = computedTextPrimary;
 
 					tweetContainer.appendChild(tweetElClone);
 					wrapper.appendChild(tweetContainer);
 
 					document.body.appendChild(wrapper);
 
-					const script = document.createElement("script");
-					script.src = "/public/shared/assets/js/html2canvas.min.js";
-					script.onload = () => {
+					const allImages = wrapper.querySelectorAll("img");
+					const imagePromises = Array.from(allImages).map((img) => {
+						return new Promise((resolve) => {
+							if (img.complete && img.naturalHeight !== 0) {
+								resolve();
+							} else {
+								img.onload = resolve;
+								img.onerror = resolve;
+							}
+						});
+					});
+
+					await Promise.all(imagePromises);
+
+					const runCapture = () => {
 						window
 							.html2canvas(wrapper, {
-								backgroundColor: "transparent",
+								backgroundColor: null,
 								scale: 3,
 								width: wrapper.offsetWidth,
+								useCORS: true,
+								allowTaint: true,
+								logging: false,
 							})
 							.then((canvas) => {
 								canvas.toBlob((blob) => {
@@ -2133,12 +2168,19 @@ export const createTweetElement = (tweet, config = {}) => {
 									a.href = url;
 									a.download = `tweetapus_${tweet.id}.png`;
 									a.click();
-
 									wrapper.remove();
 								});
 							});
 					};
-					document.head.appendChild(script);
+
+					if (window.html2canvas) {
+						runCapture();
+					} else {
+						const script = document.createElement("script");
+						script.src = "/public/shared/assets/js/html2canvas.min.js";
+						script.onload = runCapture;
+						document.head.appendChild(script);
+					}
 				},
 			},
 		];

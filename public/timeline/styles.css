@@ -4326,6 +4326,21 @@ nav {
   overflow: hidden;
 }
 
+.notification-tweet-images {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+
+  img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+}
+
 .search-page {
   display: none;
   flex-direction: column;
@@ -5024,7 +5039,6 @@ nav {
 
     .dm-message-actions {
       right: auto;
-      /* Don't keep cursor stuck, Tr. */
       left: 0;
       flex-direction: row-reverse;
     }
@@ -5200,7 +5214,6 @@ nav {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding-top: 2px;
 
     .dm-message-time {
       font-size: 11px;

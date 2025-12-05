@@ -625,7 +625,8 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 				}
 			}
 
-			const hasUnsplashImages = Array.isArray(unsplash_images) && unsplash_images.length > 0;
+			const hasUnsplashImages =
+				Array.isArray(unsplash_images) && unsplash_images.length > 0;
 
 			if (
 				!hasBody &&
