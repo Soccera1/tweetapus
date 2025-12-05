@@ -143,8 +143,15 @@ FROM thread_posts
 ORDER BY level DESC, created_at ASC;
 `);
 
-const getTweetReplies = (replyToId, currentUserId, isAdmin, tweetAuthorId, limit) => {
-	return db.query(`
+const getTweetReplies = (
+	replyToId,
+	currentUserId,
+	isAdmin,
+	tweetAuthorId,
+	limit,
+) => {
+	return db
+		.query(`
 		SELECT posts.*,
 			CASE WHEN posts.user_id = ? THEN 0 ELSE 1 END as is_not_author,
 			CASE WHEN EXISTS(SELECT 1 FROM follows WHERE follows.follower_id = ? AND follows.following_id = posts.user_id) THEN 0 ELSE 1 END as is_not_following,
@@ -156,11 +163,27 @@ const getTweetReplies = (replyToId, currentUserId, isAdmin, tweetAuthorId, limit
 		AND (users.shadowbanned = 0 OR posts.user_id = ? OR ? = 1)
 		ORDER BY is_not_author ASC, is_not_following ASC, engagement DESC, posts.created_at ASC
 		LIMIT ?
-	`).all(tweetAuthorId, currentUserId, replyToId, currentUserId, isAdmin, limit);
+	`)
+		.all(
+			tweetAuthorId,
+			currentUserId,
+			replyToId,
+			currentUserId,
+			isAdmin,
+			limit,
+		);
 };
 
-const getTweetRepliesBefore = (replyToId, beforeId, currentUserId, isAdmin, tweetAuthorId, limit) => {
-	return db.query(`
+const getTweetRepliesBefore = (
+	replyToId,
+	beforeId,
+	currentUserId,
+	isAdmin,
+	tweetAuthorId,
+	limit,
+) => {
+	return db
+		.query(`
 		SELECT posts.*,
 			CASE WHEN posts.user_id = ? THEN 0 ELSE 1 END as is_not_author,
 			CASE WHEN EXISTS(SELECT 1 FROM follows WHERE follows.follower_id = ? AND follows.following_id = posts.user_id) THEN 0 ELSE 1 END as is_not_following,
@@ -172,7 +195,16 @@ const getTweetRepliesBefore = (replyToId, beforeId, currentUserId, isAdmin, twee
 		AND (users.shadowbanned = 0 OR posts.user_id = ? OR ? = 1)
 		ORDER BY is_not_author ASC, is_not_following ASC, engagement DESC, posts.created_at ASC
 		LIMIT ?
-	`).all(tweetAuthorId, currentUserId, replyToId, beforeId, currentUserId, isAdmin, limit);
+	`)
+		.all(
+			tweetAuthorId,
+			currentUserId,
+			replyToId,
+			beforeId,
+			currentUserId,
+			isAdmin,
+			limit,
+		);
 };
 
 const createTweet = db.query(`

@@ -84,7 +84,7 @@ async function openNotifications(isDirectClick = true) {
 	});
 
 	initializeNotificationTabs();
-	
+
 	if (!pullToRefreshInstance) {
 		pullToRefreshInstance = initPullToRefresh(".notifications", async () => {
 			await loadNotifications();

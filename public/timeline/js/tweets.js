@@ -1,8 +1,8 @@
 import DOMPurify from "/public/shared/assets/js/dompurify.js";
 import { marked } from "/public/shared/assets/js/marked.js";
 import {
-	createVerificationBadge,
 	applyAvatarOutline,
+	createVerificationBadge,
 } from "/public/shared/badge-utils.js";
 import { showReportModal } from "../../shared/report-modal.js";
 import toastQueue from "../../shared/toasts.js";
@@ -2110,10 +2110,9 @@ export const createTweetElement = (tweet, config = {}) => {
 						el.remove();
 					});
 
-					const computedPrimary =
-						getComputedStyle(document.documentElement)
-							.getPropertyValue("--primary")
-							.trim();
+					const computedPrimary = getComputedStyle(document.documentElement)
+						.getPropertyValue("--primary")
+						.trim();
 					const computedPrimaryFg =
 						getComputedStyle(document.documentElement)
 							.getPropertyValue("--primary-fg")
@@ -3109,16 +3108,23 @@ export const createTweetElement = (tweet, config = {}) => {
 		tweetEl.appendChild(topReplyEl);
 
 		if (tweet.top_reply.author_response) {
-			const authorResponseEl = createTweetElement(tweet.top_reply.author_response, {
-				clickToOpen: true,
-				showTopReply: false,
-				isTopReply: true,
-			});
+			const authorResponseEl = createTweetElement(
+				tweet.top_reply.author_response,
+				{
+					clickToOpen: true,
+					showTopReply: false,
+					isTopReply: true,
+				},
+			);
 
 			const authorReplyIndicator = document.createElement("div");
-			authorReplyIndicator.className = "reply-indicator author-response-indicator";
+			authorReplyIndicator.className =
+				"reply-indicator author-response-indicator";
 			authorReplyIndicator.innerText = `@${tweet.author.username} replied`;
-			authorResponseEl.insertBefore(authorReplyIndicator, authorResponseEl.firstChild);
+			authorResponseEl.insertBefore(
+				authorReplyIndicator,
+				authorResponseEl.firstChild,
+			);
 
 			tweetEl.appendChild(authorResponseEl);
 		}

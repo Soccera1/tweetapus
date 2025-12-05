@@ -125,7 +125,9 @@ export default async function openProfile(username, preloadedData = null) {
 			const data = await query(`/profile/${username}`);
 
 			skeleton.remove();
-			const preloadHeader = profileContainer.querySelector(".profile-preload-header");
+			const preloadHeader = profileContainer.querySelector(
+				".profile-preload-header",
+			);
 			if (preloadHeader) preloadHeader.remove();
 			profileContainer.innerHTML = existingContent;
 

@@ -286,11 +286,17 @@ const getTopReplyData = (tweetId, userId, tweetAuthorId = null) => {
 	let authorReply = null;
 
 	if (tweetAuthorId) {
-		const replyWithAuthorResponse = getReplyWithAuthorResponse.get(tweetId, tweetAuthorId);
+		const replyWithAuthorResponse = getReplyWithAuthorResponse.get(
+			tweetId,
+			tweetAuthorId,
+		);
 		if (replyWithAuthorResponse) {
 			topReply = replyWithAuthorResponse;
 			authorReplied = true;
-			authorReply = getAuthorReplyToReply.get(replyWithAuthorResponse.id, tweetAuthorId);
+			authorReply = getAuthorReplyToReply.get(
+				replyWithAuthorResponse.id,
+				tweetAuthorId,
+			);
 		}
 	}
 
