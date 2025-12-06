@@ -1741,6 +1741,7 @@ export const createTweetElement = (tweet, config = {}) => {
 					img.style.pointerEvents = "none";
 					img.style.border = "none";
 					img.draggable = false;
+					img.src = `${attachment.file_url}?size=260`;
 					tweetEl.appendChild(img);
 				} else {
 					attachmentEl.appendChild(img);

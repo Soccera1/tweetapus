@@ -7,6 +7,7 @@ import {
 	showSkeletons,
 } from "../../shared/skeleton-utils.js";
 import toastQueue from "../../shared/toasts.js";
+import { createModal } from "../../shared/ui-utils.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
 import switchPage, {
@@ -2519,39 +2520,8 @@ async function editMessage(messageId) {
 		return;
 	}
 
-	const overlay = document.createElement("div");
-	overlay.className = "modal-overlay";
-	overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-  `;
-
-	const modal = document.createElement("div");
-	modal.style.cssText = `
-    background: var(--bg-primary);
-    border: 1px solid var(--border-primary);
-    border-radius: 12px;
-    padding: 20px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-  `;
-
-	const title = document.createElement("h2");
-	title.textContent = "Edit message";
-	title.style.cssText = `
-    margin: 0 0 16px 0;
-    color: var(--text-primary);
-  `;
+	const modalContent = document.createElement("div");
+	modalContent.style.padding = "20px";
 
 	const textarea = document.createElement("textarea");
 	textarea.value = message.content || "";
@@ -2567,6 +2537,7 @@ async function editMessage(messageId) {
     font-size: 14px;
     resize: vertical;
     margin-bottom: 12px;
+    box-sizing: border-box;
   `;
 
 	const buttonContainer = document.createElement("div");
@@ -2601,14 +2572,18 @@ async function editMessage(messageId) {
     font-weight: 600;
   `;
 
-	const closeModal = () => {
-		document.body.removeChild(overlay);
-	};
+	modalContent.appendChild(textarea);
+	buttonContainer.appendChild(cancelButton);
+	buttonContainer.appendChild(saveButton);
+	modalContent.appendChild(buttonContainer);
 
-	cancelButton.addEventListener("click", closeModal);
-	overlay.addEventListener("click", (e) => {
-		if (e.target === overlay) closeModal();
+	const { close } = createModal({
+		title: "Edit message",
+		content: modalContent,
+		closeOnOverlayClick: true,
 	});
+
+	cancelButton.addEventListener("click", close);
 
 	saveButton.addEventListener("click", async () => {
 		const newContent = textarea.value.trim();
@@ -2619,7 +2594,7 @@ async function editMessage(messageId) {
 
 		saveButton.disabled = true;
 		saveButton.textContent = "Saving...";
-		// Tr
+
 		const result = await query(`/dm/messages/${messageId}`, {
 			method: "PUT",
 			headers: { "Content-Type": "application/json" },
@@ -2632,7 +2607,7 @@ async function editMessage(messageId) {
 				currentMessages[messageIndex] = result.message;
 				renderMessages();
 			}
-			closeModal();
+			close();
 		} else {
 			toastQueue.add(result.error || "Failed to update message");
 			saveButton.disabled = false;
@@ -2640,16 +2615,7 @@ async function editMessage(messageId) {
 		}
 	});
 
-	buttonContainer.appendChild(cancelButton);
-	buttonContainer.appendChild(saveButton);
-
-	modal.appendChild(title);
-	modal.appendChild(textarea);
-	modal.appendChild(buttonContainer);
-	overlay.appendChild(modal);
-
-	document.body.appendChild(overlay);
-	textarea.focus();
+	setTimeout(() => textarea.focus(), 100);
 }
 
 window.editMessage = editMessage;

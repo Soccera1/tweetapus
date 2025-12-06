@@ -132,6 +132,10 @@
               <i class="bi bi-award"></i>
               Badges
             </a>
+            <a class="nav-link" href="#" data-section="blocks" id="blocks-nav">
+              <i class="bi bi-slash-circle"></i>
+              Blocks
+            </a>
           </nav>
         </div>
 
@@ -949,22 +953,45 @@
                             class="form-control"
                             id="badgeImageFile"
                             accept="image/*"
-                            style="display: none;"
+                            style="display: none"
                           />
                           <input type="hidden" id="badgeImageUrl" />
                           <div class="d-flex align-items-center gap-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="badgeImageChooseBtn">
-                              <i class="bi bi-image"></i> Choose Image
+                            <button
+                              type="button"
+                              class="btn btn-outline-secondary btn-sm"
+                              id="badgeImageChooseBtn"
+                            >
+                              <i class="bi bi-image"></i>
+                              Choose Image
                             </button>
-                            <button type="button" class="btn btn-outline-danger btn-sm d-none" id="badgeImageClearBtn">
-                              <i class="bi bi-x"></i> Clear
+                            <button
+                              type="button"
+                              class="btn btn-outline-danger btn-sm d-none"
+                              id="badgeImageClearBtn"
+                            >
+                              <i class="bi bi-x"></i>
+                              Clear
                             </button>
                           </div>
-                          <div id="badgeImagePreviewContainer" class="mt-2 d-none">
-                            <img id="badgeImagePreview" src="" alt="Badge preview" style="max-width: 64px; max-height: 64px; border-radius: 4px;" />
+                          <div
+                            id="badgeImagePreviewContainer"
+                            class="mt-2 d-none"
+                          >
+                            <img
+                              id="badgeImagePreview"
+                              src=""
+                              alt="Badge preview"
+                              style="
+                                max-width: 64px;
+                                max-height: 64px;
+                                border-radius: 4px;
+                              "
+                            />
                           </div>
                           <div class="form-text">
-                            Leave empty if using SVG. Image will be cropped to square.
+                            Leave empty if using SVG. Image will be cropped to
+                            square.
                           </div>
                         </div>
                         <div class="row g-2">

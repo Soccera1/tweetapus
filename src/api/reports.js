@@ -70,15 +70,15 @@ export default new Elysia({ prefix: "/reports", tags: ["Reports"] })
 				}
 
 				const { reported_type, reported_id, reason, additional_info } = body;
-			const existingReport = checkExistingReport.get(
-				user.id,
-				reported_type,
-				reported_id,
-			);
-			if (existingReport) {
-				set.status = 400;
-				return { error: "You have already reported this" };
-			}
+				const existingReport = checkExistingReport.get(
+					user.id,
+					reported_type,
+					reported_id,
+				);
+				if (existingReport) {
+					set.status = 400;
+					return { error: "You have already reported this" };
+				}
 				if (reported_type === "user") {
 					const reportedUser = getUser.get(reported_id);
 					if (!reportedUser) {

@@ -1447,21 +1447,9 @@ const renderProfile = (data) => {
 				(transparencyReport.creation?.continent &&
 					!transparencyReport.creation?.country);
 
-			const modalWrapper = document.createElement("div");
-			modalWrapper.className = "modal";
-			modalWrapper.innerHTML = `
-				<div class="modal-content">
-        <div class="modal-header">
-          <h2>@${profile.username}</h2>
-          <button class="close-btn">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 6 6 18" />
-              <path d="m6 6 12 12" />
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
+			const modalContent = document.createElement("div");
+			modalContent.className = "modal-body";
+			modalContent.innerHTML = `
 					${
 						hasLimitedLocation
 							? `<div style="padding: 12px 16px; margin-bottom: 16px; border: 1px solid rgba(255, 193, 7); border-radius: 8px; color: var(--text-primary);">
@@ -1557,23 +1545,12 @@ ${
 							minute: "2-digit",
 						})}</div></div>
 					</div>
-        </div>
-				</div>
 			`;
-			document.body.appendChild(modalWrapper);
 
-			setTimeout(() => {
-				modalWrapper.style.display = "flex";
-			});
-
-			modalWrapper.querySelector(".close-btn").addEventListener("click", () => {
-				modalWrapper.remove();
-			});
-
-			modalWrapper.addEventListener("click", (event) => {
-				if (event.target === modalWrapper) {
-					modalWrapper.remove();
-				}
+			createModal({
+				title: `@${profile.username}`,
+				content: modalContent,
+				closeOnOverlayClick: true,
 			});
 		});
 

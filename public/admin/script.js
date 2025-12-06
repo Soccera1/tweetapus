@@ -12,6 +12,7 @@ class AdminPanel {
 			suspensions: 1,
 			dms: 1,
 			moderationLogs: 1,
+			blocks: 1,
 		};
 		this.emojiProcessedFile = null;
 		this.emojiPreviewUrl = null;
@@ -146,7 +147,9 @@ class AdminPanel {
 			if (!this.isSuperAdmin) {
 				document.getElementById("bulkTweetBtn")?.classList.add("d-none");
 			} else {
-				document.getElementById("globalMassDeleteBtn")?.style.removeProperty("display");
+				document
+					.getElementById("globalMassDeleteBtn")
+					?.style.removeProperty("display");
 			}
 			this.setupEventListeners();
 			this.updateBulkEditControls();
@@ -368,6 +371,9 @@ class AdminPanel {
 				break;
 			case "badges":
 				this.loadBadgesManager();
+				break;
+			case "blocks":
+				this.loadBlocks();
 				break;
 		}
 	}
@@ -1015,7 +1021,7 @@ class AdminPanel {
       <div class="col-md-3">
         <div class="card stat-card">
           <div class="card-body text-center">
-            <i class="bi bi-check-circle-fill fs-1" style="color: gray;"></i>
+            <i class="bi bi-check-circle-fill fs-1"></i>
             <h3>${stats.users.gray || 0}</h3>
             <p class="mb-0">Gray check users</p>
           </div>
@@ -1787,6 +1793,11 @@ class AdminPanel {
 				throw new Error(userData.error);
 			}
 
+			const [blocksData, blockedByData] = await Promise.all([
+				this.apiCall(`/api/admin/users/${userId}/blocks`).catch(() => ({ blocks: [] })),
+				this.apiCall(`/api/admin/users/${userId}/blocked-by`).catch(() => ({ blockedBy: [] })),
+			]);
+
 			const { user, suspensions, recentPosts, affiliate } = userData;
 
 			let creationTransparency = null;
@@ -2335,7 +2346,7 @@ class AdminPanel {
 											.map(
 												(ip) => `
                       <tr>
-                        <td><code>${this.escapeHtml(ip.ip_address)}</code></td>
+                        <td><a href="https://ipinfo.io/${this.escapeHtml(ip.ip_address)}" target="_blank"><code>${this.escapeHtml(ip.ip_address)}</code></a></td>
                         <td>${ip.use_count}</td>
                         <td>${this.formatDate(ip.last_used_at)}</td>
                       </tr>
@@ -2345,6 +2356,78 @@ class AdminPanel {
                   </tbody>
                 </table>
               </div>
+            `
+								: ""
+						}
+						
+            ${
+							blocksData?.blocks?.length || blockedByData?.blockedBy?.length
+								? `
+              <h5 class="mt-4">Blocking Information</h5>
+              ${
+								blocksData?.blocks?.length
+									? `
+                <h6>Users Blocked by @${this.escapeHtml(user.username)} (${blocksData.blocks.length})</h6>
+                <div style="max-height: 200px; overflow-y: auto;" class="mb-3">
+                  ${blocksData.blocks
+										.map(
+											(b) => `
+                    <div class="d-flex align-items-center mb-2 border-bottom pb-2">
+                      ${
+												b.avatar
+													? `<img src="${b.avatar}" class="user-avatar me-2" alt="Avatar" style="border-radius: 50%; width: 32px; height: 32px;">`
+													: `<div class="user-avatar me-2 bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;"><i class="bi bi-person text-white"></i></div>`
+											}
+                      <div>
+                        <strong style="cursor: pointer; color: #0d6efd;" onclick="adminPanel.findAndViewUser('${this.escapeHtml(
+													b.username,
+												)}')">@${this.escapeHtml(b.username)}</strong>
+                        ${b.name ? `<br><small class="text-muted">${this.escapeHtml(b.name)}</small>` : ""}
+                        <br><small class="text-muted">Blocked ${this.formatDate(b.created_at)}</small>
+                      </div>
+                    </div>
+                  `,
+										)
+										.join("")}
+                </div>
+              `
+									: ""
+							}
+              ${
+								blockedByData?.blockedBy?.length
+									? `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0">Users Who Blocked @${this.escapeHtml(user.username)} (${blockedByData.blockedBy.length})</h6>
+                  <button type="button" class="btn btn-danger btn-sm" id="massDeleteBlockersBtn" disabled onclick="adminPanel.massDeleteBlockers('${user.id}')">
+                    <i class="bi bi-trash"></i> Delete Selected (<span id="blockerDeleteCount">0</span>)
+                  </button>
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                  ${blockedByData.blockedBy
+										.map(
+											(b) => `
+                    <div class="d-flex align-items-center mb-2 border-bottom pb-2">
+                      <input type="checkbox" class="form-check-input me-2 blocker-checkbox" value="${b.user_id}" onchange="adminPanel.updateBlockerDeleteCount()">
+                      ${
+												b.avatar
+													? `<img src="${b.avatar}" class="user-avatar me-2" alt="Avatar" style="border-radius: 50%; width: 32px; height: 32px;">`
+													: `<div class="user-avatar me-2 bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;"><i class="bi bi-person text-white"></i></div>`
+											}
+                      <div>
+                        <strong style="cursor: pointer; color: #0d6efd;" onclick="adminPanel.findAndViewUser('${this.escapeHtml(
+													b.username,
+												)}')">@${this.escapeHtml(b.username)}</strong>
+                        ${b.name ? `<br><small class="text-muted">${this.escapeHtml(b.name)}</small>` : ""}
+                        <br><small class="text-muted">Blocked ${this.formatDate(b.created_at)}</small>
+                      </div>
+                    </div>
+                  `,
+										)
+										.join("")}
+                </div>
+              `
+									: ""
+							}
             `
 								: ""
 						}
@@ -2796,10 +2879,6 @@ class AdminPanel {
 			btn.addEventListener("click", () => {
 				const target = btn.dataset.locationPicker;
 				if (!target) return;
-				if (!this.profileEditEnabled) {
-					this.showError("Enable profile editing to change locations");
-					return;
-				}
 				this.openLocationPicker(target);
 			});
 		});
@@ -5999,8 +6078,7 @@ class AdminPanel {
 		);
 		document.getElementById("globalMassDeleteDate").value = "";
 		document.getElementById("globalMassDeleteConfirm").value = "";
-		document.getElementById("globalMassDeleteProgress").style.display =
-			"none";
+		document.getElementById("globalMassDeleteProgress").style.display = "none";
 		modal.show();
 	}
 
@@ -6027,9 +6105,7 @@ class AdminPanel {
 		}
 
 		const progressDiv = document.getElementById("globalMassDeleteProgress");
-		const progressBar = document.getElementById(
-			"globalMassDeleteProgressBar",
-		);
+		const progressBar = document.getElementById("globalMassDeleteProgressBar");
 		const statusDiv = document.getElementById("globalMassDeleteStatus");
 		const executeBtn = document.getElementById("globalMassDeleteExecuteBtn");
 		const cancelBtn = document.getElementById("globalMassDeleteCancelBtn");
@@ -8787,7 +8863,9 @@ class AdminPanel {
 		const imageUrlInput = document.getElementById("badgeImageUrl");
 		const chooseBtn = document.getElementById("badgeImageChooseBtn");
 		const clearBtn = document.getElementById("badgeImageClearBtn");
-		const previewContainer = document.getElementById("badgeImagePreviewContainer");
+		const previewContainer = document.getElementById(
+			"badgeImagePreviewContainer",
+		);
 		const previewImg = document.getElementById("badgeImagePreview");
 
 		if (chooseBtn && imageFileInput) {
@@ -8796,7 +8874,11 @@ class AdminPanel {
 				const file = imageFileInput.files?.[0];
 				if (!file) return;
 				try {
-					const cropped = await window.openImageCropper(file, { aspect: 1, size: 128, transparent: true });
+					const cropped = await window.openImageCropper(file, {
+						aspect: 1,
+						size: 128,
+						transparent: true,
+					});
 					if (cropped === window.CROP_CANCELLED) {
 						imageFileInput.value = "";
 						return;
@@ -8941,7 +9023,9 @@ class AdminPanel {
 		const editImageUrlInput = document.getElementById("editBadgeImageUrl");
 		const editChooseBtn = document.getElementById("editBadgeImageChooseBtn");
 		const editClearBtn = document.getElementById("editBadgeImageClearBtn");
-		const editPreviewContainer = document.getElementById("editBadgeImagePreviewContainer");
+		const editPreviewContainer = document.getElementById(
+			"editBadgeImagePreviewContainer",
+		);
 		const editPreviewImg = document.getElementById("editBadgeImagePreview");
 
 		if (badge.image_url) {
@@ -8962,13 +9046,20 @@ class AdminPanel {
 		else newClearBtn.classList.add("d-none");
 
 		const newFileInput = editImageFileInput.cloneNode(true);
-		editImageFileInput.parentNode.replaceChild(newFileInput, editImageFileInput);
+		editImageFileInput.parentNode.replaceChild(
+			newFileInput,
+			editImageFileInput,
+		);
 		newChooseBtn.addEventListener("click", () => newFileInput.click());
 		newFileInput.addEventListener("change", async () => {
 			const file = newFileInput.files?.[0];
 			if (!file) return;
 			try {
-				const cropped = await window.openImageCropper(file, { aspect: 1, size: 128, transparent: true });
+				const cropped = await window.openImageCropper(file, {
+					aspect: 1,
+					size: 128,
+					transparent: true,
+				});
 				if (cropped === window.CROP_CANCELLED) {
 					newFileInput.value = "";
 					return;
@@ -8988,7 +9079,8 @@ class AdminPanel {
 				}
 				editImageUrlInput.value = uploadData.file.url;
 				if (editPreviewImg) editPreviewImg.src = uploadData.file.url;
-				if (editPreviewContainer) editPreviewContainer.classList.remove("d-none");
+				if (editPreviewContainer)
+					editPreviewContainer.classList.remove("d-none");
 				newClearBtn.classList.remove("d-none");
 			} catch (err) {
 				this.showError(err.message || "Failed to process image");
@@ -9036,6 +9128,123 @@ class AdminPanel {
 			}
 		});
 		bsModal.show();
+	}
+
+	async loadBlocks(page = 1) {
+		try {
+			const params = new URLSearchParams({ page, limit: 50 });
+			const data = await this.apiCall(`/api/admin/blocks?${params}`);
+			this.renderBlocksTable(data.blocks);
+			this.renderPagination("blocks", data.pagination);
+			this.currentPage.blocks = page;
+		} catch {
+			this.showError("Failed to load blocks");
+		}
+	}
+
+	renderBlocksTable(blocks) {
+		const container = document.getElementById("blocksTable");
+		if (!blocks || blocks.length === 0) {
+			container.innerHTML = '<p class="text-muted text-center">No blocking relationships found</p>';
+			return;
+		}
+
+		container.innerHTML = `
+			<div class="table-responsive">
+				<table class="table table-hover">
+					<thead>
+						<tr>
+							<th>Blocker</th>
+							<th>Blocked</th>
+							<th>Date</th>
+						</tr>
+					</thead>
+					<tbody>
+						${blocks.map(block => `
+							<tr>
+								<td>
+									<div class="d-flex align-items-center">
+										${block.blocker_avatar 
+											? `<img src="${block.blocker_avatar}" class="user-avatar me-2" alt="Avatar" style="border-radius: 50%;">`
+											: `<div class="user-avatar me-2 bg-secondary rounded-circle d-flex align-items-center justify-content-center">
+												<i class="bi bi-person text-white"></i>
+											</div>`
+										}
+										<div>
+											<strong style="cursor: pointer; color: #0d6efd;" onclick="adminPanel.findAndViewUser('${this.escapeHtml(block.blocker_username)}')">@${this.escapeHtml(block.blocker_username)}</strong>
+											${block.blocker_name ? `<br><small class="text-muted">${this.escapeHtml(block.blocker_name)}</small>` : ''}
+										</div>
+									</div>
+								</td>
+								<td>
+									<div class="d-flex align-items-center">
+										${block.blocked_avatar 
+											? `<img src="${block.blocked_avatar}" class="user-avatar me-2" alt="Avatar" style="border-radius: 50%;">`
+											: `<div class="user-avatar me-2 bg-secondary rounded-circle d-flex align-items-center justify-content-center">
+												<i class="bi bi-person text-white"></i>
+											</div>`
+										}
+										<div>
+											<strong style="cursor: pointer; color: #0d6efd;" onclick="adminPanel.findAndViewUser('${this.escapeHtml(block.blocked_username)}')">@${this.escapeHtml(block.blocked_username)}</strong>
+											${block.blocked_name ? `<br><small class="text-muted">${this.escapeHtml(block.blocked_name)}</small>` : ''}
+										</div>
+									</div>
+								</td>
+								<td>
+									<small>${this.formatDate(block.created_at)}</small>
+								</td>
+							</tr>
+						`).join('')}
+					</tbody>
+				</table>
+			</div>
+		`;
+	}
+
+	updateBlockerDeleteCount() {
+		const checkboxes = document.querySelectorAll('.blocker-checkbox:checked');
+		const count = checkboxes.length;
+		const countEl = document.getElementById('blockerDeleteCount');
+		const btn = document.getElementById('massDeleteBlockersBtn');
+		if (countEl) countEl.textContent = count;
+		if (btn) btn.disabled = count === 0;
+	}
+
+	async massDeleteBlockers(targetUserId) {
+		const checkboxes = document.querySelectorAll('.blocker-checkbox:checked');
+		const userIds = Array.from(checkboxes).map(cb => cb.value);
+		
+		if (userIds.length === 0) {
+			this.showError('No users selected');
+			return;
+		}
+
+		if (!confirm(`Delete ${userIds.length} selected user(s) who blocked this user? This action cannot be undone.`)) {
+			return;
+		}
+
+		let successCount = 0;
+		let failCount = 0;
+
+		for (const userId of userIds) {
+			try {
+				await this.apiCall(`/api/admin/users/${userId}`, {
+					method: 'DELETE',
+				});
+				successCount++;
+			} catch {
+				failCount++;
+			}
+		}
+
+		if (successCount > 0) {
+			this.showSuccess(`Deleted ${successCount} user(s)${failCount > 0 ? ` (${failCount} failed)` : ''}`);
+			bootstrap.Modal.getInstance(document.getElementById('userModal'))?.hide();
+			this.userCache.delete(targetUserId);
+			this.loadUsers(this.currentPage.users);
+		} else {
+			this.showError('Failed to delete any users');
+		}
 	}
 }
 

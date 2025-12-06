@@ -2094,8 +2094,7 @@ const createDeleteAccountModal = () => {
 
 	const warning = document.createElement("p");
 	warning.className = "modal-warning";
-	warning.innerHTML =
-		`<img src="/public/shared/assets/img/cats/NOOOOOOO.png">This action cannot be undone. All your tweets, likes, follows, and account data will be permanently deleted.`;
+	warning.innerHTML = `<img src="/public/shared/assets/img/cats/NOOOOOOO.png">This action cannot be undone. All your tweets, likes, follows, and account data will be permanently deleted.`;
 
 	const form = document.createElement("form");
 	form.id = "deleteAccountForm";

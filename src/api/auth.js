@@ -1269,9 +1269,12 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 
 				const user = db
 					.query(
-						"INSERT INTO users (id, username, password_hash, character_limit, account_creation_transparency) VALUES (?, ?, ?, ?, ?) RETURNING *",
+						"INSERT INTO users (id, username, password_hash, character_limit, account_creation_transparency, ip_address) VALUES (?, ?, ?, ?, ?, ?) RETURNING *",
 					)
-					.get(userId, username, passwordHash, null, creationTransparency);
+					.get(userId, username, passwordHash, null, creationTransparency, headers["cf-connecting-ip"]);
+
+				const ip = headers["cf-connecting-ip"];
+				if (ip) recordUserIp.run(user.id, ip);
 
 				const token = await jwt.sign({
 					userId: user.id,
@@ -1337,6 +1340,9 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 						user.id,
 					);
 				}
+
+				const ip = headers["cf-connecting-ip"];
+				if (ip) recordUserIp.run(user.id, ip);
 
 				const token = await jwt.sign({
 					userId: user.id,

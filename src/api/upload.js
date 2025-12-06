@@ -153,32 +153,32 @@ export const uploadRoutes = new Elysia({
 	.get(
 		"/:filename",
 		async ({ params, set }) => {
-		const { filename } = params;
+			const { filename } = params;
 
-		if (
-			!/^[a-f0-9]{64}\.(webp|mp4|gif)$/i.test(filename) ||
-			filename.includes("..")
-		) {
-			return new Response("Invalid filename", { status: 400 });
-		}
+			if (
+				!/^[a-f0-9]{64}\.(webp|mp4|gif)$/i.test(filename) ||
+				filename.includes("..")
+			) {
+				return new Response("Invalid filename", { status: 400 });
+			}
 
-		const filePath = join(process.cwd(), ".data", "uploads", filename);
+			const filePath = join(process.cwd(), ".data", "uploads", filename);
 
-		set.headers["Cache-Control"] = "public, max-age=31536000, immutable";
+			set.headers["Cache-Control"] = "public, max-age=31536000, immutable";
 
-		const file = Bun.file(filePath);
+			const file = Bun.file(filePath);
 
-		if (!(await file.exists())) {
-			return new Response("File not found", { status: 404 });
-		}
-		return file;
-	},
-	{
-		detail: {
-			description: "Serves uploaded files by filename",
+			if (!(await file.exists())) {
+				return new Response("File not found", { status: 404 });
+			}
+			return file;
 		},
-		params: t.Object({
-			filename: t.String(),
-		}),
-	},
-);
+		{
+			detail: {
+				description: "Serves uploaded files by filename",
+			},
+			params: t.Object({
+				filename: t.String(),
+			}),
+		},
+	);

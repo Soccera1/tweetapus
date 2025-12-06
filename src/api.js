@@ -25,7 +25,7 @@ import tweet from "./api/tweet.js";
 import unsplash from "./api/unsplash.js";
 import upload, { uploadRoutes } from "./api/upload.js";
 import db from "./db.js";
-import { emojiCache } from "./helpers/cache.js";
+import { emojiCache, LRUCache } from "./helpers/cache.js";
 import ratelimit from "./helpers/ratelimit.js";
 import {
 	getSuspensionCache,
@@ -93,6 +93,18 @@ const checkIpBan = db.prepare(
 	"SELECT reason FROM ip_bans WHERE ip_address = ?",
 );
 
+const getUserIp = db.prepare("SELECT ip_address FROM users WHERE id = ?");
+const updateUserIp = db.prepare("UPDATE users SET ip_address = ? WHERE id = ?");
+const recordUserIp = db.prepare(`
+	INSERT INTO user_ips (user_id, ip_address, use_count, last_used_at)
+	VALUES (?, ?, 1, datetime('now', 'utc'))
+	ON CONFLICT(user_id, ip_address) DO UPDATE SET
+	use_count = use_count + 1,
+	last_used_at = datetime('now', 'utc')
+`);
+
+const ipCache = new LRUCache(1000, 60000 * 5); // 5 minutes TTL
+
 const CACHE_TTL = 30_000;
 
 export default new Elysia({
@@ -134,6 +146,18 @@ export default new Elysia({
 		}
 		const { userId } = payload;
 		if (!userId) return;
+
+		if (ip) {
+			const cachedIp = ipCache.get(userId);
+			if (cachedIp !== ip) {
+				const userRecord = getUserIp.get(userId);
+				if (userRecord && userRecord.ip_address !== ip) {
+					updateUserIp.run(ip, userId);
+					recordUserIp.run(userId, ip);
+				}
+				ipCache.set(userId, ip);
+			}
+		}
 
 		const now = Date.now();
 		let cached = getSuspensionCache(userId);

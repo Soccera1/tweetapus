@@ -406,6 +406,31 @@ WHERE u.id = ?
 	unbanIp: db.prepare("DELETE FROM ip_bans WHERE ip_address = ?"),
 	getIpBans: db.prepare("SELECT * FROM ip_bans ORDER BY created_at DESC"),
 	checkIpBan: db.prepare("SELECT 1 FROM ip_bans WHERE ip_address = ?"),
+	getUserBlocks: db.prepare(`
+		SELECT b.id, b.created_at, u.id as user_id, u.username, u.name, u.avatar, u.verified, u.gold, u.avatar_radius
+		FROM blocks b
+		JOIN users u ON b.blocked_id = u.id
+		WHERE b.blocker_id = ?
+		ORDER BY b.created_at DESC
+	`),
+	getUserBlockedBy: db.prepare(`
+		SELECT b.id, b.created_at, u.id as user_id, u.username, u.name, u.avatar, u.verified, u.gold, u.avatar_radius
+		FROM blocks b
+		JOIN users u ON b.blocker_id = u.id
+		WHERE b.blocked_id = ?
+		ORDER BY b.created_at DESC
+	`),
+	getAllBlocks: db.prepare(`
+		SELECT b.id, b.created_at,
+			   u1.id as blocker_id, u1.username as blocker_username, u1.name as blocker_name, u1.avatar as blocker_avatar,
+			   u2.id as blocked_id, u2.username as blocked_username, u2.name as blocked_name, u2.avatar as blocked_avatar
+		FROM blocks b
+		JOIN users u1 ON b.blocker_id = u1.id
+		JOIN users u2 ON b.blocked_id = u2.id
+		ORDER BY b.created_at DESC
+		LIMIT ? OFFSET ?
+	`),
+	getAllBlocksCount: db.prepare("SELECT COUNT(*) as count FROM blocks"),
 };
 
 const extensionsInstallDir = join(process.cwd(), "ext");
@@ -5618,9 +5643,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 			const isoDate = dateObj.toISOString();
 
 			const countResult = db
-				.query(
-					"SELECT COUNT(*) as count FROM posts WHERE created_at > ?",
-				)
+				.query("SELECT COUNT(*) as count FROM posts WHERE created_at > ?")
 				.get(isoDate);
 
 			const deleteCount = countResult?.count || 0;
@@ -5653,6 +5676,84 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 			},
 			body: t.Object({
 				after_date: t.String(),
+			}),
+		},
+	)
+
+	.get(
+		"/users/:id/blocks",
+		async ({ params }) => {
+			const targetUser = adminQueries.findUserById.get(params.id);
+			if (!targetUser) return { error: "User not found" };
+			const blocks = adminQueries.getUserBlocks.all(params.id);
+			return { blocks };
+		},
+		{
+			detail: {
+				description: "Gets list of users that this user has blocked",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			response: t.Any(),
+		},
+	)
+
+	.get(
+		"/users/:id/blocked-by",
+		async ({ params }) => {
+			const targetUser = adminQueries.findUserById.get(params.id);
+			if (!targetUser) return { error: "User not found" };
+			const blockedBy = adminQueries.getUserBlockedBy.all(params.id);
+			return { blockedBy };
+		},
+		{
+			detail: {
+				description: "Gets list of users who have blocked this user",
+			},
+			params: t.Object({
+				id: t.String(),
+			}),
+			response: t.Any(),
+		},
+	)
+
+	.get(
+		"/blocks",
+		async ({ query }) => {
+			const page = parseInt(query.page, 10) || 1;
+			const limit = parseInt(query.limit, 10) || 50;
+			const offset = (page - 1) * limit;
+
+			const blocks = adminQueries.getAllBlocks.all(limit, offset);
+			const totalCount = adminQueries.getAllBlocksCount.get();
+
+			return {
+				blocks,
+				pagination: {
+					page,
+					limit,
+					total: totalCount.count,
+					pages: Math.ceil(totalCount.count / limit),
+				},
+			};
+		},
+		{
+			detail: {
+				description: "Lists all blocking relationships with pagination",
+			},
+			query: t.Object({
+				page: t.Optional(t.String()),
+				limit: t.Optional(t.String()),
+			}),
+			response: t.Object({
+				blocks: t.Array(t.Any()),
+				pagination: t.Object({
+					page: t.Number(),
+					limit: t.Number(),
+					total: t.Number(),
+					pages: t.Number(),
+				}),
 			}),
 		},
 	);
