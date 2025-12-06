@@ -703,7 +703,7 @@ class AdminPanel {
 		const previousScale = crop.scale || baseScale;
 		const targetScale = Math.max(
 			crop.minScale || 0.01,
-			Math.min(crop.maxScale || baseScale * (1 + clampedRelative)),
+			Math.min(crop.maxScale, baseScale * (1 + clampedRelative)),
 		);
 		const canvasSize = crop.size * crop.ratio;
 		const centerX = canvasSize / 2;

@@ -256,7 +256,7 @@ async function loadMyCommunities() {
 	if (!communities || communities.length === 0) {
 		const empty = document.createElement("div");
 		empty.className = "empty-state";
-		empty.textContent = "You haven't joined any communities yet.";
+		empty.innerHTML = `<img src="/public/shared/assets/img/cats/cupcake_cat.png" alt="Cupcake cat" draggable="false">You haven't joined any communities yet.`;
 		list.appendChild(empty);
 		return;
 	}

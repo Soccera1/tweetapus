@@ -3195,9 +3195,9 @@ async function showSpamScoreDetails(username) {
 				},
 				posting_frequency: {
 					warning:
-						"Posting original tweets too fast. Slow down to under 10 posts per hour (replies don't count).",
+						"Posting original tweets too fast. Slow down to under 10 posts per hour",
 					caution:
-						"Original post pace is elevated. Consider spacing posts out more (replies are fine).",
+						"Original post pace is elevated. Consider spacing posts out more",
 					good: "Healthy posting frequency.",
 				},
 				timing_regularity: {
@@ -3435,7 +3435,7 @@ async function showSpamScoreDetails(username) {
 							${data.message}
 						</div>
 						<div style="font-size: 13px; color: var(--text-secondary);">
-							Based on analysis of ${metrics.totalPosts} posts (includes replies)
+							Based on analysis of ${metrics.totalPosts} tweets
 						</div>
 					</div>
 

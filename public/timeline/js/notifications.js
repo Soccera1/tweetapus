@@ -209,10 +209,10 @@ function renderNotifications() {
 	if (filteredNotifications.length === 0) {
 		const noNotificationsEl = document.createElement("div");
 		noNotificationsEl.className = "no-notifications";
-		noNotificationsEl.textContent =
+		noNotificationsEl.innerHTML = `<img src="/public/shared/assets/img/cats/pit_cat_400.png" draggable="false">${
 			currentFilter === "mentions"
 				? "No mentions yet!"
-				: "No notifications for now!";
+				: "No notifications for now!"}`;
 		listElement.appendChild(noNotificationsEl);
 		return;
 	}

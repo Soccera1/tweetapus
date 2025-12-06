@@ -454,6 +454,8 @@ const renderPosts = async (posts, isReplies = false) => {
 
 		container.innerHTML = `
       <div class="profile-empty-state">
+        <img src="/public/shared/assets/img/cats/sad_cat_small.png" alt="Sad cat" draggable="false">
+
         <h3>${emptyMessage.title}</h3>
         <p>${emptyMessage.message}</p>
       </div>
@@ -504,6 +506,8 @@ const renderMediaGrid = async (posts) => {
 	if (!posts || posts.length === 0) {
 		container.innerHTML = `
       <div class="profile-empty-state">
+        <img src="/public/shared/assets/img/cats/sad_cat_small.png" alt="Sad cat" draggable="false">
+
         <h3>No media yet</h3>
         <p>When they post images or videos, they'll show up here.</p>
       </div>
@@ -578,6 +582,8 @@ const renderMediaGrid = async (posts) => {
 	if (mediaCount === 0) {
 		container.innerHTML = `
       <div class="profile-empty-state">
+        <img src="/public/shared/assets/img/cats/sad_cat_small.png" alt="Sad cat" draggable="false">
+
         <h3>No media yet</h3>
         <p>When they post images or videos, they'll show up here.</p>
       </div>

@@ -20,7 +20,7 @@ import { addTweetToTimeline } from "./tweets.js";
 
 window.onerror = (message, source, lineno, colno) => {
 	toastQueue.add(
-		`<h1>${message}</h1><p>at ${lineno || "?"}:${colno || "?"} in ${
+		`<h1>${message}</h1><p>at ${lineno || "?"}:${colno || "?"} in ${ // kristiago
 			source || "?"
 		}</p>`,
 	);
@@ -258,8 +258,8 @@ let timelineScrollPosition = 0;
 					const emptyMessage = document.createElement("div");
 					emptyMessage.className = "empty-timeline";
 					emptyMessage.innerHTML = `
-						<h3>Welcome to your Following timeline!</h3>
-						<p>Follow some accounts to see their tweets here.</p>
+					  <img src="/public/shared/assets/img/cats/snail_cat_400.png" alt="Snail cat" draggable="false">
+						<h3>You haven't followed<br> anyone yet!</h3>
 					`;
 					getTweetsContainer().appendChild(emptyMessage);
 				}
