@@ -37,10 +37,11 @@ export function attachHoverCard(element, username) {
 			}
 
 			try {
-				const userData = await query(`/profile/@${username}`);
+				const userData = await query(`/profile/${username}`);
 				if (!userData || userData.error || !isMouseInTrigger) return;
 
-				const user = userData.user;
+				const user = userData.profile;
+				if (!user) return;
 				const card = document.createElement("div");
 				card.className = "hover-card";
 

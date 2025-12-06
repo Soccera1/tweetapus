@@ -8415,7 +8415,7 @@ emoji-picker.emoji-picker-popup {
   align-items: center;
   justify-content: center;
   background-color: rgba(15, 20, 25, 0.6);
-  z-index: 1200;
+  z-index: 10002;
 
   .settings-form-modal {
     background-color: var(--bg-primary);

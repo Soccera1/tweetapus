@@ -49,6 +49,13 @@
               <i class="bi bi-speedometer2"></i>
               Dashboard
             </a>
+
+            <h6
+              class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase"
+              style="font-size: 0.75rem; letter-spacing: 1px"
+            >
+              <span>Management</span>
+            </h6>
             <a class="nav-link" href="#" data-section="users" id="users-nav">
               <i class="bi bi-people"></i>
               Users
@@ -56,10 +63,6 @@
             <a class="nav-link" href="#" data-section="posts" id="posts-nav">
               <i class="bi bi-chat-left-text"></i>
               Posts
-            </a>
-            <a class="nav-link" href="#" data-section="dms" id="dms-nav">
-              <i class="bi bi-chat-dots"></i>
-              Messages
             </a>
             <a
               class="nav-link"
@@ -70,6 +73,21 @@
               <i class="bi bi-people-fill"></i>
               Communities
             </a>
+            <a class="nav-link" href="#" data-section="dms" id="dms-nav">
+              <i class="bi bi-chat-dots"></i>
+              Messages
+            </a>
+            <a class="nav-link" href="#" data-section="blocks" id="blocks-nav">
+              <i class="bi bi-slash-circle"></i>
+              Blocks
+            </a>
+
+            <h6
+              class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase"
+              style="font-size: 0.75rem; letter-spacing: 1px"
+            >
+              <span>Moderation</span>
+            </h6>
             <a
               class="nav-link"
               href="#"
@@ -95,29 +113,22 @@
               id="moderation-logs-nav"
             >
               <i class="bi bi-journal-text"></i>
-              Moderation Logs
+              Logs
             </a>
-            <a
-              class="nav-link"
-              href="#"
-              data-section="clone-profile"
-              id="clone-profile-nav"
+
+            <h6
+              class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase"
+              style="font-size: 0.75rem; letter-spacing: 1px"
             >
-              <i class="bi bi-files"></i>
-              Clone Profile
-            </a>
-            <a
-              class="nav-link"
-              href="#"
-              data-section="notifications"
-              id="notifications-nav"
-            >
-              <i class="bi bi-bell"></i>
-              Notifications
-            </a>
+              <span>System</span>
+            </h6>
             <a class="nav-link" href="#" data-section="emojis" id="emojis-nav">
               <i class="bi bi-emoji-smile"></i>
               Emojis
+            </a>
+            <a class="nav-link" href="#" data-section="badges" id="badges-nav">
+              <i class="bi bi-award"></i>
+              Badges
             </a>
             <a
               class="nav-link"
@@ -128,13 +139,23 @@
               <i class="bi bi-puzzle"></i>
               Extensions
             </a>
-            <a class="nav-link" href="#" data-section="badges" id="badges-nav">
-              <i class="bi bi-award"></i>
-              Badges
+            <a
+              class="nav-link"
+              href="#"
+              data-section="notifications"
+              id="notifications-nav"
+            >
+              <i class="bi bi-bell"></i>
+              Notifications
             </a>
-            <a class="nav-link" href="#" data-section="blocks" id="blocks-nav">
-              <i class="bi bi-slash-circle"></i>
-              Blocks
+            <a
+              class="nav-link"
+              href="#"
+              data-section="clone-profile"
+              id="clone-profile-nav"
+            >
+              <i class="bi bi-files"></i>
+              Clone Profile
             </a>
           </nav>
         </div>
@@ -1052,6 +1073,29 @@
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+            <!-- Blocks Section -->
+            <div id="blocks-section" class="section d-none">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>
+                  <i class="bi bi-slash-circle"></i>
+                  Blocks
+                </h4>
+                <button class="btn btn-secondary" onclick="adminPanel.loadBlocks()">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  Refresh
+                </button>
+              </div>
+              <div class="card">
+                <div class="card-body">
+                  <div id="blocksTable">
+                    <!-- Blocks table will be populated here -->
+                  </div>
+                  <nav id="blocksPagination" class="mt-3">
+                    <!-- Pagination will be populated here -->
+                  </nav>
                 </div>
               </div>
             </div>

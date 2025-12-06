@@ -1671,6 +1671,97 @@ class AdminPanel {
     `;
 	}
 
+	async loadBlocks(page = 1) {
+		try {
+			const params = new URLSearchParams({ page, limit: 50 });
+			const data = await this.apiCall(`/api/admin/blocks?${params}`);
+			this.renderBlocksTable(data.blocks);
+			this.renderPagination("blocks", data.pagination);
+			this.currentPage.blocks = page;
+		} catch {
+			this.showError("Failed to load blocks");
+		}
+	}
+
+	renderBlocksTable(blocks) {
+		const container = document.getElementById("blocksTable");
+
+		if (blocks.length === 0) {
+			container.innerHTML =
+				'<p class="text-muted text-center">No active blocks</p>';
+			return;
+		}
+
+		container.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Blocker</th>
+              <th>Blocked User</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${blocks
+							.map(
+								(block) => `
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    ${
+											block.blocker_avatar
+												? `<img src="${block.blocker_avatar}" class="user-avatar me-2" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%;">`
+												: `<div class="user-avatar me-2 bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="bi bi-person text-white"></i>
+                      </div>`
+										}
+                    <div>
+                      <strong>@${block.blocker_username}</strong>
+                      ${
+												block.blocker_name
+													? `<br><small class="text-muted">${this.escapeHtml(
+															block.blocker_name,
+														)}</small>`
+													: ""
+											}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    ${
+											block.blocked_avatar
+												? `<img src="${block.blocked_avatar}" class="user-avatar me-2" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%;">`
+												: `<div class="user-avatar me-2 bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="bi bi-person text-white"></i>
+                      </div>`
+										}
+                    <div>
+                      <strong>@${block.blocked_username}</strong>
+                      ${
+												block.blocked_name
+													? `<br><small class="text-muted">${this.escapeHtml(
+															block.blocked_name,
+														)}</small>`
+													: ""
+											}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <small>${this.formatDate(block.created_at)}</small>
+                </td>
+              </tr>
+            `,
+							)
+							.join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+	}
+
 	renderPagination(target, pagination, onPageChange) {
 		if (!pagination) return;
 
@@ -4370,19 +4461,24 @@ class AdminPanel {
 	}
 
 	async banIpAddress(ipAddress, action) {
-		const actionText = action === 'delete' ? 'delete all accounts' : 'suspend all accounts';
-		if (!confirm(`This will ban IP ${ipAddress} and ${actionText} associated with it. This action cannot be undone. Continue?`)) {
+		const actionText =
+			action === "delete" ? "delete all accounts" : "suspend all accounts";
+		if (
+			!confirm(
+				`This will ban IP ${ipAddress} and ${actionText} associated with it. This action cannot be undone. Continue?`,
+			)
+		) {
 			return;
 		}
 
 		try {
-			const response = await this.apiCall('/api/admin/ip-bans', {
-				method: 'POST',
+			const response = await this.apiCall("/api/admin/ip-bans", {
+				method: "POST",
 				body: JSON.stringify({
 					ip_address: ipAddress,
 					action: action,
-					reason: `Banned via admin panel with ${action} action`
-				})
+					reason: `Banned via admin panel with ${action} action`,
+				}),
 			});
 
 			if (response.error) {
@@ -4390,14 +4486,18 @@ class AdminPanel {
 				return;
 			}
 
-			this.showSuccess(`IP ${ipAddress} banned successfully. ${response.affectedUsers || 0} user(s) ${action === 'delete' ? 'deleted' : 'suspended'}.`);
-			
-			const modal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
+			this.showSuccess(
+				`IP ${ipAddress} banned successfully. ${response.affectedUsers || 0} user(s) ${action === "delete" ? "deleted" : "suspended"}.`,
+			);
+
+			const modal = bootstrap.Modal.getInstance(
+				document.getElementById("userModal"),
+			);
 			if (modal) {
 				modal.hide();
 			}
 		} catch (error) {
-			this.showError(error.message || 'Failed to ban IP address');
+			this.showError(error.message || "Failed to ban IP address");
 		}
 	}
 
