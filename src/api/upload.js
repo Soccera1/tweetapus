@@ -74,7 +74,7 @@ export default new Elysia({ prefix: "/upload", tags: ["Upload"] })
 
 				const arrayBuffer = await file.arrayBuffer();
 
-				let finalArrayBuffer = arrayBuffer;
+				const finalArrayBuffer = arrayBuffer;
 				const finalType = file.type;
 
 				// Video compression disabled
@@ -89,7 +89,7 @@ export default new Elysia({ prefix: "/upload", tags: ["Upload"] })
 				const fileExtension = ALLOWED_TYPES[finalType];
 				const fileName = fileHash + fileExtension;
 
-if (!/^[a-f0-9]{64}\.(webp|mp4|gif)$/i.test(fileName)) {
+				if (!/^[a-f0-9]{64}\.(webp|mp4|gif)$/i.test(fileName)) {
 					return { error: "Invalid filename generated" };
 				}
 

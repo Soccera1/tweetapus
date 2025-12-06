@@ -92,6 +92,7 @@ export const useComposer = (
 				(pendingFiles && pendingFiles.length > 0) ||
 				!!selectedGif ||
 				selectedUnsplashImages.length > 0 ||
+				!!emojiKitchenUrl ||
 				pollEnabled ||
 				!!interactiveCard ||
 				!!article;
@@ -104,6 +105,7 @@ export const useComposer = (
 				(pendingFiles && pendingFiles.length > 0) ||
 				!!selectedGif ||
 				selectedUnsplashImages.length > 0 ||
+				!!emojiKitchenUrl ||
 				pollEnabled ||
 				!!interactiveCard ||
 				!!article;
@@ -458,16 +460,14 @@ export const useComposer = (
 						if (
 							selectedGif ||
 							selectedUnsplashImages.length > 0 ||
-							pendingFiles.length > 0
-						) {
-							toastQueue.add(
-								`<h1>Cannot add Emoji Kitchen</h1><p>Remove other media first</p>`,
-							);
-							return;
-						}
-
-						let emoji1 = null;
-						let emoji2 = null;
+						pendingFiles.length > 0 ||
+						emojiKitchenUrl
+					) {
+						toastQueue.add(
+							`<h1>Cannot add Emoji Kitchen</h1><p>Remove other media first</p>`,
+						);
+						return;
+					}
 
 						const kitchenContent = document.createElement("div");
 						kitchenContent.className = "emoji-kitchen-popover";
@@ -526,7 +526,7 @@ export const useComposer = (
 						const updateCreateButton = async () => {
 							const hasEmojis = emoji1 && emoji2;
 							createBtn.disabled = !hasEmojis;
-							
+
 							if (hasEmojis) {
 								try {
 									const kitchenUrl = `https://emojik.vercel.app/s/${emoji1.replace(/\uFE0F/g, "")}_${emoji2.replace(/\uFE0F/g, "")}`;
@@ -580,35 +580,24 @@ export const useComposer = (
 
 							try {
 								const kitchenUrl = `https://emojik.vercel.app/s/${emoji1.replace(/\uFE0F/g, "")}_${emoji2.replace(/\uFE0F/g, "")}`;
-								const imageResponse = await fetch(kitchenUrl);
-								const blob = await imageResponse.blob();
-								const processedFile = new File([blob], "emoji-kitchen.png", {
-									type: "image/png",
+								
+								emojiKitchenUrl = kitchenUrl;
+								
+								const tempPreview = document.createElement("div");
+								tempPreview.className = "attachment-preview-item emoji-kitchen-preview";
+								tempPreview.dataset.kitchenUrl = kitchenUrl;
+								tempPreview.innerHTML = `
+									<img src="${kitchenUrl}" alt="Emoji Kitchen" />
+									<button type="button" class="remove-attachment">×</button>
+								`;
+								
+								tempPreview.querySelector(".remove-attachment")?.addEventListener("click", () => {
+									emojiKitchenUrl = null;
+									tempPreview.remove();
+									updateCharacterCount();
 								});
-
-								const tempId = crypto.randomUUID();
-
-								const fileData = {
-									tempId,
-									name: processedFile.name,
-									type: processedFile.type,
-									size: processedFile.size,
-									file: processedFile,
-									uploaded: false,
-									isEmojiKitchen: true,
-								};
-
-								if (processedFile.size > 10 * 1024 * 1024) {
-									toastQueue.add(
-										`<h1>Too large</h1><p>Emoji Kitchen image exceeds 10MB</p>`,
-									);
-									createBtn.disabled = false;
-									createBtn.textContent = "Create Kitchen Emoji";
-									return;
-								}
-
-								pendingFiles.push(fileData);
-								displayAttachmentPreview(fileData);
+								
+								attachmentPreview.appendChild(tempPreview);
 								updateCharacterCount();
 
 								if (popupHandle?.close) popupHandle.close();
@@ -1672,6 +1661,10 @@ export const useComposer = (
 					requestBody.unsplash_images = selectedUnsplashImages;
 				}
 
+				if (emojiKitchenUrl) {
+					requestBody.emoji_kitchen_url = emojiKitchenUrl;
+				}
+
 				if (poll) {
 					requestBody.poll = poll;
 				}
@@ -1698,6 +1691,7 @@ export const useComposer = (
 				selectedGif = null;
 				scheduledFor = null;
 				selectedUnsplashImages.length = 0;
+				emojiKitchenUrl = null;
 				attachmentPreview.innerHTML = "";
 
 				if (scheduleBtn) {
@@ -1760,6 +1754,10 @@ export const useComposer = (
 				requestBody.unsplash_images = selectedUnsplashImages;
 			}
 
+			if (emojiKitchenUrl) {
+				requestBody.emoji_kitchen_url = emojiKitchenUrl;
+			}
+
 			if (poll) {
 				requestBody.poll = poll;
 			}
@@ -1789,6 +1787,7 @@ export const useComposer = (
 			pendingFiles = [];
 			selectedGif = null;
 			selectedUnsplashImages.length = 0;
+			emojiKitchenUrl = null;
 			attachmentPreview.innerHTML = "";
 			interactiveCard = null;
 			selectedVibe = "normal";

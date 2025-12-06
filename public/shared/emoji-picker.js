@@ -49,7 +49,11 @@ async function createEmojiPicker(skipCustom = false) {
 	return picker;
 }
 
-export async function showEmojiPickerPopup(onEmojiSelect, position = {}, skipCustom = false) {
+export async function showEmojiPickerPopup(
+	onEmojiSelect,
+	position = {},
+	skipCustom = false,
+) {
 	const picker = await createEmojiPicker(skipCustom);
 	picker.className = "emoji-picker emoji-picker-popup";
 
