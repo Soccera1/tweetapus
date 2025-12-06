@@ -144,7 +144,7 @@ const displayResults = (users, posts) => {
 			const radius =
 				user.avatar_radius !== null && user.avatar_radius !== undefined
 					? `${user.avatar_radius}px`
-					: (user.gold || user.gray)
+					: user.gold || user.gray
 						? "4px"
 						: "50px";
 			return `
@@ -212,11 +212,11 @@ const showEmptyState = async () => {
 		return `${y} years ago`;
 	}
 
-	const eventsParseEl = document.createElement("div");
-	eventsParseEl.innerHTML = trends.eventsHtml;
-
-	const eventsEl = document.createElement("div");
-	eventsEl.innerHTML = trends.eventsHtml.replaceAll(` <i>(pictured)</i>`, "");
+	const parser = new DOMParser();
+	const eventsEl = parser.parseFromString(
+		trends.eventsHtml.replaceAll(` <i>(pictured)</i>`, ""),
+		"text/html",
+	);
 
 	eventsEl.querySelectorAll("a").forEach((a) => {
 		a.setAttribute("target", "_blank");
