@@ -1753,8 +1753,8 @@ export const createComposer = async ({
                     <input type="time" id="schedule-time" style="width: 100%; padding: 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" />
                   </div>
                   <div style="display: flex; gap: 12px; margin-top: 8px;">
-                    <button type="button" id="clear-schedule-btn" style="flex: 1; padding: 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 500;">Clear</button>
-                    <button type="button" id="confirm-schedule-btn" style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--primary); color: white; cursor: pointer; font-weight: 500;">Schedule</button>
+                    <button type="button" id="clear-schedule-btn" style="flex: 1; padding: 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 500;font-family:inherit;">Clear</button>
+                    <button type="button" id="confirm-schedule-btn" style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--primary); color: white; cursor: pointer; font-weight: 500;color:var(--primary-fg);font-family:inherit;">Schedule</button>
                   </div>
                 </div>
               </div>

@@ -94,6 +94,7 @@ function saveAccountToStorage(user, token) {
 
 	document.querySelector(".account img").src =
 		user.avatar || `/public/shared/assets/default-avatar.svg`;
+	document.querySelector(".account img").style.opacity = "1"
 
 	if (restricted) {
 		toastQueue.add(
