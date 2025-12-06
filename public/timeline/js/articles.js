@@ -1,5 +1,5 @@
-import DOMPurify from "/public/shared/assets/js/dompurify.js";
-import { marked } from "/public/shared/assets/js/marked.js";
+import DOMPurify from "../../shared/assets/js/dompurify.js";
+import { marked } from "../../shared/assets/js/marked.js";
 import { isConvertibleImage } from "../../shared/image-utils.js";
 import {
 	createArticleSkeleton,

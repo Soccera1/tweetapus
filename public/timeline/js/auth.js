@@ -95,17 +95,13 @@ function saveAccountToStorage(user, token) {
 	document.querySelector(".account img").src =
 		user.avatar || `/public/shared/assets/default-avatar.svg`;
 	document.querySelector(".account img").style.opacity = "1"
+	document.querySelector(".account img").style.filter = "blur(0px)"
 
 	if (restricted) {
 		toastQueue.add(
 			`<h1>Account restricted</h1><p>Your account has limited privileges — you can browse posts, but interactions such as tweeting, liking, retweeting, DMs, and following are disabled.</p>`,
 		);
 		user.restricted = true;
-	}
-
-	if (user.shadowbanned) {
-		const { showCaptchaModal } = await import("./captcha.js");
-		showCaptchaModal();
 	}
 
 	const accountBtn = document.querySelector(".account");

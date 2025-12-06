@@ -545,7 +545,7 @@ export const useComposer = (
 
 						emoji1Btn.addEventListener("click", async () => {
 							const { showEmojiPickerPopup } = await import(
-								"/public/shared/emoji-picker.js"
+								"../../shared/emoji-picker.js"
 							);
 							const rect = emoji1Btn.getBoundingClientRect();
 							showEmojiPickerPopup(
@@ -561,7 +561,7 @@ export const useComposer = (
 
 						emoji2Btn.addEventListener("click", async () => {
 							const { showEmojiPickerPopup } = await import(
-								"/public/shared/emoji-picker.js"
+								"../../shared/emoji-picker.js"
 							);
 							const rect = emoji2Btn.getBoundingClientRect();
 							showEmojiPickerPopup(

@@ -205,7 +205,7 @@ export async function maybeAddTranslation(tweet, tweetElement, contentElement) {
 	}
 
 	const { detectAll } = await import(
-		"/public/shared/assets/js/tinyld.min.js"
+		"../../shared/assets/js/tinyld.min.js"
 	);
 
 	const detection = detectAll(cleanText)?.[0];

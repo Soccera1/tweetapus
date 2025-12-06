@@ -1,18 +1,14 @@
-import DOMPurify from "/public/shared/assets/js/dompurify.js";
+import DOMPurify from "../../shared/assets/js/dompurify.js";
+import { marked } from "../../shared/assets/js/marked.js";
 import {
 	applyAvatarOutline,
 	createVerificationBadge,
-} from "/public/shared/badge-utils.js";
-import { createGradientPicker } from "../../shared/gradient-picker.js";
-import openImageCropper, {
-	CROP_CANCELLED,
-} from "../../shared/image-cropper.js";
+} from "../../shared/badge-utils.js";
 import {
 	convertToWebPAvatar,
 	convertToWebPBanner,
 	isConvertibleImage,
 } from "../../shared/image-utils.js";
-import { showReportModal } from "../../shared/report-modal.js";
 import {
 	createFollowerSkeleton,
 	createProfileSkeleton,
@@ -26,7 +22,6 @@ import {
 } from "../../shared/tab-indicator.js";
 import toastQueue from "../../shared/toasts.js";
 import { createModal, createPopup } from "../../shared/ui-utils.js";
-import { marked } from "/public/shared/assets/js/marked.js";
 import query from "./api.js";
 import getUser, { authToken } from "./auth.js";
 import switchPage, { updatePageTitle } from "./pages.js";
@@ -34,12 +29,54 @@ import { addTweetToTimeline, createTweetElement } from "./tweets.js";
 
 const BADGE_DOMPURIFY_CONFIG = {
 	ALLOWED_TAGS: [
-		"b", "i", "u", "s", "a", "p", "br", "marquee", "strong", "em",
-		"code", "pre", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6",
-		"ul", "ol", "li", "span", "big", "sub", "sup", "del", "hr", "img",
-		"table", "thead", "tbody", "tr", "th", "td", "div",
+		"b",
+		"i",
+		"u",
+		"s",
+		"a",
+		"p",
+		"br",
+		"marquee",
+		"strong",
+		"em",
+		"code",
+		"pre",
+		"blockquote",
+		"h1",
+		"h2",
+		"h3",
+		"h4",
+		"h5",
+		"h6",
+		"ul",
+		"ol",
+		"li",
+		"span",
+		"big",
+		"sub",
+		"sup",
+		"del",
+		"hr",
+		"img",
+		"table",
+		"thead",
+		"tbody",
+		"tr",
+		"th",
+		"td",
+		"div",
 	],
-	ALLOWED_ATTR: ["href", "target", "rel", "class", "src", "alt", "width", "height", "style"],
+	ALLOWED_ATTR: [
+		"href",
+		"target",
+		"rel",
+		"class",
+		"src",
+		"alt",
+		"width",
+		"height",
+		"style",
+	],
 };
 
 const attachCheckmarkPopup = (badgeEl, type) => {
@@ -1462,7 +1499,7 @@ const renderProfile = (data) => {
 				const urlRegex = /(https?:\/\/[^\s]+)/g;
 				let processedBio = bioText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 				processedBio = processedBio.replace(urlRegex, (url) => {
-					const displayUrl = url.length > 40 ? url.slice(0, 37) + "..." : url;
+					const displayUrl = url.length > 40 ? `${url.slice(0, 37)}…` : url;
 					return `<a href="${url}" target="_blank" rel="noopener noreferrer">${displayUrl}</a>`;
 				});
 				processedBio = processedBio.replace(
@@ -1559,9 +1596,19 @@ const renderProfile = (data) => {
 			e.preventDefault();
 			e.stopPropagation();
 
+			metaEl.querySelector(
+				".profile-meta-item:has(.tweeta-joindate) svg",
+			).outerHTML =
+				`<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><style>.spinner_z9k8 {transform-origin: center;animation: spinner_StKS 0.75s infinite linear;}@keyframes spinner_StKS {100% {transform: rotate(360deg);}}</style><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25" fill="white"></path><path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z" class="spinner_z9k8" fill="white"></path></svg>`;
+
 			const transparencyReport = await query(
 				`/transparency/${profile.username}`,
 			);
+
+			metaEl.querySelector(
+				".profile-meta-item:has(.tweeta-joindate) svg",
+			).outerHTML =
+				`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path></svg>`;
 
 			const hasLimitedLocation =
 				(transparencyReport.login?.continent &&
@@ -2105,7 +2152,7 @@ function setupProfileDropdownButton() {
 	};
 }
 
-const showEditModal = () => {
+const showEditModal = async () => {
 	if (!currentProfile) return;
 
 	const { profile } = currentProfile;
@@ -2137,6 +2184,10 @@ const showEditModal = () => {
 		"avatarOutlinePickerContainer",
 	);
 	if (grayOutlinesSection) {
+		const { createGradientPicker } = await import(
+			"../../shared/gradient-picker.js"
+		);
+
 		if (profile.gray) {
 			grayOutlinesSection.style.display = "block";
 			if (checkmarkOutlineContainer) {
@@ -2244,7 +2295,9 @@ const showEditModal = () => {
 		btn.addEventListener("click", () => {
 			const targetTab = btn.dataset.tab;
 
-			tabBtns.forEach((b) => b.classList.remove("active"));
+			tabBtns.forEach((b) => {
+				b.classList.remove("active");
+			});
 			btn.classList.add("active");
 
 			tabContents.forEach((content) => {
@@ -2497,6 +2550,10 @@ const updateEditAvatarDisplay = () => {
 
 const handleEditAvatarUpload = async (file) => {
 	if (!file) return;
+
+	const { default: openImageCropper, CROP_CANCELLED } = await import(
+		"../../shared/image-cropper.js"
+	);
 
 	if (file.size > 5 * 1024 * 1024) {
 		toastQueue.add(
@@ -3176,7 +3233,10 @@ export const handleProfileDropdown = (triggerEl) => {
 						id: "report-user",
 						icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flag-icon lucide-flag"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></svg>`,
 						title: `Report`,
-						onClick: () => {
+						onClick: async () => {
+							const { showReportModal } = await import(
+								"../../shared/report-modal.js"
+							);
 							showReportModal({
 								type: "user",
 								id: currentProfile.profile.id,

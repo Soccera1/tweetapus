@@ -1,10 +1,7 @@
 import {
 	applyAvatarOutline,
 	createVerificationBadge,
-} from "/public/shared/badge-utils.js";
-import openImageCropper, {
-	CROP_CANCELLED,
-} from "../../shared/image-cropper.js";
+} from "../../shared/badge-utils.js";
 import {
 	convertToWebPAvatar,
 	convertToWebPBanner,
@@ -1364,6 +1361,10 @@ async function handleCreateCommunity(e) {
 
 async function handleEditCommunity(e) {
 	e.preventDefault();
+
+	const { default: openImageCropper, CROP_CANCELLED } = await import(
+		"../../shared/image-cropper.js"
+	);
 
 	const name = document.getElementById("editCommunityName").value;
 	const description = document.getElementById("editCommunityDescription").value;

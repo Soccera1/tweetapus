@@ -1,11 +1,10 @@
-import DOMPurify from "/public/shared/assets/js/dompurify.js";
-import { marked } from "/public/shared/assets/js/marked.js";
+import DOMPurify from "../../shared/assets/js/dompurify.js";
+import { marked } from "../../shared/assets/js/marked.js";
 import {
 	applyAvatarOutline,
 	createVerificationBadge,
-} from "/public/shared/badge-utils.js";
-import { attachHoverCard } from "/public/shared/hover-card.js";
-import { showReportModal } from "../../shared/report-modal.js";
+} from "../../shared/badge-utils.js";
+import { attachHoverCard } from "../../shared/hover-card.js";
 import toastQueue from "../../shared/toasts.js";
 import {
 	createConfirmModal,
@@ -105,16 +104,32 @@ const handleCustomBadgeAction = (badge, badgeEl, userId, username) => {
 		const contentDiv = document.createElement("div");
 		if (config.content) {
 			if (typeof marked !== "undefined") {
-				contentDiv.innerHTML = DOMPurify.sanitize(marked.parse(config.content), DOMPURIFY_CONFIG);
+				contentDiv.innerHTML = DOMPurify.sanitize(
+					marked.parse(config.content),
+					DOMPURIFY_CONFIG,
+				);
 			} else {
-				contentDiv.innerHTML = DOMPurify.sanitize(config.content.replace(/\n/g, "<br>"), DOMPURIFY_CONFIG);
+				contentDiv.innerHTML = DOMPurify.sanitize(
+					config.content.replace(/\n/g, "<br>"),
+					DOMPURIFY_CONFIG,
+				);
 			}
 		}
 		wrapper.appendChild(contentDiv);
-		const { modal: modalEl, close } = createModal({ title: config.title || badge?.name || "Badge", content: wrapper });
+		const { modal: modalEl, close } = createModal({
+			title: config.title || badge?.name || "Badge",
+			content: wrapper,
+		});
 		if (config.js) {
 			try {
-				const fn = new Function("modalEl", "badge", "userId", "username", "closeModal", config.js);
+				const fn = new Function(
+					"modalEl",
+					"badge",
+					"userId",
+					"username",
+					"closeModal",
+					config.js,
+				);
 				fn(modalEl, badge, userId, username, close);
 			} catch (err) {
 				console.error("Badge modal JS error:", err);
@@ -145,7 +160,9 @@ const handleCustomBadgeAction = (badge, badgeEl, userId, username) => {
 			item.type = "button";
 			if (entry.icon) {
 				const icon = document.createElement("i");
-				icon.className = entry.icon.startsWith("bi-") ? `bi ${entry.icon}` : entry.icon;
+				icon.className = entry.icon.startsWith("bi-")
+					? `bi ${entry.icon}`
+					: entry.icon;
 				item.appendChild(icon);
 			}
 			const labelSpan = document.createElement("span");
@@ -185,7 +202,13 @@ const handleCustomBadgeAction = (badge, badgeEl, userId, username) => {
 	}
 	if (type === "client_js") {
 		try {
-			const fn = new Function("badge", "badgeEl", "userId", "username", badge?.action_value || "");
+			const fn = new Function(
+				"badge",
+				"badgeEl",
+				"userId",
+				"username",
+				badge?.action_value || "",
+			);
 			fn(badge, badgeEl, userId, username);
 		} catch (err) {
 			console.error("Badge JS failed", err);
@@ -1163,7 +1186,11 @@ export const createTweetElement = (tweet, config = {}) => {
 
 	if (Array.isArray(tweet.author.custom_badges)) {
 		for (const badge of tweet.author.custom_badges) {
-			const badgeEl = renderCustomBadge(badge, tweet.author.id, tweet.author.username);
+			const badgeEl = renderCustomBadge(
+				badge,
+				tweet.author.id,
+				tweet.author.username,
+			);
 			tweetHeaderNameEl.appendChild(badgeEl);
 		}
 	}
@@ -2940,7 +2967,10 @@ export const createTweetElement = (tweet, config = {}) => {
 				id: "report-tweet",
 				icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flag-icon lucide-flag"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></svg>`,
 				title: "Report tweet",
-				onClick: () => {
+				onClick: async () => {
+					const { showReportModal } = await import(
+						"../../shared/report-modal.js"
+					);
 					showReportModal({
 						type: "post",
 						id: tweet.id,

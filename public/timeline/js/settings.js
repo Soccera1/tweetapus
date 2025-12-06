@@ -1642,17 +1642,26 @@ const loadDelegates = async () => {
 	const invitationsList = document.getElementById("pending-invitations-list");
 	const sentInvitationsList = document.getElementById("sent-invitations-list");
 
-	if (!delegatesList || !delegationsList || !invitationsList || !sentInvitationsList) return;
+	if (
+		!delegatesList ||
+		!delegationsList ||
+		!invitationsList ||
+		!sentInvitationsList
+	)
+		return;
 
 	try {
-		const [delegatesData, delegationsData, invitationsData, sentInvitationsData] = await Promise.all(
-			[
-				query("/delegates/my-delegates"),
-				query("/delegates/my-delegations"),
-				query("/delegates/pending-invitations"),
-				query("/delegates/sent-invitations"),
-			],
-		);
+		const [
+			delegatesData,
+			delegationsData,
+			invitationsData,
+			sentInvitationsData,
+		] = await Promise.all([
+			query("/delegates/my-delegates"),
+			query("/delegates/my-delegations"),
+			query("/delegates/pending-invitations"),
+			query("/delegates/sent-invitations"),
+		]);
 
 		if (delegatesData.delegates && delegatesData.delegates.length > 0) {
 			delegatesList.innerHTML = "";
@@ -1696,7 +1705,10 @@ const loadDelegates = async () => {
 			invitationsList.appendChild(emptyP);
 		}
 
-		if (sentInvitationsData.invitations && sentInvitationsData.invitations.length > 0) {
+		if (
+			sentInvitationsData.invitations &&
+			sentInvitationsData.invitations.length > 0
+		) {
 			sentInvitationsList.innerHTML = "";
 			sentInvitationsData.invitations.forEach((invitation) => {
 				const item = createSentInvitationItem(invitation);
