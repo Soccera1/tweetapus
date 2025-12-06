@@ -2040,6 +2040,16 @@ nav {
       }
     }
 
+
+    blockquote {
+      border-left: 4px solid var(--border-secondary);
+      margin-left: 0;
+      padding-left: 12px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+
     a,
     .tweet-ellipsis {
       color: var(--primary);

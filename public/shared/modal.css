@@ -1,4 +1,4 @@
-.modal-overlay {
+e.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -430,8 +430,6 @@
   gap: 16px;
   font-size: 14px;
   color: var(--text-secondary);
-  padding-top: 12px;
-  border-top: 1px solid var(--border-primary);
 }
 
 .hover-card-stat {

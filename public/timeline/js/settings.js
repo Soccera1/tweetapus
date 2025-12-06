@@ -547,7 +547,7 @@ const createAccountContent = () => {
 					multiplierRow.className = "algo-stat algo-stat-full";
 					multiplierRow.innerHTML = `
 						<span class="algo-stat-label">Overall multiplier</span>
-						<span class="algo-stat-value ${ratingClass}">${impact.overall_multiplier}x</span>
+						<span class="algo-stat-value">${impact.overall_multiplier}x</span>
 					`;
 					grid.appendChild(multiplierRow);
 
