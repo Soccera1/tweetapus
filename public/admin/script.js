@@ -5180,7 +5180,7 @@ class AdminPanel {
 		const postId = document.getElementById("editPostId").value;
 		const action = document.getElementById("massEngageAction").value;
 		const percentage =
-			parseInt(document.getElementById("massEngagePercent").value) || 0;
+			parseInt(document.getElementById("massEngagePercent").value, 10) || 0;
 		const commentsRaw = document.getElementById("massEngageComments").value;
 
 		if (percentage <= 0 || percentage > 100) {

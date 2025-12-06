@@ -6,7 +6,11 @@ import {
 } from "/public/shared/badge-utils.js";
 import { showReportModal } from "../../shared/report-modal.js";
 import toastQueue from "../../shared/toasts.js";
-import { createModal, createPopup } from "../../shared/ui-utils.js";
+import {
+	createConfirmModal,
+	createModal,
+	createPopup,
+} from "../../shared/ui-utils.js";
 import query from "./api.js";
 import getUser from "./auth.js";
 import switchPage from "./pages.js";
@@ -2733,21 +2737,27 @@ export const createTweetElement = (tweet, config = {}) => {
             </svg>`,
 				title: "Delete tweet",
 				onClick: async () => {
-					if (!confirm("Are you sure you want to delete this tweet?")) {
-						return;
-					}
+					createConfirmModal({
+						title: "Delete tweet",
+						message:
+							"Are you sure you want to delete this tweet? This action cannot be undone.",
+						confirmText: "Delete",
+						cancelText: "Cancel",
+						danger: true,
+						onConfirm: async () => {
+							tweetEl.remove();
 
-					tweetEl.remove();
+							const result = await query(`/tweets/${tweet.id}`, {
+								method: "DELETE",
+							});
 
-					const result = await query(`/tweets/${tweet.id}`, {
-						method: "DELETE",
+							if (!result.success) {
+								toastQueue.add(
+									`<h1>${result.error || "Failed to delete tweet"}</h1>`,
+								);
+							}
+						},
 					});
-
-					if (!result.success) {
-						toastQueue.add(
-							`<h1>${result.error || "Failed to delete tweet"}</h1>`,
-						);
-					}
 				},
 			},
 		];
@@ -3169,14 +3179,6 @@ export const createTweetElement = (tweet, config = {}) => {
 			isTopReply: true,
 		});
 
-		const replyIndicator = document.createElement("div");
-		replyIndicator.className = "reply-indicator";
-		if (tweet.top_reply.author_replied) {
-			replyIndicator.classList.add("author-replied");
-		}
-		replyIndicator.innerText = `Replying to @${tweet.author.username}`;
-		topReplyEl.insertBefore(replyIndicator, topReplyEl.firstChild);
-
 		tweetEl.appendChild(topReplyEl);
 
 		if (tweet.top_reply.author_response) {
@@ -3187,15 +3189,6 @@ export const createTweetElement = (tweet, config = {}) => {
 					showTopReply: false,
 					isTopReply: true,
 				},
-			);
-
-			const authorReplyIndicator = document.createElement("div");
-			authorReplyIndicator.className =
-				"reply-indicator author-response-indicator";
-			authorReplyIndicator.innerText = `@${tweet.author.username} replied`;
-			authorResponseEl.insertBefore(
-				authorReplyIndicator,
-				authorResponseEl.firstChild,
 			);
 
 			tweetEl.appendChild(authorResponseEl);

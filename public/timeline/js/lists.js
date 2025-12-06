@@ -6,7 +6,7 @@ import {
 } from "../../shared/skeleton-utils.js";
 import { updateTabIndicator } from "../../shared/tab-indicator.js";
 import toastQueue from "../../shared/toasts.js";
-import { createModal } from "../../shared/ui-utils.js";
+import { createConfirmModal, createModal } from "../../shared/ui-utils.js";
 import query from "./api.js";
 import switchPage from "./pages.js";
 import { createTweetElement } from "./tweets.js";
@@ -601,18 +601,26 @@ function openEditListModal(list) {
 	cancelBtn.addEventListener("click", () => modal.close());
 
 	deleteBtn.addEventListener("click", async () => {
-		if (!confirm("Are you sure you want to delete this list?")) return;
-
-		const result = await query(`/lists/${list.id}`, { method: "DELETE" });
-		if (result.success) {
-			modal.close();
-			toastQueue.add(`<h1>List deleted</h1>`);
-			history.back();
-		} else {
-			toastQueue.add(
-				`<h1>${escapeHTML(result.error || "Failed to delete list")}</h1>`,
-			);
-		}
+		createConfirmModal({
+			title: "Delete list",
+			message:
+				"Are you sure you want to delete this list? This action cannot be undone.",
+			confirmText: "Delete",
+			cancelText: "Cancel",
+			danger: true,
+			onConfirm: async () => {
+				const result = await query(`/lists/${list.id}`, { method: "DELETE" });
+				if (result.success) {
+					modal.close();
+					toastQueue.add(`<h1>List deleted</h1>`);
+					history.back();
+				} else {
+					toastQueue.add(
+						`<h1>${escapeHTML(result.error || "Failed to delete list")}</h1>`,
+					);
+				}
+			},
+		});
 	});
 
 	saveBtn.addEventListener("click", async () => {
@@ -667,7 +675,7 @@ async function openAddMemberModal(listId) {
 	resultsContainer.className = "add-member-results";
 	content.appendChild(resultsContainer);
 
-  createModal({
+	createModal({
 		title: "Add members",
 		content,
 		className: "add-member-modal",
@@ -701,7 +709,7 @@ async function openAddMemberModal(listId) {
 					const radius =
 						user.avatar_radius !== null && user.avatar_radius !== undefined
 							? `${user.avatar_radius}px`
-							: (user.gold || user.gray)
+							: user.gold || user.gray
 								? "4px"
 								: "50px";
 					avatar.style.borderRadius = radius;

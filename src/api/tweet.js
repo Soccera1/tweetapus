@@ -1268,7 +1268,6 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 			return { error: "Tweet not found" };
 		}
 
-		// If the tweet's author is suspended or shadowbanned (to non-owning viewers), hide the tweet completely.
 		if (isUserSuspendedById(tweet.user_id)) {
 			return { error: "Tweet not found" };
 		}

@@ -1090,7 +1090,12 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 
 		const timeline = posts
 			.map((post) => {
-				const topReply = getTopReplyData(post.id, user.id, post.user_id, badgesMap);
+				const topReply = getTopReplyData(
+					post.id,
+					user.id,
+					post.user_id,
+					badgesMap,
+				);
 				const shouldShowTopReply =
 					topReply &&
 					(topReply.author_replied ||
@@ -1118,7 +1123,11 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 					reaction_count: countReactionsForPost.get(post.id)?.total || 0,
 					top_reactions: getTopReactionsForPost.all(post.id),
 					poll: getPollDataForTweet(post.id, user.id),
-					quoted_tweet: getQuotedTweetData(post.quote_tweet_id, user.id, badgesMap),
+					quoted_tweet: getQuotedTweetData(
+						post.quote_tweet_id,
+						user.id,
+						badgesMap,
+					),
 					top_reply: shouldShowTopReply ? topReply : null,
 					attachments: getTweetAttachments(post.id),
 					article_preview: post.article_id

@@ -1,5 +1,5 @@
 import toastQueue from "../../shared/toasts.js";
-import { createModal } from "../../shared/ui-utils.js";
+import { createConfirmModal, createModal } from "../../shared/ui-utils.js";
 import query from "./api.js";
 import { authToken } from "./auth.js";
 
@@ -1906,22 +1906,29 @@ const loadScheduledPosts = async () => {
 			deleteBtn.className = "btn danger scheduled-post-delete";
 			deleteBtn.textContent = "Delete";
 			deleteBtn.onclick = async () => {
-				if (confirm("Are you sure you want to delete this scheduled post?")) {
-					try {
-						const result = await query(`/scheduled/${post.id}`, {
-							method: "DELETE",
-						});
+				createConfirmModal({
+					title: "Delete scheduled post",
+					message: "Are you sure you want to delete this scheduled post?",
+					confirmText: "Delete",
+					cancelText: "Cancel",
+					danger: true,
+					onConfirm: async () => {
+						try {
+							const result = await query(`/scheduled/${post.id}`, {
+								method: "DELETE",
+							});
 
-						if (result.success) {
-							toastQueue.add(`<h1>Deleted</h1><p>Scheduled post deleted</p>`);
-							loadScheduledPosts();
-						} else {
+							if (result.success) {
+								toastQueue.add(`<h1>Deleted</h1><p>Scheduled post deleted</p>`);
+								loadScheduledPosts();
+							} else {
+								toastQueue.add(`<h1>Error</h1><p>Failed to delete post</p>`);
+							}
+						} catch {
 							toastQueue.add(`<h1>Error</h1><p>Failed to delete post</p>`);
 						}
-					} catch {
-						toastQueue.add(`<h1>Error</h1><p>Failed to delete post</p>`);
-					}
-				}
+					},
+				});
 			};
 
 			header.appendChild(scheduledTime);
@@ -2003,8 +2010,18 @@ const createChangeUsernameModal = () => {
 	userWrap.appendChild(input);
 
 	const small = document.createElement("small");
-	small.textContent =
-		"Username must be 3-20 characters and contain only letters, numbers, and underscores.";
+	small.id = "usernameHelp";
+
+	const isVerified =
+		currentUser?.verified || currentUser?.gold || currentUser?.gray;
+
+	if (isVerified) {
+		small.textContent =
+			"You're verified, so you can use emojis in your username! Username must be 3-40 characters and contain only letters, numbers, emojis, underscores, periods, and hyphens.";
+	} else {
+		small.textContent =
+			"Username must be 3-20 characters and contain only letters, numbers, underscores, periods, and hyphens.";
+	}
 
 	fg.appendChild(label);
 	fg.appendChild(userWrap);
@@ -2467,9 +2484,17 @@ const setupSettingsEventHandlers = async () => {
 
 	document.addEventListener("input", (event) => {
 		if (event.target.id === "newUsername") {
-			event.target.value = event.target.value
-				.toLowerCase()
-				.replace(/[^a-z0-9_]/g, "");
+			const isVerified =
+				currentUser?.verified || currentUser?.gold || currentUser?.gray;
+			const zeroWidthRegex = /[\u200B-\u200D\uFEFF]/g;
+
+			event.target.value = event.target.value.replace(zeroWidthRegex, "");
+
+			if (!isVerified) {
+				event.target.value = event.target.value
+					.toLowerCase()
+					.replace(/[^a-z0-9._-]/g, "");
+			}
 		}
 		if (event.target.classList?.contains("theme-mode-select")) {
 			handleThemeModeChange(event.target.value);

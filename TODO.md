@@ -3,13 +3,6 @@
 
 - maybe remove gray checkmarks outline
 - tell users more clearly about thinks like same name as username = hide username
-- move "delete tweet" and similar dialogs to a modal
-- unified modals with some being bottom sheets on mobile <-- doing
-- emoji usernames for verified users <-- doing
-- customizing profile tab colors <-- doing
-
-- fix new-message-modal css being broken. <-- doing
-- fix parody labels on tweets <-- doing
 
 - fix three dots menu on profile not doing anything
 

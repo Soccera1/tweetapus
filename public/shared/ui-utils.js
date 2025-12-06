@@ -503,3 +503,58 @@ export function createModal(options) {
 		modal,
 	};
 }
+export function createConfirmModal(options) {
+	const {
+		title = "Confirm",
+		message = "Are you sure?",
+		confirmText = "Confirm",
+		cancelText = "Cancel",
+		onConfirm = () => {},
+		onCancel = () => {},
+		danger = false,
+	} = options;
+
+	const content = document.createElement("div");
+	content.className = "confirm-modal-content";
+
+	const messageEl = document.createElement("p");
+	messageEl.className = "confirm-modal-message";
+	messageEl.textContent = message;
+	content.appendChild(messageEl);
+
+	const actions = document.createElement("div");
+	actions.className = "confirm-modal-actions";
+
+	const cancelBtn = document.createElement("button");
+	cancelBtn.className = "confirm-modal-cancel";
+	cancelBtn.textContent = cancelText;
+	cancelBtn.type = "button";
+
+	const confirmBtn = document.createElement("button");
+	confirmBtn.className = `confirm-modal-confirm${danger ? " danger" : ""}`;
+	confirmBtn.textContent = confirmText;
+	confirmBtn.type = "button";
+
+	actions.appendChild(cancelBtn);
+	actions.appendChild(confirmBtn);
+	content.appendChild(actions);
+
+	const { close, element, modal } = createModal({
+		title,
+		content,
+		className: "confirm-modal",
+		closeOnOverlayClick: false,
+	});
+
+	cancelBtn.addEventListener("click", () => {
+		close();
+		onCancel();
+	});
+
+	confirmBtn.addEventListener("click", () => {
+		close();
+		onConfirm();
+	});
+
+	return { close, element, modal };
+}

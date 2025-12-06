@@ -410,6 +410,68 @@ img {
   text-align: center;
 }
 
+.confirm-modal {
+  max-width: 400px;
+  width: 90%;
+}
+
+.confirm-modal-content {
+  padding: 24px;
+}
+
+.confirm-modal-message {
+  margin: 0 0 24px 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.confirm-modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.confirm-modal-cancel,
+.confirm-modal-confirm {
+  flex: 1;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  font-family: inherit;
+}
+
+.confirm-modal-cancel {
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+}
+
+.confirm-modal-cancel:hover {
+  background-color: var(--bg-secondary);
+}
+
+.confirm-modal-confirm {
+  background-color: var(--primary);
+  color: var(--primary-fg);
+}
+
+.confirm-modal-confirm:hover {
+  background-color: var(--primary-hover);
+}
+
+.confirm-modal-confirm.danger {
+  background-color: #dc2626;
+  color: #fff;
+}
+
+.confirm-modal-confirm.danger:hover {
+  background-color: #b91c1c;
+}
+
 /* Eesti Loafs */
 @font-face {
   font-family: "chirp";

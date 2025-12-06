@@ -155,7 +155,7 @@ const getUserMediaPaginated = db.prepare(`
 `);
 
 const getUserPostsPaginated = db.prepare(`
-  SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.gray, users.avatar_radius, users.affiliate, users.affiliate_with, users.selected_community_tag, users.checkmark_outline, users.avatar_outline
+  SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.gray, users.avatar_radius, users.affiliate, users.affiliate_with, users.selected_community_tag, users.checkmark_outline, users.avatar_outline, users.label_type
   FROM posts 
   JOIN users ON posts.user_id = users.id 
   WHERE posts.user_id = ? AND posts.reply_to IS NULL AND users.suspended = 0 AND posts.id < ?
@@ -166,7 +166,7 @@ const getUserPostsPaginated = db.prepare(`
 const getUserRetweetsPaginated = db.prepare(`
   SELECT 
     original_posts.*,
-    original_users.username, original_users.name, original_users.avatar, original_users.verified, original_users.gold, original_users.gray, original_users.avatar_radius, original_users.affiliate, original_users.affiliate_with, original_users.selected_community_tag, original_users.checkmark_outline, original_users.avatar_outline,
+    original_users.username, original_users.name, original_users.avatar, original_users.verified, original_users.gold, original_users.gray, original_users.avatar_radius, original_users.affiliate, original_users.affiliate_with, original_users.selected_community_tag, original_users.checkmark_outline, original_users.avatar_outline, original_users.label_type,
     retweets.created_at as retweet_created_at,
     retweets.post_id as original_post_id,
     retweets.id as retweet_id
@@ -297,7 +297,7 @@ const getTotalPollVotes = db.prepare(`
 `);
 
 const getPollVoters = db.prepare(`
-  SELECT DISTINCT users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius
+  SELECT DISTINCT users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.label_type
   FROM poll_votes 
   JOIN users ON poll_votes.user_id = users.id 
   WHERE poll_votes.poll_id = ?
@@ -306,7 +306,7 @@ const getPollVoters = db.prepare(`
 `);
 
 const getQuotedTweet = db.prepare(`
-  SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with, users.selected_community_tag
+  SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.avatar_radius, users.affiliate, users.affiliate_with, users.selected_community_tag, users.label_type
   FROM posts
   JOIN users ON posts.user_id = users.id
   WHERE posts.id = ?
@@ -530,7 +530,7 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 			}
 
 			const userPostsQuery = db.query(`
-				SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.gray, users.avatar_radius, users.affiliate, users.affiliate_with, users.selected_community_tag, users.checkmark_outline, users.avatar_outline
+				SELECT posts.*, users.username, users.name, users.avatar, users.verified, users.gold, users.gray, users.avatar_radius, users.affiliate, users.affiliate_with, users.selected_community_tag, users.checkmark_outline, users.avatar_outline, users.label_type
 				FROM posts 
 				JOIN users ON posts.user_id = users.id 
 				WHERE posts.user_id = ? AND posts.reply_to IS NULL AND users.suspended = 0
@@ -540,7 +540,7 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 			const userRetweetsQuery = db.query(`
 				SELECT 
 					original_posts.*,
-					original_users.username, original_users.name, original_users.avatar, original_users.verified, original_users.gold, original_users.gray, original_users.avatar_radius, original_users.affiliate, original_users.affiliate_with, original_users.selected_community_tag, original_users.checkmark_outline, original_users.avatar_outline,
+					original_users.username, original_users.name, original_users.avatar, original_users.verified, original_users.gold, original_users.gray, original_users.avatar_radius, original_users.affiliate, original_users.affiliate_with, original_users.selected_community_tag, original_users.checkmark_outline, original_users.avatar_outline, original_users.label_type,
 					retweets.created_at as retweet_created_at,
 					retweets.post_id as original_post_id
 				FROM retweets
@@ -1910,11 +1910,28 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 				return { error: "Username must be less than 40 characters" };
 			}
 
-			if (!/^[a-zA-Z0-9._-]+$/.test(newUsername)) {
-				return {
-					error:
-						"Username can only contain lowercase letters, numbers, periods, and hyphens",
-				};
+			const zeroWidthChars = /[\u200B-\u200D\uFEFF]/;
+			if (zeroWidthChars.test(newUsername)) {
+				return { error: "Username cannot contain zero-width characters" };
+			}
+
+			const isVerified =
+				currentUser.verified || currentUser.gold || currentUser.gray;
+
+			if (isVerified) {
+				if (!/^[\p{L}\p{N}\p{Emoji}._-]+$/u.test(newUsername)) {
+					return {
+						error:
+							"Username can only contain letters, numbers, emojis, periods, and hyphens",
+					};
+				}
+			} else {
+				if (!/^[a-zA-Z0-9._-]+$/.test(newUsername)) {
+					return {
+						error:
+							"Username can only contain letters, numbers, periods, and hyphens",
+					};
+				}
 			}
 
 			const existingUser = getUserByUsername.get(newUsername);

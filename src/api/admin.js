@@ -5499,11 +5499,6 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 	.post(
 		"/posts/:id/mass-engage",
 		async ({ params, body, user }) => {
-			const isSuperAdmin = superAdminIds.includes(user.id);
-			if (!isSuperAdmin) {
-				return { error: "SuperAdmin access required" };
-			}
-
 			const post = adminQueries.getPostById.get(params.id);
 			if (!post) {
 				return { error: "Post not found" };

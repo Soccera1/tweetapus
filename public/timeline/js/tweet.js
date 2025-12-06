@@ -178,7 +178,9 @@ export default async function openTweet(
 					finalTweet.author?.name || finalTweet.author?.username || "Post";
 				const loadedContent = finalTweet.content?.slice(0, 30) || "";
 				updatePageTitle("tweet", {
-					title: loadedContent? `${loadedAuthorName}: "${loadedContent}${loadedContent.length >= 30 ? "..." : ""}"` : `tweet by ${loadedAuthorName}`,
+					title: loadedContent
+						? `${loadedAuthorName}: "${loadedContent}${loadedContent.length >= 30 ? "..." : ""}"`
+						: `tweet by ${loadedAuthorName}`,
 				});
 
 				if ((needsThreadData || !finalThread) && apiOutput.threadPosts) {
@@ -246,52 +248,70 @@ export default async function openTweet(
 
 			if (scrollHandler) {
 				window.removeEventListener("scroll", scrollHandler);
+				scrollHandler = null;
 			}
 
-			scrollHandler = async () => {
-				if (isLoadingMoreReplies || !hasMoreReplies) return;
+			let scrollTimeout = null;
 
-				const scrollPosition = window.innerHeight + window.scrollY;
-				const threshold = document.documentElement.scrollHeight - 800;
+			scrollHandler = () => {
+				if (scrollTimeout) return;
 
-				if (scrollPosition >= threshold) {
-					isLoadingMoreReplies = true;
+				scrollTimeout = setTimeout(async () => {
+					scrollTimeout = null;
 
-					const loadMoreSkeletons = showSkeletons(
-						repliesContainer,
-						createTweetSkeleton,
-						3,
-					);
+					if (isLoadingMoreReplies || !hasMoreReplies || !oldestReplyId) {
+						return;
+					}
 
-					try {
-						const apiOutput = await query(
-							`/tweets/${finalTweet.id}?before=${oldestReplyId}&limit=20`,
+					const scrollPosition = window.innerHeight + window.scrollY;
+					const threshold = document.documentElement.scrollHeight - 800;
+
+					if (scrollPosition >= threshold) {
+						isLoadingMoreReplies = true;
+
+						const loadMoreSkeletons = showSkeletons(
+							repliesContainer,
+							createTweetSkeleton,
+							3,
 						);
 
-						removeSkeletons(loadMoreSkeletons);
+						try {
+							const apiOutput = await query(
+								`/tweets/${finalTweet.id}?before=${oldestReplyId}&limit=20`,
+							);
 
-						if (apiOutput.replies && apiOutput.replies.length > 0) {
-							apiOutput.replies.forEach((reply) => {
-								const replyEl = getTweetElement(reply, {
-									clickToOpen: true,
+							removeSkeletons(loadMoreSkeletons);
+
+							if (apiOutput?.replies && apiOutput.replies.length > 0) {
+								const threadForReplies = finalThread || [finalTweet];
+
+								apiOutput.replies.forEach((reply) => {
+									if (!renderedTweets.has(reply.id)) {
+										reply.parentsCache = [...threadForReplies, reply];
+										const replyEl = getTweetElement(reply, {
+											clickToOpen: true,
+										});
+										replyEl.setAttribute("data-reply-id", reply.id);
+										repliesContainer.appendChild(replyEl);
+										oldestReplyId = reply.id;
+									}
 								});
-								replyEl.setAttribute("data-reply-id", reply.id);
-								repliesContainer.appendChild(replyEl);
-								oldestReplyId = reply.id;
-							});
 
-							hasMoreReplies = apiOutput.hasMoreReplies || false;
+								hasMoreReplies = apiOutput.hasMoreReplies || false;
+							} else {
+								hasMoreReplies = false;
+							}
+						} catch (e) {
+							console.error("Error loading more replies:", e);
+							removeSkeletons(loadMoreSkeletons);
+						} finally {
+							isLoadingMoreReplies = false;
 						}
-					} catch {
-						removeSkeletons(loadMoreSkeletons);
-					} finally {
-						// Tr not stuck neutral cursor
-						isLoadingMoreReplies = false;
 					}
-				}
+				}, 200);
 			};
 
-			window.addEventListener("scroll", scrollHandler);
+			window.addEventListener("scroll", scrollHandler, { passive: true });
 		},
 	});
 }

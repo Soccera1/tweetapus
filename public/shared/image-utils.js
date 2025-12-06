@@ -8,6 +8,9 @@ export async function convertToWebPAvatar(file, size = 250, quality = 0.8) {
 			canvas.width = size;
 			canvas.height = size;
 
+			ctx.fillStyle = "#FFFFFF";
+			ctx.fillRect(0, 0, size, size);
+
 			const minDimension = Math.min(img.width, img.height);
 			const sourceX = (img.width - minDimension) / 2;
 			const sourceY = (img.height - minDimension) / 2;
@@ -80,6 +83,9 @@ export async function convertToWebPBanner(
 
 			canvas.width = maxWidth;
 			canvas.height = maxHeight;
+
+			ctx.fillStyle = "#FFFFFF";
+			ctx.fillRect(0, 0, maxWidth, maxHeight);
 
 			const x = (maxWidth - newWidth) / 2;
 			const y = (maxHeight - newHeight) / 2;

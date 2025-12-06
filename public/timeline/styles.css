@@ -3815,35 +3815,6 @@ nav {
   }
 }
 
-.reply-indicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
-
-  svg {
-    width: 14px;
-    height: 14px;
-    opacity: 0.7;
-    color: var(--primary);
-  }
-
-  span {
-    font-weight: 500;
-  }
-
-  &.author-replied {
-    color: var(--primary);
-  }
-
-  &.author-response-indicator {
-    color: var(--primary);
-    font-weight: 600;
-  }
-}
-
 .composer-overlay {
   .modal {
     background: var(--bg-primary);
@@ -5003,7 +4974,7 @@ nav {
 
 @media (max-width: 768px) {
   .dm-conversation {
-    height: calc(100vh - 61px);
+    height: calc(100vh - 70px);
   }
 }
 
@@ -6322,6 +6293,15 @@ nav {
   .add-participant-modal,
   .direct-settings-modal {
     align-items: flex-end;
+
+    .modal-content {
+      transform-origin: bottom center;
+
+      @starting-style {
+        transform: scale(1) translateY(20px);
+        opacity: 0;
+      }
+    }
   }
 
   nav {
