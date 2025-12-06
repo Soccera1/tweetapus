@@ -1566,9 +1566,14 @@ ${
 				loadingState.textContent = "Loading…";
 				asnLink.replaceWith(loadingState);
 
-				const { asn } = await query(`/transparency/${profile.id}/asn`);
+				const { name, id } = await query(`/transparency/${profile.id}/asn`);
 
-				loadingState.textContent = asn || "Unknown";
+				const asnLink2 = document.createElement("a");
+				asnLink2.href = `https://ipinfo.io/AS${id}`;
+				asnLink2.target = "_blank";
+				asnLink2.textContent = name || "Unknown";
+				loadingState.replaceWith(asnLink2);
+
 			});
 		});
 

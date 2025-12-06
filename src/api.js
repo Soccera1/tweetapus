@@ -332,7 +332,7 @@ export default new Elysia({
 			},
 		},
 	)
-	.get("/transparency/:user/asn", async ({ params, jwt, headers }) => {
+	.get("/transparency/:user/asn", async ({ params }) => {
 		const { user } = params;
 		if (!user) {
 			set.status = 400;
@@ -353,8 +353,9 @@ export default new Elysia({
 		const { announcedBy } = await (
 			await fetch(`https://ip2asn.ipinfo.app/lookup/${userRecord.ip_address}`)
 		).json();
+		const asn = announcedBy?.[0] || null;
 
-		return { asn: announcedBy?.[0]?.name || null };
+		return { name: asn?.name, id: asn?.asn };
 	})
 	.get("/owoembed", ({ query }) => {
 		const { author, handle, stats } = query;
