@@ -1568,12 +1568,16 @@ ${
 
 				const { name, id } = await query(`/transparency/${profile.id}/asn`);
 
+				if (!id) {
+					loadingState.textContent = "Unknown";
+					return;
+				}
+
 				const asnLink2 = document.createElement("a");
 				asnLink2.href = `https://ipinfo.io/AS${id}`;
 				asnLink2.target = "_blank";
 				asnLink2.textContent = name || "Unknown";
 				loadingState.replaceWith(asnLink2);
-
 			});
 		});
 

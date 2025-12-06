@@ -346,7 +346,6 @@ export default new Elysia({
 			.get(user);
 
 		if (!userRecord) {
-			set.status = 404;
 			return { error: "User not found" };
 		}
 

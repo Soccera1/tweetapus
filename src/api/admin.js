@@ -5756,4 +5756,119 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				}),
 			}),
 		},
+	)
+
+	.post(
+		"/ip-bans",
+		async ({ body, user: moderator }) => {
+			const { ip_address, action, reason } = body;
+
+			if (!ip_address || !ip_address.trim()) {
+				return { error: "IP address is required" };
+			}
+
+			if (!action || !["delete", "suspend"].includes(action)) {
+				return { error: "Action must be 'delete' or 'suspend'" };
+			}
+
+			const usersWithIp = adminQueries.getUsersByIp.all(ip_address);
+			if (!usersWithIp || usersWithIp.length === 0) {
+				return { error: "No users found with this IP address" };
+			}
+
+			const existingBan = adminQueries.checkIpBan.get(ip_address);
+			if (!existingBan) {
+				adminQueries.banIp.run(
+					ip_address,
+					moderator.id,
+					reason || `IP banned via admin panel with ${action} action`,
+				);
+			}
+
+			let affectedCount = 0;
+			for (const targetUser of usersWithIp) {
+				try {
+					if (action === "delete") {
+						adminQueries.deleteUser.run(targetUser.id);
+						affectedCount++;
+						logModerationAction(
+							moderator.id,
+							"delete_user_via_ip_ban",
+							"user",
+							targetUser.id,
+							{
+								username: targetUser.username,
+								ip_address: ip_address,
+								reason: reason || "IP ban with delete action",
+							},
+						);
+					} else if (action === "suspend") {
+						const suspensionId = Bun.randomUUIDv7();
+						adminQueries.createSuspension.run(
+							suspensionId,
+							targetUser.id,
+							moderator.id,
+							reason || `Account suspended due to IP ban: ${ip_address}`,
+							null,
+							"suspend",
+							null,
+							`Automatically suspended via IP ban on ${ip_address}`,
+						);
+						adminQueries.updateUserSuspended.run(true, targetUser.id);
+						adminQueries.updateUserRestricted.run(false, targetUser.id);
+						db.query("UPDATE users SET shadowbanned = FALSE WHERE id = ?").run(
+							targetUser.id,
+						);
+						db.query("DELETE FROM dm_messages WHERE sender_id = ?").run(
+							targetUser.id,
+						);
+						affectedCount++;
+						logModerationAction(
+							moderator.id,
+							"suspend_user_via_ip_ban",
+							"user",
+							targetUser.id,
+							{
+								username: targetUser.username,
+								ip_address: ip_address,
+								reason: reason || "IP ban with suspend action",
+							},
+						);
+
+						try {
+							clearSuspensionCache(targetUser.id);
+						} catch {}
+					}
+				} catch (error) {
+					console.error(
+						`Failed to ${action} user ${targetUser.username}:`,
+						error,
+					);
+				}
+			}
+
+			logModerationAction(moderator.id, "ban_ip", "ip", ip_address, {
+				action: action,
+				affected_users: affectedCount,
+				reason: reason || `IP banned via admin panel with ${action} action`,
+			});
+
+			return {
+				success: true,
+				affectedUsers: affectedCount,
+				ip_address: ip_address,
+			};
+		},
+		{
+			detail: {
+				description:
+					"Bans an IP address and optionally deletes or suspends all associated users",
+			},
+			body: t.Object({
+				ip_address: t.String(),
+				action: t.Union([t.Literal("delete"), t.Literal("suspend")]),
+				reason: t.Optional(t.String()),
+			}),
+			response: t.Any(),
+		},
 	);

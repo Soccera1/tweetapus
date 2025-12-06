@@ -2343,6 +2343,7 @@ class AdminPanel {
                       <th>IP Address</th>
                       <th>Use Count</th>
                       <th>Last Used</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2353,6 +2354,12 @@ class AdminPanel {
                         <td><a href="https://ipinfo.io/${this.escapeHtml(ip.ip_address)}" target="_blank"><code>${this.escapeHtml(ip.ip_address)}</code></a></td>
                         <td>${ip.use_count}</td>
                         <td>${this.formatDate(ip.last_used_at)}</td>
+                        <td>
+                          <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-danger" onclick="adminPanel.banIpAddress('${ip.ip_address}', 'delete')">Ban IP & Delete Users</button>
+                            <button class="btn btn-outline-warning" onclick="adminPanel.banIpAddress('${ip.ip_address}', 'suspend')">Ban IP & Suspend Users</button>
+                          </div>
+                        </td>
                       </tr>
                     `,
 											)
@@ -4359,6 +4366,38 @@ class AdminPanel {
 			this.loadUsers(this.currentPage.users);
 		} catch (error) {
 			this.showError(error.message);
+		}
+	}
+
+	async banIpAddress(ipAddress, action) {
+		const actionText = action === 'delete' ? 'delete all accounts' : 'suspend all accounts';
+		if (!confirm(`This will ban IP ${ipAddress} and ${actionText} associated with it. This action cannot be undone. Continue?`)) {
+			return;
+		}
+
+		try {
+			const response = await this.apiCall('/api/admin/ip-bans', {
+				method: 'POST',
+				body: JSON.stringify({
+					ip_address: ipAddress,
+					action: action,
+					reason: `Banned via admin panel with ${action} action`
+				})
+			});
+
+			if (response.error) {
+				this.showError(response.error);
+				return;
+			}
+
+			this.showSuccess(`IP ${ipAddress} banned successfully. ${response.affectedUsers || 0} user(s) ${action === 'delete' ? 'deleted' : 'suspended'}.`);
+			
+			const modal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
+			if (modal) {
+				modal.hide();
+			}
+		} catch (error) {
+			this.showError(error.message || 'Failed to ban IP address');
 		}
 	}
 
@@ -9179,7 +9218,7 @@ class AdminPanel {
 											</div>`
 										}
 										<div>
-											<strong style="cursor: pointer; color: #0d6efd;" onclick="adminPanel.findAndViewUser('${this.escapeHtml(block.blocker_username)}')">@${this.escapeHtml(block.blocker_username)}</strong>
+											<strong style="cursor: pointer; color: #0d6efd;" onclick="adminPanel.findAndViewUser('${block.blocker_username}')">@${this.escapeHtml(block.blocker_username)}</strong>
 											${block.blocker_name ? `<br><small class="text-muted">${this.escapeHtml(block.blocker_name)}</small>` : ""}
 										</div>
 									</div>
@@ -9194,7 +9233,7 @@ class AdminPanel {
 											</div>`
 										}
 										<div>
-											<strong style="cursor: pointer; color: #0d6efd;" onclick="adminPanel.findAndViewUser('${this.escapeHtml(block.blocked_username)}')">@${this.escapeHtml(block.blocked_username)}</strong>
+											<strong style="cursor: pointer; color: #0d6efd;" onclick="adminPanel.findAndViewUser('${block.blocked_username}')">@${this.escapeHtml(block.blocked_username)}</strong>
 											${block.blocked_name ? `<br><small class="text-muted">${this.escapeHtml(block.blocked_name)}</small>` : ""}
 										</div>
 									</div>
