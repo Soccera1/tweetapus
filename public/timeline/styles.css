@@ -2489,6 +2489,7 @@ nav {
 
       .poll-option:not(.voted) {
         border-color: var(--border-primary);
+        /* Tr Cursor is not stuck but it */
       }
 
       .poll-option-text {

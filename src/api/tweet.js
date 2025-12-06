@@ -1499,7 +1499,7 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 			quotes: getTweetQuotes.all(tweet.id),
 		};
 
-		const hasMoreReplies = replies.length === parseInt(limit, 10);
+		const hasMoreReplies = processedReplies.length >= parseInt(limit, 10);
 
 		const tweetReactionCount = countReactionsForPost.get(tweet.id)?.total || 0;
 		const tweetTopReactions = getTopReactionsForPost.all(tweet.id);
