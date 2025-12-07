@@ -5,6 +5,13 @@ let activeHoverCard = null;
 let hoverTimeout = null;
 let isMouseInCard = false;
 
+const isMobileOrTouch = () => {
+	return ('ontouchstart' in window) || 
+		(navigator.maxTouchPoints > 0) || 
+		(navigator.msMaxTouchPoints > 0) ||
+		(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+};
+
 function formatFollowerCount(count) {
 	if (count >= 1_000_000) {
 		return `${(count / 1_000_000).toFixed(1)}M`;
@@ -22,6 +29,10 @@ function avatarPxToPercent(px) {
 }
 
 export function attachHoverCard(element, username) {
+	if (isMobileOrTouch()) {
+		return;
+	}
+
 	let isMouseInTrigger = false;
 
 	element.addEventListener("mouseenter", () => {

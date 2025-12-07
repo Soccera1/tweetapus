@@ -16,8 +16,12 @@ const normalizeContent = (value) => {
 
 const stripInternalFields = (obj) => {
 	if (!obj) return obj;
-	const { super_tweeter, super_tweeter_boost, _normalized_content, ...rest } =
-		obj;
+	const {
+		super_tweeter: _super_tweeter,
+		super_tweeter_boost: _super_tweeter_boost,
+		_normalized_content,
+		...rest
+	} = obj;
 	return rest;
 };
 
@@ -838,7 +842,6 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 
 		const beforeId = query.before;
 		const limit = Math.min(Math.max(parseInt(query.limit, 10) || 10, 1), 50);
-		const fetchLimit = Math.min(Math.max(limit * 3, 10), 60);
 		let posts = [];
 		if (beforeId) {
 			const cursor = getPostCreatedAt.get(beforeId);
@@ -853,7 +856,7 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 					cursor.created_at,
 					cursor.created_at,
 					beforeId,
-					fetchLimit,
+					limit,
 				);
 			}
 		} else {
@@ -862,77 +865,12 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 				user.id,
 				user.id,
 				user.admin ? 1 : 0,
-				fetchLimit,
+				limit,
 			);
 		}
-
-		const authorCounts = new Map();
-		const contentCounts = new Map();
-		posts.forEach((p) => {
-			const aKey = p.user_id || p.user?.id || p.author?.id || p.author_id;
-			if (aKey) authorCounts.set(aKey, (authorCounts.get(aKey) || 0) + 1);
-
-			const cKey = normalizeContent(p.content || "");
-			if (cKey) contentCounts.set(cKey, (contentCounts.get(cKey) || 0) + 1);
-			p._normalized_content = cKey;
-		});
 
 		if (posts.length === 0) {
 			return { timeline: [] };
-		}
-
-		if (isAlgorithmAvailable()) {
-			const postIds = posts.map((p) => p.id);
-			if (postIds.length > 0) {
-				const attachmentPlaceholders = postIds.map(() => "?").join(",");
-				const allAttachments = db
-					.query(
-						`SELECT * FROM attachments WHERE post_id IN (${attachmentPlaceholders})`,
-					)
-					.all(...postIds);
-
-				const attachmentMap = new Map();
-				allAttachments.forEach((attachment) => {
-					if (!attachmentMap.has(attachment.post_id)) {
-						attachmentMap.set(attachment.post_id, []);
-					}
-					attachmentMap.get(attachment.post_id).push(attachment);
-				});
-
-				const allFactChecks = db
-					.query(
-						`SELECT post_id FROM fact_checks WHERE post_id IN (${attachmentPlaceholders})`,
-					)
-					.all(...postIds);
-				const factCheckSet = new Set(allFactChecks.map((fc) => fc.post_id));
-
-				posts.forEach((post) => {
-					post.attachments = attachmentMap.get(post.id) || [];
-					post.has_community_note = factCheckSet.has(post.id);
-				});
-			}
-
-			const seenTweets = getSeenTweets.all(user.id);
-			const seenMeta = new Map(
-				seenTweets.map((row) => [row.tweet_id, row.seen_at]),
-			);
-
-			const CLUSTER_SUPPRESS_THRESHOLD = 3;
-			for (const post of posts) {
-				const c = post._normalized_content || "";
-				if (c && contentCounts.get(c) >= CLUSTER_SUPPRESS_THRESHOLD) {
-					if (!seenMeta.has(post.id)) {
-						seenMeta.set(post.id, new Date().toISOString());
-					}
-				}
-			}
-
-			posts = rankTweets(posts, seenMeta, limit);
-
-			for (const post of posts.slice(0, Math.min(limit, posts.length))) {
-				markTweetsAsSeen.run(Bun.randomUUIDv7(), user.id, post.id);
-			}
-			posts = posts.slice(0, limit);
 		}
 
 		const badgesMap = getBadgesForUsers(posts.map((p) => p.user_id));

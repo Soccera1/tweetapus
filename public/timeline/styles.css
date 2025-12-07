@@ -287,6 +287,7 @@ nav {
     justify-content: flex-start;
     width: fit-content;
     user-select: none;
+    transition: transform .2s;
 
     &::after {
       content: "";
@@ -296,8 +297,8 @@ nav {
       right: 0px;
       bottom: 0px;
       border-radius: 9999px;
-      transition: background-color 0.1s, transform .2s;
-      transform: scale(.96);
+      transition: background-color 0.1s, transform .2s, opacity .1s, filter .3s;
+      transform: scale(.9);
       filter: blur(2px);
     }
 
@@ -307,9 +308,19 @@ nav {
       filter: blur(0px);
     }
 
-    &:active:after {
-      transform: scale(0.95);
-      filter: blur(0px);
+    &:active::after {
+      opacity: .8;
+      transform: scale(.95);
+    }
+
+    &:active {
+      transform: scale(.97);
+    }
+
+    @media (max-width: 768px) {
+      &:active {
+        transform: scale(.9);
+      }
     }
 
     &.active {
@@ -2410,7 +2421,11 @@ nav {
         transition: transform 0.2s;
 
         &:active {
-          transform: scale(0.96);
+          transform: scale(0.93);
+
+          &:not(:hover)::after {
+            opacity: .5;
+          }
         }
 
         .retweet-count:empty,

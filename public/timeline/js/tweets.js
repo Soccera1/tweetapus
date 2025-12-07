@@ -1165,6 +1165,10 @@ export const createTweetElement = (tweet, config = {}) => {
 		tweet.author.name || `@${tweet.author.username}`;
 	tweetHeaderNameEl.classList.add("tweet-header-name");
 	tweetHeaderNameEl.addEventListener("click", (e) => {
+		const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+		if (isMobile) {
+			return;
+		}
 		e.stopPropagation();
 		if (tweet.author?.suspended) {
 			switchPage("timeline", { path: "/" });

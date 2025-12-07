@@ -1789,7 +1789,11 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				color !== undefined ? color : badge.color,
 				action_type !== undefined ? action_type : badge.action_type,
 				action_value !== undefined ? action_value : badge.action_value,
-				allow_raw_html !== undefined ? (allow_raw_html ? 1 : 0) : badge.allow_raw_html,
+				allow_raw_html !== undefined
+					? allow_raw_html
+						? 1
+						: 0
+					: badge.allow_raw_html,
 				description !== undefined ? description : badge.description,
 				params.id,
 			);
@@ -5502,8 +5506,8 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				return { error: "Post not found" };
 			}
 
-			if (!user.superadmin) {
-				return { error: "You don't have permission to do this" };
+			if (!superAdminIds.includes(user.id)) {
+				return { error: "Superadmin access required" };
 			}
 
 			const percentage = Number(body.percentage) || 0;

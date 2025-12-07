@@ -197,6 +197,26 @@ export const useComposer = (
 		}
 	});
 
+	const beforeUnloadHandler = (e) => {
+		const hasContent = textarea.value.trim().length > 0 || 
+			pendingFiles.length > 0 || 
+			selectedGif || 
+			selectedUnsplashImages.length > 0 || 
+			emojiKitchenUrl;
+		
+		if (hasContent) {
+			e.preventDefault();
+			e.returnValue = "";
+			return "";
+		}
+	};
+
+	window.addEventListener("beforeunload", beforeUnloadHandler);
+
+	const cleanupBeforeUnload = () => {
+		window.removeEventListener("beforeunload", beforeUnloadHandler);
+	};
+
 	if (pollToggle) {
 		pollToggle.addEventListener("click", togglePoll);
 	}
@@ -225,10 +245,6 @@ export const useComposer = (
 			img.onload = () => {
 				canvas.width = img.width;
 				canvas.height = img.height;
-
-				// Fill with white background to prevent transparency issues
-				ctx.fillStyle = "#FFFFFF";
-				ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 				ctx.drawImage(img, 0, 0);
 
@@ -651,16 +667,37 @@ export const useComposer = (
 
 	textarea.addEventListener("paste", async (e) => {
 		if (cardOnly) return;
-		const items = Array.from(e.clipboardData.items);
-		const fileItems = items.filter((item) => item.kind === "file");
+		
+		if (e.clipboardData?.items) {
+			const items = Array.from(e.clipboardData.items);
+			const fileItems = items.filter((item) => item.kind === "file");
 
-		if (fileItems.length > 0) {
-			e.preventDefault();
-			for (const item of fileItems) {
-				const file = item.getAsFile();
-				if (file && (isConvertibleImage(file) || file.type === "video/mp4")) {
-					await processFileForUpload(file);
+			if (fileItems.length > 0) {
+				e.preventDefault();
+				for (const item of fileItems) {
+					const file = item.getAsFile();
+					if (file && (isConvertibleImage(file) || file.type === "video/mp4")) {
+						await processFileForUpload(file);
+					}
 				}
+			}
+		} else if (navigator.clipboard?.read) {
+			try {
+				const clipboardItems = await navigator.clipboard.read();
+				for (const clipboardItem of clipboardItems) {
+					for (const type of clipboardItem.types) {
+						if (type.startsWith("image/")) {
+							e.preventDefault();
+							const blob = await clipboardItem.getType(type);
+							const file = new File([blob], "pasted-image.png", { type });
+							if (isConvertibleImage(file)) {
+								await processFileForUpload(file);
+							}
+						}
+					}
+				}
+			} catch (err) {
+				console.error("Failed to read clipboard:", err);
 			}
 		}
 	});
@@ -1785,6 +1822,8 @@ export const useComposer = (
 				toastQueue.add(`<h1>${error || "Failed to post tweet"}</h1>`);
 				return;
 			}
+
+			cleanupBeforeUnload();
 
 			textarea.value = "";
 			tweetButton.disabled = true;

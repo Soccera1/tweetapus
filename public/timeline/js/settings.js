@@ -3551,7 +3551,7 @@ async function showSpamScoreDetails(username) {
 						<h2 style="margin: 0; font-size: 20px; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
 							Spam score analysis
 						</h2>
-						<button class="close-btn" onclick="this.closest('.modal').remove()"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+						<button class="close-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
 					</div>
 				</div>
 				
@@ -3617,6 +3617,10 @@ async function showSpamScoreDetails(username) {
 				</div>
 			</div>
 		`;
+
+		modal.querySelector(".close-btn").addEventListener("click", () => {
+			modal.remove();
+		});
 
 		document.body.appendChild(modal);
 
