@@ -6,10 +6,14 @@ let hoverTimeout = null;
 let isMouseInCard = false;
 
 const isMobileOrTouch = () => {
-	return ('ontouchstart' in window) || 
-		(navigator.maxTouchPoints > 0) || 
-		(navigator.msMaxTouchPoints > 0) ||
-		(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+	return (
+		"ontouchstart" in window ||
+		navigator.maxTouchPoints > 0 ||
+		navigator.msMaxTouchPoints > 0 ||
+		/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+			navigator.userAgent,
+		)
+	);
 };
 
 function formatFollowerCount(count) {

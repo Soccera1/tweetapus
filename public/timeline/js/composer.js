@@ -198,12 +198,13 @@ export const useComposer = (
 	});
 
 	const beforeUnloadHandler = (e) => {
-		const hasContent = textarea.value.trim().length > 0 || 
-			pendingFiles.length > 0 || 
-			selectedGif || 
-			selectedUnsplashImages.length > 0 || 
+		const hasContent =
+			textarea.value.trim().length > 0 ||
+			pendingFiles.length > 0 ||
+			selectedGif ||
+			selectedUnsplashImages.length > 0 ||
 			emojiKitchenUrl;
-		
+
 		if (hasContent) {
 			e.preventDefault();
 			e.returnValue = "";
@@ -667,7 +668,7 @@ export const useComposer = (
 
 	textarea.addEventListener("paste", async (e) => {
 		if (cardOnly) return;
-		
+
 		if (e.clipboardData?.items) {
 			const items = Array.from(e.clipboardData.items);
 			const fileItems = items.filter((item) => item.kind === "file");

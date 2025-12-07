@@ -687,33 +687,45 @@ function createNotificationElement(group) {
 		) {
 			if (relatedId.startsWith("meta:") || relatedId.startsWith("subtitle:"))
 				return;
-			
-			if ((notificationType === "like" || notificationType === "retweet") && isGrouped && notifications.length > 1) {
-				const uniqueTweetIds = [...new Set(notifications.map(n => n.related_id).filter(Boolean))];
-				
+
+			if (
+				(notificationType === "like" || notificationType === "retweet") &&
+				isGrouped &&
+				notifications.length > 1
+			) {
+				const uniqueTweetIds = [
+					...new Set(notifications.map((n) => n.related_id).filter(Boolean)),
+				];
+
 				if (uniqueTweetIds.length > 1) {
 					try {
 						const { createModal } = await import("../../shared/ui-utils.js");
 						const { default: openTweet } = await import("./tweet.js");
-						
+
 						const modal = createModal({
 							title: `${uniqueTweetIds.length} ${notificationType === "like" ? "liked tweets" : "retweeted tweets"}`,
-							content: document.createElement("div")
+							content: document.createElement("div"),
 						});
-						
+
 						const content = modal.modal.querySelector(".modal-content > div");
-						content.style.cssText = "padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;";
-						
+						content.style.cssText =
+							"padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;";
+
 						for (const tweetId of uniqueTweetIds) {
 							try {
 								const tweetData = await query(`/tweets/${tweetId}`);
 								if (!tweetData) continue;
-								
+
 								const tweetBtn = document.createElement("button");
-								const previewText = tweetData.content?.substring(0, 60) || "View tweet";
-								tweetBtn.textContent = previewText.length < tweetData.content?.length ? `${previewText}...` : previewText;
+								const previewText =
+									tweetData.content?.substring(0, 60) || "View tweet";
+								tweetBtn.textContent =
+									previewText.length < tweetData.content?.length
+										? `${previewText}...`
+										: previewText;
 								tweetBtn.className = "profile-btn profile-btn-secondary";
-								tweetBtn.style.cssText = "width: 100%; text-align: left; padding: 0.75rem 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
+								tweetBtn.style.cssText =
+									"width: 100%; text-align: left; padding: 0.75rem 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
 								tweetBtn.onclick = () => {
 									modal.close();
 									openTweet(tweetData);
@@ -723,7 +735,7 @@ function createNotificationElement(group) {
 								console.error(`Failed to fetch tweet ${tweetId}:`, err);
 							}
 						}
-						
+
 						modal.show();
 						return;
 					} catch (error) {
@@ -731,7 +743,7 @@ function createNotificationElement(group) {
 					}
 				}
 			}
-			
+
 			try {
 				const tweetModule = await import(`./tweet.js`);
 				const openTweet = tweetModule.default;
