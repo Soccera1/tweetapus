@@ -2150,6 +2150,55 @@ nav {
     border-radius: 10px;
   }
 
+  .link-preview {
+    display: block;
+    margin-top: 12px;
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: var(--bg-secondary);
+    }
+
+    .link-preview-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+      border-bottom: 1px solid var(--border-primary);
+    }
+
+    .link-preview-content {
+      padding: 12px;
+    }
+
+    .link-preview-site {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .link-preview-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+
+    .link-preview-description {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+  }
+
   .tweet-edited-indicator {
     color: var(--text-secondary);
     font-size: 12px;
@@ -2866,7 +2915,7 @@ nav {
   }
 
   .profile-card {
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     position: relative;
     z-index: 1;
     display: flex;
@@ -10807,34 +10856,34 @@ emoji-picker.emoji-picker-popup {
   &:is(.quoted-tweet-container .tweet-translate-container, .tweet-preview .tweet-translate-container) {
     margin-top: 0;
   }
-}
 
-.tweet-translate-btn {
-  background: none;
-  border: none;
-  color: var(--primary);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 4px 0;
-  font-weight: 500;
-  font-family: inherit;
-  transition: opacity 0.15s;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  .tweet-translate-btn {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 0;
+    font-weight: 500;
+    font-family: inherit;
+    transition: opacity 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 
-  svg {
-    width: 16px;
-    height: 16px;
-  }
+    svg {
+      width: 16px;
+      height: 16px;
+    }
 
-  &:hover {
-    text-decoration: underline;
-  }
+    &:hover {
+      text-decoration: underline;
+    }
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: wait;
+    &:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
   }
 }
 
@@ -10842,6 +10891,43 @@ emoji-picker.emoji-picker-popup {
   line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.emojik-wrapper {
+  width: 150px;
+  height: 150px;
+  position: relative;
+
+  img {
+    width: 150px;
+    height: 150px;
+    border: none;
+    border-radius: 0px;
+  }
+
+  .emojik-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 15px;
+    padding: 1px 4px;
+    opacity: 0;
+    transform: translateY(4px) scale(.9);
+    text-align: center;
+    width: fit-content;
+    margin: 0px auto;
+    border-radius: 4px;
+    transition: opacity .2s, transform .2s;
+    backdrop-filter: blur(1px);
+  }
+
+  &:hover .emojik-label {
+opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
 }
 
 .badge-popup-menu {

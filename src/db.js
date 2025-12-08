@@ -802,6 +802,22 @@ CREATE TABLE IF NOT EXISTS user_custom_badges (
 
 CREATE INDEX IF NOT EXISTS idx_user_custom_badges_user_id ON user_custom_badges(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_custom_badges_badge_id ON user_custom_badges(badge_id);
+
+CREATE TABLE IF NOT EXISTS link_previews (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL,
+  url TEXT NOT NULL,
+  title TEXT DEFAULT NULL,
+  description TEXT DEFAULT NULL,
+  image TEXT DEFAULT NULL,
+  site_name TEXT DEFAULT NULL,
+  fetched_at TIMESTAMP DEFAULT (datetime('now', 'utc')),
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_link_previews_post_id ON link_previews(post_id);
+CREATE INDEX IF NOT EXISTS idx_link_previews_url ON link_previews(url);
+CREATE INDEX IF NOT EXISTS idx_link_previews_fetched_at ON link_previews(fetched_at);
 `,
 ).run();
 

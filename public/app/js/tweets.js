@@ -1860,14 +1860,24 @@ export const createTweetElement = (tweet, config = {}) => {
 				});
 
 				if (attachment.file_url.startsWith("https://emojik.vercel.app/s/")) {
-					img.style.width = "160px";
-					img.style.height = "160px";
-					img.style.borderRadius = "none";
-					img.style.pointerEvents = "none";
-					img.style.border = "none";
+					const imgWrapper = document.createElement("div");
+					imgWrapper.classList.add("emojik-wrapper");
+
 					img.draggable = false;
+					img.loading = "lazy";
 					img.src = `${attachment.file_url}?size=260`;
-					tweetEl.appendChild(img);
+
+					imgWrapper.appendChild(img);
+
+					const labelEl = document.createElement("div");
+					labelEl.className = "emojik-label";
+
+					const url = new URL(attachment.file_url);
+					labelEl.textContent = url.pathname
+						.replace("/s/", "").split("_").map(decodeURIComponent).join(" + ");
+
+					imgWrapper.appendChild(labelEl);
+					tweetEl.appendChild(imgWrapper);
 				} else {
 					attachmentEl.appendChild(img);
 				}
@@ -1883,6 +1893,57 @@ export const createTweetElement = (tweet, config = {}) => {
 
 		if (attachmentsEl.querySelectorAll("img, video").length)
 			tweetEl.appendChild(attachmentsEl);
+	}
+
+	if (tweet.link_preview && !tweet.attachments?.length && !tweet.quoted_tweet) {
+		const linkPreviewEl = document.createElement("a");
+		linkPreviewEl.className = "link-preview";
+		linkPreviewEl.href = tweet.link_preview.url;
+		linkPreviewEl.target = "_blank";
+		linkPreviewEl.rel = "noopener noreferrer";
+		linkPreviewEl.addEventListener("click", (e) => {
+			e.stopPropagation();
+		});
+
+		if (tweet.link_preview.image) {
+			const previewImg = document.createElement("img");
+			previewImg.src = tweet.link_preview.image;
+			previewImg.alt = tweet.link_preview.title || "Link preview";
+			previewImg.className = "link-preview-image";
+			previewImg.loading = "lazy";
+			linkPreviewEl.appendChild(previewImg);
+		}
+
+		const previewContent = document.createElement("div");
+		previewContent.className = "link-preview-content";
+
+		if (tweet.link_preview.site_name) {
+			const siteName = document.createElement("div");
+			siteName.className = "link-preview-site";
+			siteName.textContent = tweet.link_preview.site_name;
+			previewContent.appendChild(siteName);
+		}
+
+		if (tweet.link_preview.title) {
+			const title = document.createElement("div");
+			title.className = "link-preview-title";
+			title.textContent = tweet.link_preview.title;
+			previewContent.appendChild(title);
+		}
+
+		if (tweet.link_preview.description) {
+			const description = document.createElement("div");
+			description.className = "link-preview-description";
+			const truncated = tweet.link_preview.description.slice(0, 150);
+			description.textContent =
+				truncated.length < tweet.link_preview.description.length
+					? `${truncated}…`
+					: truncated;
+			previewContent.appendChild(description);
+		}
+
+		linkPreviewEl.appendChild(previewContent);
+		tweetEl.appendChild(linkPreviewEl);
 	}
 
 	if (tweet.quoted_tweet) {

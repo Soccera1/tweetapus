@@ -4,6 +4,10 @@ import { rateLimit } from "elysia-rate-limit";
 import db from "./../db.js";
 import { generateAIResponse } from "../helpers/ai-assistant.js";
 import { checkMultipleRateLimits } from "../helpers/customRateLimit.js";
+import {
+	extractUrls,
+	getOrFetchLinkPreview,
+} from "../helpers/link-preview.js";
 import ratelimit from "../helpers/ratelimit.js";
 import { updateUserSpamScore } from "../helpers/spam-detection.js";
 import { addNotification } from "./notifications.js";
@@ -517,6 +521,14 @@ const getCardDataForTweet = (tweetId) => {
 		...card,
 		options,
 	};
+};
+
+const getLinkPreviewByPostId = db.query(`
+  SELECT * FROM link_previews WHERE id = ?
+`);
+
+const getLinkPreviewForTweet = (tweetId) => {
+	return getLinkPreviewByPostId.get(tweetId) || null;
 };
 
 export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
@@ -1110,6 +1122,31 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 				};
 			}
 
+			let linkPreview = null;
+			if (
+				!reply_to &&
+				!quote_tweet_id &&
+				!poll &&
+				attachments.length === 0 &&
+				!interactive_card &&
+				!targetArticleId
+			) {
+				const urls = extractUrls(trimmedContent);
+				const externalUrls = urls.filter(
+					(url) =>
+						!url.includes(process.env.BASE_URL || "localhost") &&
+						!url.includes("tenor.com") &&
+						!url.includes("unsplash.com"),
+				);
+
+				if (externalUrls.length > 0) {
+					linkPreview = await getOrFetchLinkPreview(
+						externalUrls[0],
+						tweetId,
+					);
+				}
+			}
+
 			const effectiveUser =
 				effectiveUserId !== user.id ? getUserById.get(effectiveUserId) : user;
 
@@ -1158,6 +1195,7 @@ export default new Elysia({ prefix: "/tweets", tags: ["Tweets"] })
 					attachments: attachments,
 					article_preview: articlePreview,
 					interactive_card: cardData,
+					link_preview: linkPreview,
 				},
 			};
 		} catch (error) {

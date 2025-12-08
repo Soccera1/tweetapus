@@ -160,7 +160,7 @@ const getTopReply = db.query(`
 `);
 
 const getReplyWithAuthorResponse = db.query(`
-  SELECT r.*, u.username, u.name, u.avatar, u.verified, u.gold, u.gray, u.checkmark_outline, u.avatar_outline, u.avatar_radius, u.affiliate, u.affiliate_with
+  SELECT r.*, u.username, u.name, u.avatar, u.verified, u.gold, u.gray, u.checkmark_outline, u.avatar_outline, u.avatar_radius, u.affiliate, u.affiliate_with, u.label_type
   FROM posts r
   JOIN users u ON r.user_id = u.id
   WHERE r.reply_to = ?
@@ -262,6 +262,14 @@ const getCardDataForTweet = (tweetId) => {
 	};
 };
 
+const getLinkPreviewByPostId = db.query(`
+  SELECT * FROM link_previews WHERE post_id = ?
+`);
+
+const getLinkPreviewForTweet = (tweetId) => {
+	return getLinkPreviewByPostId.get(tweetId) || null;
+};
+
 const getTimelinePostsByIds = (ids, userId, isAdmin) => {
 	if (!ids || ids.length === 0) return [];
 	const placeholders = ids.map(() => "?").join(",");
@@ -294,6 +302,7 @@ const getQuotedTweetData = (quoteTweetId, userId, badgesMap = null) => {
 		avatar_outline: quotedTweet.avatar_outline || null,
 		affiliate: quotedTweet.affiliate || false,
 		affiliate_with: quotedTweet.affiliate_with || null,
+		label_type: quotedTweet.label_type || null,
 	};
 
 	if (badgesMap?.has(quotedTweet.user_id)) {
@@ -363,6 +372,7 @@ const getTopReplyData = (
 		avatar_outline: topReply.avatar_outline || null,
 		affiliate: topReply.affiliate || false,
 		affiliate_with: topReply.affiliate_with || null,
+		label_type: topReply.label_type || null,
 	};
 
 	if (badgesMap?.has(topReply.user_id)) {
@@ -403,6 +413,7 @@ const getTopReplyData = (
 			avatar_outline: authorReply.avatar_outline || null,
 			affiliate: authorReply.affiliate || false,
 			affiliate_with: authorReply.affiliate_with || null,
+			label_type: authorReply.label_type || null,
 		};
 		if (badgesMap?.has(authorReply.user_id)) {
 			arAuthor.custom_badges = badgesMap.get(authorReply.user_id);
@@ -626,6 +637,7 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 				affiliate: post.affiliate || false,
 				affiliate_with: post.affiliate_with || null,
 				selected_community_tag: post.selected_community_tag || null,
+				label_type: post.label_type || null,
 				blocked_by_user: blockedUserIds.has(post.user_id),
 			};
 
@@ -818,6 +830,7 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 						: null,
 					fact_check: getFactCheckForPost.get(post.id) || null,
 					interactive_card: getCardDataForTweet(post.id),
+					link_preview: getLinkPreviewForTweet(post.id),
 				};
 			})
 			.filter(Boolean);
@@ -896,6 +909,7 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 				affiliate: post.affiliate || false,
 				affiliate_with: post.affiliate_with || null,
 				selected_community_tag: post.selected_community_tag || null,
+				label_type: post.label_type || null,
 				blocked_by_user: blockedUserIds.has(post.user_id),
 			};
 
@@ -1081,6 +1095,7 @@ export default new Elysia({ prefix: "/timeline", tags: ["Timeline"] })
 						: null,
 					fact_check: getFactCheckForPost.get(post.id) || null,
 					interactive_card: getCardDataForTweet(post.id),
+					link_preview: getLinkPreviewForTweet(post.id),
 				};
 			})
 			.filter(Boolean);

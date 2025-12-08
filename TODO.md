@@ -5,31 +5,17 @@
 
 - gimmickbots clone
 
-- t3 chat font?
 - fix: clicking highlighted reply makes it so that thread is gone
-
 - allow tweet authors to highlight a single reply that shows up as "highlighted reply" at the top
-
 - allow users to select multiple of their own tweets to be highlighted in the "highlights" tab of their profile
-
 - fix: pull to refresh - indicator gone in timeline, not working in notifications
-
 - let me paste image from the clipboard on mobile
-
 - just say no combination found instead of the "not found" thing on emoji kitchen
-
-- fix happy robot vibe picker modal
-
+- fix happy robot vibe picker modal (composer)
 - new backend with ratelimit weight
-
-- link embeds
-
 - fix double replies
-
 - untagging people in replies
-
 - make ALL modals use the modal creation util
-
 - one-time impersonation tokens
 
 **other things:**

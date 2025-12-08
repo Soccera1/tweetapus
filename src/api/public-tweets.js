@@ -33,7 +33,7 @@ const getPublicTweetsBefore = db.query(`
 const getPostCreatedAt = db.query(`SELECT created_at FROM posts WHERE id = ?`);
 
 const getPostsAuthor = db.query(
-	`SELECT id, username, name, avatar, verified, gold, avatar_radius, affiliate, affiliate_with, selected_community_tag FROM users WHERE id = ?`,
+	`SELECT id, username, name, avatar, verified, gold, avatar_radius, affiliate, affiliate_with, selected_community_tag, label_type FROM users WHERE id = ?`,
 );
 
 const getAttachments = db.query(`SELECT * FROM attachments WHERE post_id = ?`);
