@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { jwt } from "@elysiajs/jwt";
-import { Elysia, file, t } from "elysia";
+import { Elysia, t } from "elysia";
 import { rateLimit } from "elysia-rate-limit";
 import db from "../db.js";
 import ratelimit from "../helpers/ratelimit.js";
@@ -16,6 +16,13 @@ const uploadsDir = join(process.cwd(), ".data", "uploads");
 if (!existsSync(uploadsDir)) {
 	mkdirSync(uploadsDir, { recursive: true });
 }
+
+const getShardedPath = (hash) => {
+	const shard1 = hash.substring(0, 3);
+	const shard2 = hash.substring(3, 6);
+	const remaining = hash.substring(6);
+	return { shard1, shard2, remaining };
+};
 
 const ALLOWED_TYPES = {
 	"image/webp": ".webp",
@@ -77,11 +84,6 @@ export default new Elysia({ prefix: "/upload", tags: ["Upload"] })
 				const finalArrayBuffer = arrayBuffer;
 				const finalType = file.type;
 
-				// Video compression disabled
-				if (file.type === "video/mp4") {
-					// No processing needed, just use original file
-				}
-
 				const hasher = new Bun.CryptoHasher("sha256");
 				hasher.update(finalArrayBuffer);
 				const fileHash = hasher.digest("hex");
@@ -93,7 +95,12 @@ export default new Elysia({ prefix: "/upload", tags: ["Upload"] })
 					return { error: "Invalid filename generated" };
 				}
 
-				const filePath = join(uploadsDir, fileName);
+				const { shard1, shard2, remaining } = getShardedPath(fileHash);
+				const shardDir = join(uploadsDir, shard1, shard2);
+				mkdirSync(shardDir, { recursive: true });
+
+				const shardedFileName = remaining + fileExtension;
+				const filePath = join(shardDir, shardedFileName);
 				const fileUrl = `/api/uploads/${fileName}`;
 
 				await Bun.write(filePath, finalArrayBuffer);
@@ -162,7 +169,18 @@ export const uploadRoutes = new Elysia({
 				return new Response("Invalid filename", { status: 400 });
 			}
 
-			const filePath = join(process.cwd(), ".data", "uploads", filename);
+			const baseUploadsDir = join(process.cwd(), ".data", "uploads");
+			const extension = filename.slice(-5);
+			const hash = filename.slice(0, -extension.length);
+
+			const { shard1, shard2, remaining } = getShardedPath(hash);
+			const filePath = join(
+				baseUploadsDir,
+				shard1,
+				shard2,
+				remaining + extension,
+			);
+
 
 			set.headers["Cache-Control"] = "public, max-age=31536000, immutable";
 
