@@ -1612,54 +1612,54 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 				};
 			}
 
-		const uploadsDir = join(process.cwd(), ".data", "uploads");
+			const uploadsDir = join(process.cwd(), ".data", "uploads");
 
-		const arrayBuffer = await avatar.arrayBuffer();
+			const arrayBuffer = await avatar.arrayBuffer();
 
-		if (avatar.type === "image/webp") {
-			try {
-				const bytes = new Uint8Array(arrayBuffer);
-				let hasANIM = false;
-				for (let i = 0; i < bytes.length - 3; i++) {
-					if (
-						bytes[i] === 0x41 &&
-						bytes[i + 1] === 0x4e &&
-						bytes[i + 2] === 0x49 &&
-						bytes[i + 3] === 0x4d
-					) {
-						hasANIM = true;
-						break;
+			if (avatar.type === "image/webp") {
+				try {
+					const bytes = new Uint8Array(arrayBuffer);
+					let hasANIM = false;
+					for (let i = 0; i < bytes.length - 3; i++) {
+						if (
+							bytes[i] === 0x41 &&
+							bytes[i + 1] === 0x4e &&
+							bytes[i + 2] === 0x49 &&
+							bytes[i + 3] === 0x4d
+						) {
+							hasANIM = true;
+							break;
+						}
 					}
-				}
 
-				if (hasANIM && !currentUser.gold) {
-					return {
-						error:
-							"Animated WebP avatars are allowed for Gold accounts only.",
-					};
-				}
-			} catch {}
-		}
+					if (hasANIM && !currentUser.gold) {
+						return {
+							error:
+								"Animated WebP avatars are allowed for Gold accounts only.",
+						};
+					}
+				} catch {}
+			}
 
-		const hasher = new Bun.CryptoHasher("sha256");
-		hasher.update(arrayBuffer);
-		const fileHash = hasher.digest("hex");
+			const hasher = new Bun.CryptoHasher("sha256");
+			hasher.update(arrayBuffer);
+			const fileHash = hasher.digest("hex");
 
-		const { shard1, shard2, remaining } = getShardedPath(fileHash);
-		const shardDir = join(uploadsDir, shard1, shard2);
-		mkdirSync(shardDir, { recursive: true });
+			const { shard1, shard2, remaining } = getShardedPath(fileHash);
+			const shardDir = join(uploadsDir, shard1, shard2);
+			mkdirSync(shardDir, { recursive: true });
 
-		const shardedFileName = remaining + fileExtension;
-		const filePath = join(shardDir, shardedFileName);
-		const fileName = `${fileHash}${fileExtension}`;
+			const shardedFileName = remaining + fileExtension;
+			const filePath = join(shardDir, shardedFileName);
+			const fileName = `${fileHash}${fileExtension}`;
 
-		await Bun.write(filePath, arrayBuffer);
+			await Bun.write(filePath, arrayBuffer);
 
-		const avatarUrl = `/api/uploads/${fileName}`;
-		updateAvatar.run(avatarUrl, currentUser.id);
+			const avatarUrl = `/api/uploads/${fileName}`;
+			updateAvatar.run(avatarUrl, currentUser.id);
 
-		const updatedUser = getUserByUsername.get(currentUser.username);
-		return { success: true, avatar: updatedUser.avatar };
+			const updatedUser = getUserByUsername.get(currentUser.username);
+			return { success: true, avatar: updatedUser.avatar };
 		} catch (error) {
 			console.error("Avatar upload error:", error);
 			return { error: "Failed to upload avatar" };

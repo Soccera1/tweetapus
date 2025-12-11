@@ -733,7 +733,7 @@ export const useComposer = (
 					user.avatar || "/public/shared/assets/default-avatar.svg"
 				}" alt="" />
         <div class="mention-info">
-          <div class="mention-name">${user.name}</div>
+          <div class="mention-name">${user.name || user.username}</div>
           <div class="mention-username">@${user.username}</div>
         </div>
       `;

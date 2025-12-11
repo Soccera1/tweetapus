@@ -1241,7 +1241,8 @@ export const createTweetElement = (tweet, config = {}) => {
 	tweetHeaderNameEl.classList.add("tweet-header-name");
 	tweetHeaderNameEl.addEventListener("click", (e) => {
 		const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-		if (isMobile) {
+		const isExpandedView = clickToOpen === false && size !== "preview";
+		if (isMobile && isExpandedView) {
 			return;
 		}
 		e.stopPropagation();
@@ -2301,6 +2302,7 @@ export const createTweetElement = (tweet, config = {}) => {
 				title: "Quote",
 				onClick: async () => {
 					const { createComposer } = await import("./composer.js");
+					let quoteModal = null;
 
 					const composer = await createComposer({
 						placeholder: "Add your thoughts about this tweet...",
@@ -2309,15 +2311,16 @@ export const createTweetElement = (tweet, config = {}) => {
 						callback: async (newTweet) => {
 							addTweetToTimeline(newTweet, true).classList.add("created");
 							setTimeout(() => {
-								modal.close();
+								if (quoteModal) quoteModal.close();
 							}, 10);
 						},
 					});
 
-					const { modal } = createModal({
+					const result = createModal({
 						content: composer,
 					});
-					modal.querySelector("textarea")?.focus();
+					quoteModal = result.modal;
+					quoteModal.querySelector("textarea")?.focus();
 				},
 			},
 		];

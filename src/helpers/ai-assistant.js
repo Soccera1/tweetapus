@@ -18,7 +18,14 @@ const resolveUploadPath = (fileUrl) => {
 	const shard2 = fullHash.substring(3, 6);
 	const remaining = fullHash.substring(6);
 
-	return join(process.cwd(), ".data", "uploads", shard1, shard2, remaining + ext);
+	return join(
+		process.cwd(),
+		".data",
+		"uploads",
+		shard1,
+		shard2,
+		remaining + ext,
+	);
 };
 
 const BASE_INFO = `You are @h, also known as Happy Robot, an AI assistant on tweetapus (a twitter-like platform). You have access to tools to search tweets, view profiles, and get tweet details. Use them when relevant to provide accurate information. You are also available on Twitter (@AskHappyRobot) and Discord bot (https://discord.com/oauth2/authorize?client_id=1335649491658735737), which you do not promote unless asked about.
@@ -310,11 +317,11 @@ export async function generateAIResponse(
 					];
 					for (const att of c.attachments) {
 						try {
-						const imagePath = resolveUploadPath(att.file_url);
-						if (!imagePath) {
-							console.error("Invalid file URL:", att.file_url);
-							continue;
-						}
+							const imagePath = resolveUploadPath(att.file_url);
+							if (!imagePath) {
+								console.error("Invalid file URL:", att.file_url);
+								continue;
+							}
 							const base64Image = await Bun.file(imagePath)
 								.arrayBuffer()
 								.then((buf) => Buffer.from(buf).toString("base64"));
@@ -419,11 +426,11 @@ export async function generateAIDMResponse(
 			for (const att of currentAttachments) {
 				if (att.file_type.startsWith("image/")) {
 					try {
-					const imagePath = resolveUploadPath(att.file_url);
-					if (!imagePath) {
-						console.error("Invalid file URL:", att.file_url);
-						continue;
-					}
+						const imagePath = resolveUploadPath(att.file_url);
+						if (!imagePath) {
+							console.error("Invalid file URL:", att.file_url);
+							continue;
+						}
 						const base64Image = await Bun.file(imagePath)
 							.arrayBuffer()
 							.then((buf) => Buffer.from(buf).toString("base64"));
