@@ -1969,39 +1969,6 @@
                   <div class="row g-4">
                     <div class="col-md-6">
                       <h6 class="fw-bold">Account Creation</h6>
-                      <div
-                        class="d-flex flex-wrap align-items-center gap-2 mb-2"
-                      >
-                        <button
-                          type="button"
-                          class="btn btn-outline-primary btn-sm create-location-picker-btn"
-                          data-location-picker="createCreation"
-                        >
-                          <i class="bi bi-map"></i>
-                          Pick via Leaflet Maps
-                        </button>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary btn-sm create-location-clear-btn"
-                          data-location-clear="createCreation"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                      <div class="mb-2">
-                        <div
-                          class="small text-muted"
-                          id="createCreationLocationPreview"
-                        ></div>
-                      </div>
-                      <div class="mb-2">
-                        <label class="form-label">City</label>
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="createCreationCity"
-                        />
-                      </div>
                       <div class="mb-2">
                         <label class="form-label">Country / Region</label>
                         <input
@@ -2009,24 +1976,6 @@
                           class="form-control"
                           id="createCreationCountry"
                         />
-                      </div>
-                      <div class="row">
-                        <div class="col-md-6 mb-2">
-                          <label class="form-label">Latitude</label>
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="createCreationLatitude"
-                          />
-                        </div>
-                        <div class="col-md-6 mb-2">
-                          <label class="form-label">Longitude</label>
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="createCreationLongitude"
-                          />
-                        </div>
                       </div>
                       <div class="mb-2">
                         <label class="form-label">Timezone</label>
@@ -2058,39 +2007,6 @@
                     </div>
                     <div class="col-md-6">
                       <h6 class="fw-bold">Last Login</h6>
-                      <div
-                        class="d-flex flex-wrap align-items-center gap-2 mb-2"
-                      >
-                        <button
-                          type="button"
-                          class="btn btn-outline-primary btn-sm create-location-picker-btn"
-                          data-location-picker="createLogin"
-                        >
-                          <i class="bi bi-map"></i>
-                          Pick via Leaflet Maps
-                        </button>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary btn-sm create-location-clear-btn"
-                          data-location-clear="createLogin"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                      <div class="mb-2">
-                        <div
-                          class="small text-muted"
-                          id="createLoginLocationPreview"
-                        ></div>
-                      </div>
-                      <div class="mb-2">
-                        <label class="form-label">City</label>
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="createLoginCity"
-                        />
-                      </div>
                       <div class="mb-2">
                         <label class="form-label">Country / Region</label>
                         <input
@@ -2098,24 +2014,6 @@
                           class="form-control"
                           id="createLoginCountry"
                         />
-                      </div>
-                      <div class="row">
-                        <div class="col-md-6 mb-2">
-                          <label class="form-label">Latitude</label>
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="createLoginLatitude"
-                          />
-                        </div>
-                        <div class="col-md-6 mb-2">
-                          <label class="form-label">Longitude</label>
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="createLoginLongitude"
-                          />
-                        </div>
                       </div>
                       <div class="mb-2">
                         <label class="form-label">Timezone</label>
@@ -2215,72 +2113,6 @@
               onclick="adminPanel.saveBulkProfiles()"
             >
               Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Location Picker Modal -->
-    <div
-      class="modal fade"
-      id="locationPickerModal"
-      tabindex="-1"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="locationPickerTitle">
-              Select Location
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label" for="locationPickerSearch">
-                Search
-              </label>
-              <input
-                type="text"
-                class="form-control"
-                id="locationPickerSearch"
-                placeholder="Search for a city or address"
-                autocomplete="off"
-              />
-            </div>
-            <div class="location-picker-map" id="locationPickerMap"></div>
-            <div
-              class="location-picker-results"
-              id="locationPickerResults"
-            ></div>
-            <div class="mt-3 small text-muted" id="locationPickerSummary">
-              Click on the map or use the search box to choose a location.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <div
-              class="text-muted small me-auto"
-              id="locationPickerStatus"
-            ></div>
-            <button
-              type="button"
-              class="btn btn-outline-secondary"
-              data-bs-dismiss="modal"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              id="locationPickerApplyBtn"
-              disabled
-            >
-              Apply Location
             </button>
           </div>
         </div>

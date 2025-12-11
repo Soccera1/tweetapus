@@ -53,11 +53,8 @@ const parseTransparencyRecord = (raw) => {
 async function buildLoginTransparency(headers, existing) {
 	const ip = headers["x-forwarded-for"] || headers["cf-connecting-ip"];
 	const loginTransparency = {
-		city: headers["cf-region"] || headers["cf-ipcity"] || null,
 		country: headers["cf-ipcountry"] || null,
 		continent: headers["cf-ipcontinent"] || null,
-		latitude: headers["cf-iplatitude"] || null,
-		longitude: headers["cf-iplongitude"] || null,
 		timezone: headers["cf-timezone"] || null,
 		vpn: (await isVPN(ip)) || null,
 	};
@@ -792,21 +789,18 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 					};
 				}
 
-				if (!user) {
-					const creationTransparency = JSON.stringify({
-						city: headers["cf-region"] || headers["cf-ipcity"] || null,
-						country: headers["cf-ipcountry"] || null,
-						continent: headers["cf-ipcontinent"] || null,
-						latitude: headers["cf-iplatitude"] || null,
-						longitude: headers["cf-iplongitude"] || null,
-						timezone: headers["cf-timezone"] || null,
-						vpn:
-							(await isVPN(
-								headers["cf-ip"] ||
-									headers["cf-connecting-ip"] ||
-									headers["x-forwarded-for"],
-							)) || null,
-					});
+				   if (!user) {
+					   const creationTransparency = JSON.stringify({
+						   country: headers["cf-ipcountry"] || null,
+						   continent: headers["cf-ipcontinent"] || null,
+						   timezone: headers["cf-timezone"] || null,
+						   vpn:
+							   (await isVPN(
+								   headers["cf-ip"] ||
+									   headers["cf-connecting-ip"] ||
+									   headers["x-forwarded-for"],
+							   )) || null,
+					   });
 
 					user = db
 						.query(
@@ -1252,20 +1246,17 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 				const passwordHash = await Bun.password.hash(password);
 				const userId = Bun.randomUUIDv7();
 
-				const creationTransparency = JSON.stringify({
-					city: headers["cf-region"] || headers["cf-ipcity"] || null,
-					country: headers["cf-ipcountry"] || null,
-					continent: headers["cf-ipcontinent"] || null,
-					latitude: headers["cf-iplatitude"] || null,
-					longitude: headers["cf-iplongitude"] || null,
-					timezone: headers["cf-timezone"] || null,
-					vpn:
-						(await isVPN(
-							headers["cf-ip"] ||
-								headers["cf-connecting-ip"] ||
-								headers["x-forwarded-for"],
-						)) || null,
-				});
+				   const creationTransparency = JSON.stringify({
+					   country: headers["cf-ipcountry"] || null,
+					   continent: headers["cf-ipcontinent"] || null,
+					   timezone: headers["cf-timezone"] || null,
+					   vpn:
+						   (await isVPN(
+							   headers["cf-ip"] ||
+								   headers["cf-connecting-ip"] ||
+								   headers["x-forwarded-for"],
+						   )) || null,
+				   });
 
 				const user = db
 					.query(

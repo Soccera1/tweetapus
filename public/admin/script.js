@@ -75,40 +75,24 @@ class AdminPanel {
 		this.timezoneCache = new Map();
 		this.locationFieldMap = {
 			login: {
-				city: "editProfileLoginCity",
 				country: "editProfileLoginCountry",
-				latitude: "editProfileLoginLatitude",
-				longitude: "editProfileLoginLongitude",
 				timezone: "editProfileLoginTimezone",
 				tor: "editProfileLoginTor",
-				preview: "loginLocationPreview",
 			},
 			creation: {
-				city: "editProfileCreationCity",
 				country: "editProfileCreationCountry",
-				latitude: "editProfileCreationLatitude",
-				longitude: "editProfileCreationLongitude",
 				timezone: "editProfileCreationTimezone",
 				tor: "editProfileCreationTor",
-				preview: "creationLocationPreview",
 			},
 			createCreation: {
-				city: "createCreationCity",
 				country: "createCreationCountry",
-				latitude: "createCreationLatitude",
-				longitude: "createCreationLongitude",
 				timezone: "createCreationTimezone",
 				tor: "createCreationTor",
-				preview: "createCreationLocationPreview",
 			},
 			createLogin: {
-				city: "createLoginCity",
 				country: "createLoginCountry",
-				latitude: "createLoginLatitude",
-				longitude: "createLoginLongitude",
 				timezone: "createLoginTimezone",
 				tor: "createLoginTor",
-				preview: "createLoginLocationPreview",
 			},
 		};
 

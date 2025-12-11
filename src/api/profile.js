@@ -2621,13 +2621,13 @@ export default new Elysia({ prefix: "/profile", tags: ["Profile"] })
 			const currentUser = getUserByUsername.get(payload.username);
 			if (!currentUser) return { error: "User not found" };
 
-			const { display } = body;
+			const { showContinent } = body;
 
-			if (!["full", "country", "continent"].includes(display)) {
+			if (typeof showContinent !== "boolean") {
 				return { error: "Invalid display option" };
 			}
 
-			updateTransparencyLocationDisplay.run(display, currentUser.id);
+			updateTransparencyLocationDisplay.run(showContinent ? 1 : 0, currentUser.id);
 
 			return { success: true };
 		} catch (error) {

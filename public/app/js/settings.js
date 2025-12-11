@@ -328,41 +328,38 @@ const createAccountContent = () => {
 	transparencyLabel.className = "setting-label";
 	const transparencyTitle = document.createElement("div");
 	transparencyTitle.className = "setting-title";
-	transparencyTitle.textContent = "Transparency location display";
+	transparencyTitle.textContent = "Display continent instead of country";
 	const transparencyDesc = document.createElement("div");
 	transparencyDesc.className = "setting-description";
 	transparencyDesc.textContent =
-		"Choose how much location detail to show in your transparency data";
+		"Show your continent instead of country in transparency data";
 	transparencyLabel.appendChild(transparencyTitle);
 	transparencyLabel.appendChild(transparencyDesc);
 
 	const transparencyControl = document.createElement("div");
 	transparencyControl.className = "setting-control";
 
-	const transparencySelect = document.createElement("select");
-	transparencySelect.id = "transparency-location-select";
-	transparencySelect.className = "settings-select";
+	const transparencyToggle = document.createElement("label");
+	transparencyToggle.className = "checkbox-label";
+	const transparencyCheckbox = document.createElement("input");
+	transparencyCheckbox.type = "checkbox";
+	transparencyCheckbox.id = "transparency-location-toggle";
 
-	[
-		{ v: "full", t: "Full Location (City, Country)" },
-		{ v: "country", t: "Country Only" },
-		{ v: "continent", t: "Continent Only" },
-	].forEach(({ v, t }) => {
-		const option = document.createElement("option");
-		option.value = v;
-		option.textContent = t;
-		transparencySelect.appendChild(option);
-	});
+	const transparencyCheckboxLabel = document.createElement("span");
+	transparencyCheckboxLabel.textContent = "Show continent only";
+
+	transparencyToggle.appendChild(transparencyCheckbox);
+	transparencyToggle.appendChild(transparencyCheckboxLabel);
 
 	setTimeout(async () => {
 		const user = await ensureCurrentUser();
-		if (user && transparencySelect) {
-			transparencySelect.value = user.transparency_location_display || "full";
+		if (user && transparencyCheckbox) {
+			transparencyCheckbox.checked = user.transparency_location_display || false;
 		}
 	}, 0);
 
-	transparencySelect.addEventListener("change", async (e) => {
-		const display = e.target.value;
+	transparencyCheckbox.addEventListener("change", async (e) => {
+		const showContinent = e.target.checked;
 
 		try {
 			const result = await query("/profile/settings/transparency-location", {
@@ -370,12 +367,12 @@ const createAccountContent = () => {
 				headers: {
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({ display }),
+				body: JSON.stringify({ showContinent }),
 			});
 
 			if (result.success) {
 				if (currentUser) {
-					currentUser.transparency_location_display = display;
+					currentUser.transparency_location_display = showContinent;
 				}
 			} else {
 				toastQueue.add(
@@ -388,7 +385,7 @@ const createAccountContent = () => {
 		}
 	});
 
-	transparencyControl.appendChild(transparencySelect);
+	transparencyControl.appendChild(transparencyToggle);
 	transparencyItem.appendChild(transparencyLabel);
 	transparencyItem.appendChild(transparencyControl);
 	privacyGroup.appendChild(transparencyItem);
@@ -2755,17 +2752,17 @@ const loadPrivacySettings = async () => {
 		checkbox.setAttribute("aria-checked", serverEnabled ? "true" : "false");
 		checkbox.disabled = !user;
 
-		const transparencySelect = document.getElementById(
-			"transparency-location-select",
+		const transparencyToggle = document.getElementById(
+			"transparency-location-toggle",
 		);
 
-		if (transparencySelect && user) {
-			transparencySelect.value = user.transparency_location_display || "full";
+		if (transparencyToggle && user) {
+			transparencyToggle.checked = user.transparency_location_display || false;
 
-			if (!transparencySelect.dataset.listenerAttached) {
-				transparencySelect.dataset.listenerAttached = "true";
-				transparencySelect.addEventListener("change", async (e) => {
-					const display = e.target.value;
+			if (!transparencyToggle.dataset.listenerAttached) {
+				transparencyToggle.dataset.listenerAttached = "true";
+				transparencyToggle.addEventListener("change", async (e) => {
+					const showContinent = e.target.checked;
 					try {
 						const result = await query(
 							"/profile/settings/transparency-location",
@@ -2774,21 +2771,17 @@ const loadPrivacySettings = async () => {
 								headers: {
 									"Content-Type": "application/json",
 								},
-								body: JSON.stringify({ display }),
+								body: JSON.stringify({ showContinent }),
 							},
 						);
 
 						if (result.success) {
 							if (currentUser) {
-								currentUser.transparency_location_display = display;
+								currentUser.transparency_location_display = showContinent;
 							}
 							toastQueue.add(
 								`<h1>Setting Updated</h1><p>Transparency location display updated to ${
-									display === "full"
-										? "Full Location"
-										: display === "country"
-											? "Country Only"
-											: "Continent Only"
+									showContinent ? "Continent Only" : "Country"
 								}</p>`,
 							);
 						} else {

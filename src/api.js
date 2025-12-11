@@ -294,40 +294,33 @@ export default new Elysia({
 				}
 			};
 
-			const filterLocation = (data, displayMode) => {
-				if (!data || !displayMode || displayMode === "full") return data;
+			const filterLocation = (data, showContinent) => {
+				if (!data) return data;
 
 				const filtered = { ...data };
 
-				if (displayMode === "country") {
-					delete filtered.city;
-					delete filtered.latitude;
-					delete filtered.longitude;
-				} else if (displayMode === "continent") {
-					delete filtered.city;
+				if (showContinent) {
 					delete filtered.country;
-					delete filtered.latitude;
-					delete filtered.longitude;
 				}
 
 				return filtered;
 			};
 
-			const displayMode = userRecord.transparency_location_display || "full";
+			const showContinent = userRecord.transparency_location_display || false;
 			const creation = parseTransparency(
 				userRecord.account_creation_transparency,
 			);
 			const login = parseTransparency(userRecord.account_login_transparency);
 
 			return {
-				creation: filterLocation(creation, displayMode),
-				login: filterLocation(login, displayMode),
+				creation: filterLocation(creation, showContinent),
+				login: filterLocation(login, showContinent),
 			};
 		},
 		{
 			detail: {
 				description:
-					"Get account transparency data (city and country) for a user",
+					"Get account transparency data (country) for a user",
 				tags: ["Profile"],
 			},
 		},

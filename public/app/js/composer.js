@@ -264,7 +264,7 @@ export const useComposer = (
 	const processFileForUpload = async (file, skipWebP = false) => {
 		try {
 			tweetButton.disabled = true;
-			
+
 			const processedFile = skipWebP ? file : await convertToWebP(file);
 
 			const allowedTypes = ["image/webp", "image/png", "video/mp4"];

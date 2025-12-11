@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS users (
   account_login_transparency TEXT DEFAULT NULL,
   super_tweeter BOOLEAN DEFAULT FALSE,
   super_tweeter_boost REAL DEFAULT 50.0,
-  transparency_location_display TEXT DEFAULT 'full',
+  transparency_location_display BOOLEAN DEFAULT FALSE,
   blocked_by_count INTEGER DEFAULT 0,
   muted_by_count INTEGER DEFAULT 0,
   spam_score REAL DEFAULT 0.0,

@@ -1111,10 +1111,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				accountCreationTransparency: t.Optional(
 					t.Union([
 						t.Object({
-							city: t.Optional(t.Union([t.String(), t.Null()])),
 							country: t.Optional(t.Union([t.String(), t.Null()])),
-							latitude: t.Optional(t.Union([t.Number(), t.Null()])),
-							longitude: t.Optional(t.Union([t.Number(), t.Null()])),
 							timezone: t.Optional(t.Union([t.String(), t.Null()])),
 							tor: t.Optional(t.Boolean()),
 							datacenterWarning: t.Optional(t.Boolean()),
@@ -1125,10 +1122,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				accountLoginTransparency: t.Optional(
 					t.Union([
 						t.Object({
-							city: t.Optional(t.Union([t.String(), t.Null()])),
 							country: t.Optional(t.Union([t.String(), t.Null()])),
-							latitude: t.Optional(t.Union([t.Number(), t.Null()])),
-							longitude: t.Optional(t.Union([t.Number(), t.Null()])),
 							timezone: t.Optional(t.Union([t.String(), t.Null()])),
 							tor: t.Optional(t.Boolean()),
 							datacenterWarning: t.Optional(t.Boolean()),
@@ -3281,10 +3275,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 			const hasTransparencyValue = (record) => {
 				if (!record) return false;
 				for (const key of [
-					"city",
 					"country",
-					"latitude",
-					"longitude",
 					"timezone",
 					"continent",
 					"vpn",
@@ -3342,27 +3333,6 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 						creationTransparency.country = "T1";
 						creationTransparencyChanged = true;
 					}
-					if (
-						creationTransparency.city !== null &&
-						creationTransparency.city !== undefined
-					) {
-						creationTransparency.city = null;
-						creationTransparencyChanged = true;
-					}
-					if (
-						creationTransparency.latitude !== null &&
-						creationTransparency.latitude !== undefined
-					) {
-						creationTransparency.latitude = null;
-						creationTransparencyChanged = true;
-					}
-					if (
-						creationTransparency.longitude !== null &&
-						creationTransparency.longitude !== undefined
-					) {
-						creationTransparency.longitude = null;
-						creationTransparencyChanged = true;
-					}
 				}
 				if (!torFlag && prevIsTor) {
 					if (!creationTransparency) creationTransparency = {};
@@ -3380,27 +3350,6 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 						loginTransparency.country = "T1";
 						loginTransparencyChanged = true;
 					}
-					if (
-						loginTransparency.city !== null &&
-						loginTransparency.city !== undefined
-					) {
-						loginTransparency.city = null;
-						loginTransparencyChanged = true;
-					}
-					if (
-						loginTransparency.latitude !== null &&
-						loginTransparency.latitude !== undefined
-					) {
-						loginTransparency.latitude = null;
-						loginTransparencyChanged = true;
-					}
-					if (
-						loginTransparency.longitude !== null &&
-						loginTransparency.longitude !== undefined
-					) {
-						loginTransparency.longitude = null;
-						loginTransparencyChanged = true;
-					}
 				}
 				if (!torFlag && prevIsTor) {
 					if (!loginTransparency) loginTransparency = {};
@@ -3410,10 +3359,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 			}
 
 			const creationLocationFields = [
-				["creation_city", "city"],
 				["creation_country", "country"],
-				["creation_latitude", "latitude"],
-				["creation_longitude", "longitude"],
 			];
 
 			for (const [bodyKey, fieldKey] of creationLocationFields) {
@@ -3430,10 +3376,7 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 			}
 
 			const loginLocationFields = [
-				["login_city", "city"],
 				["login_country", "country"],
-				["login_latitude", "latitude"],
-				["login_longitude", "longitude"],
 			];
 
 			for (const [bodyKey, fieldKey] of loginLocationFields) {
@@ -3678,19 +3621,13 @@ export default new Elysia({ prefix: "/admin", tags: ["Admin"] })
 				character_limit: t.Optional(t.Union([t.Number(), t.Null()])),
 				created_at: t.Optional(t.String()),
 				force_follow_usernames: t.Optional(t.Array(t.String())),
-				login_city: t.Optional(t.Union([t.String(), t.Null()])),
 				login_country: t.Optional(t.Union([t.String(), t.Null()])),
-				login_latitude: t.Optional(t.Union([t.String(), t.Null()])),
-				login_longitude: t.Optional(t.Union([t.String(), t.Null()])),
 				login_timezone: t.Optional(t.Union([t.String(), t.Null()])),
 				login_tor: t.Optional(t.Boolean()),
 				login_datacenter_warning: t.Optional(t.Boolean()),
 				login_hide_datacenter_warning: t.Optional(t.Boolean()),
 				login_preserve_override: t.Optional(t.Boolean()),
-				creation_city: t.Optional(t.Union([t.String(), t.Null()])),
 				creation_country: t.Optional(t.Union([t.String(), t.Null()])),
-				creation_latitude: t.Optional(t.Union([t.String(), t.Null()])),
-				creation_longitude: t.Optional(t.Union([t.String(), t.Null()])),
 				creation_datacenter_warning: t.Optional(t.Boolean()),
 				creation_hide_datacenter_warning: t.Optional(t.Boolean()),
 				creation_timezone: t.Optional(t.Union([t.String(), t.Null()])),
