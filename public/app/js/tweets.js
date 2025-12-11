@@ -2311,16 +2311,16 @@ export const createTweetElement = (tweet, config = {}) => {
 						callback: async (newTweet) => {
 							addTweetToTimeline(newTweet, true).classList.add("created");
 							setTimeout(() => {
-								if (quoteModal) quoteModal.close();
+								if (quoteModal?.close) quoteModal.close();
 							}, 10);
 						},
 					});
 
-					const result = createModal({
+					quoteModal = createModal({
 						content: composer,
 					});
-					quoteModal = result.modal;
-					quoteModal.querySelector("textarea")?.focus();
+
+					quoteModal.modal.querySelector("textarea")?.focus();
 				},
 			},
 		];

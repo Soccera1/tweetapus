@@ -463,15 +463,6 @@ img {
   background-color: var(--primary-hover);
 }
 
-.confirm-modal-confirm.danger {
-  background-color: #dc2626;
-  color: #fff;
-}
-
-.confirm-modal-confirm.danger:hover {
-  background-color: #b91c1c;
-}
-
 /* Eesti Loafs */
 @font-face {
   font-family: "chirp";

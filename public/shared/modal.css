@@ -340,16 +340,21 @@
 .confirm-modal-confirm {
   background: var(--primary);
   color: var(--primary-fg);
+  transition: transform .2s;
 }
 
-.confirm-modal-confirm:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.confirm-modal-confirm:active {
+  transform: scale(.98)
 }
 
 .confirm-modal-confirm.danger {
   background: var(--error-color);
-  color: white;
+  color: black;
+
+  &:hover {
+    background: #dc2626;
+    color: white;
+  }
 }
 
 .hover-card {

@@ -102,6 +102,20 @@ export default new Elysia({ prefix: "/scheduled", tags: ["Scheduling"] })
 
 			const scheduledPostId = Bun.randomUUIDv7();
 
+			if (files && Array.isArray(files)) {
+				const totalSize = files.reduce(
+					(sum, file) => sum + (file.size || 0),
+					0,
+				);
+				const maxTotalSize = 30 * 1024 * 1024;
+				if (totalSize > maxTotalSize) {
+					const totalSizeMB = (totalSize / 1024 / 1024).toFixed(1);
+					return {
+						error: `Total upload size is ${totalSizeMB}MB. Maximum total size is 30MB`,
+					};
+				}
+			}
+
 			const filesData = files || [];
 			if (unsplash) {
 				const attributionData = JSON.stringify({

@@ -221,7 +221,7 @@ export const useComposer = (
 			}
 
 			const canvas = document.createElement("canvas");
-			const ctx = canvas.getContext("2d");
+			const ctx = canvas.getContext("2d", { alpha: false });
 			const img = new Image();
 
 			img.onload = () => {
@@ -263,6 +263,8 @@ export const useComposer = (
 
 	const processFileForUpload = async (file, skipWebP = false) => {
 		try {
+			tweetButton.disabled = true;
+			
 			const processedFile = skipWebP ? file : await convertToWebP(file);
 
 			const allowedTypes = ["image/webp", "image/png", "video/mp4"];
@@ -311,6 +313,9 @@ export const useComposer = (
 			console.error("File processing error:", error);
 			toastQueue.add(`<h1>File processing failed</h1><p>Please try again</p>`);
 			return null;
+		} finally {
+			tweetButton.disabled = false;
+			updateCharacterCount();
 		}
 	};
 
@@ -733,7 +738,7 @@ export const useComposer = (
 					user.avatar || "/public/shared/assets/default-avatar.svg"
 				}" alt="" />
         <div class="mention-info">
-          <div class="mention-name">${user.name || user.username}</div>
+          <div class="mention-name">${user.name?.trim?.() || `@${user.username}`}</div>
           <div class="mention-username">@${user.username}</div>
         </div>
       `;

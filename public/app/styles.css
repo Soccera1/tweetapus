@@ -7181,6 +7181,7 @@ html:has(.direct-messages.page-active, .dm-conversation.page-active) {
     cursor: pointer;
     color: var(--primary);
     transition: background-color 0.2s ease;
+    font-family: inherit;
 
     &:hover {
       background-color: rgba(var(--primary-rgb), 0.08);

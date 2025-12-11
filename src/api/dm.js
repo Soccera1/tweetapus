@@ -426,6 +426,20 @@ export default new Elysia({ prefix: "/dm", tags: ["DM"] })
 					return { error: "Message content or attachments required" };
 				}
 
+				if (files && Array.isArray(files)) {
+					const totalSize = files.reduce(
+						(sum, file) => sum + (file.size || 0),
+						0,
+					);
+					const maxTotalSize = 30 * 1024 * 1024;
+					if (totalSize > maxTotalSize) {
+						const totalSizeMB = (totalSize / 1024 / 1024).toFixed(1);
+						return {
+							error: `Total upload size is ${totalSizeMB}MB. Maximum total size is 30MB`,
+						};
+					}
+				}
+
 				const messageId = Bun.randomUUIDv7();
 				const messageType = files && files.length > 0 ? "media" : "text";
 
