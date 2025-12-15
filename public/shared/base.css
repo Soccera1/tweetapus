@@ -209,7 +209,7 @@ img {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  transition: background-color 0.1s ease;
+  transition: background-color 0.1s ease, transform .15s;
   font-family: inherit;
   text-align: left;
   border-radius: 7px;
@@ -223,6 +223,7 @@ img {
 
   &:active {
     background-color: var(--bg-overlay-light);
+    transform: scale(.99)
   }
 
   .popup-option-icon {

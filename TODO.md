@@ -20,6 +20,8 @@
 
 - move away from jwts for session tokens
 
+- better icons instead of shitty lucide ones
+
 **other things:**
 
 - personalized algorithm + onboarding

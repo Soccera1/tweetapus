@@ -2476,7 +2476,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			const menuItems = [
 				{
-					title: "Upload from device",
+					title: "Upload a file",
 					icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
 					onClick: () => {
 						if (
@@ -2882,6 +2882,21 @@ document.addEventListener("DOMContentLoaded", () => {
 	directSettingsModalClose?.addEventListener("click", closeDirectSettings);
 	cancelDirectSettings?.addEventListener("click", closeDirectSettings);
 	saveDirectSettingsBtn?.addEventListener("click", saveDirectSettings);
+
+	const updateDMTextarea = () => {
+		if (!dmMessageInput) return;
+		dmMessageInput.style.height = "0px";
+		void dmMessageInput.offsetHeight;
+		const newHeight = Math.max(dmMessageInput.scrollHeight, 36);
+		const maxHeight = 200;
+		dmMessageInput.style.height = `${Math.min(newHeight, maxHeight)}px`;
+		if (newHeight > maxHeight) {
+			dmMessageInput.style.overflow = "auto";
+		} else {
+			dmMessageInput.style.overflow = "hidden";
+		}
+	};
+
 	dmFileInput?.addEventListener("change", (e) => {
 		if (e.target.files.length > 0) {
 			handleFileUpload(Array.from(e.target.files));
@@ -2889,7 +2904,10 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	});
 
-	dmMessageInput?.addEventListener("input", updateSendButton);
+	dmMessageInput?.addEventListener("input", () => {
+		updateSendButton();
+		updateDMTextarea();
+	});
 	dmMessageInput?.addEventListener("input", handleTypingInput);
 	dmMessageInput?.addEventListener("keydown", (e) => {
 		if (e.key === "Enter" && !e.shiftKey) {
@@ -2897,6 +2915,10 @@ document.addEventListener("DOMContentLoaded", () => {
 			sendMessage();
 		}
 	});
+
+	if (dmMessageInput) {
+		updateDMTextarea();
+	}
 
 	let searchTimeout;
 	newMessageTo?.addEventListener("input", (e) => {
