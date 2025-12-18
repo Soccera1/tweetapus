@@ -53,7 +53,7 @@ function saveAccountToStorage(user, token) {
 		return;
 	}
 
-	const { user, error, suspension, restricted } = await query("/auth/me");
+	const { user, error, suspension, restricted, warning } = await query("/auth/me");
 
 	if (error && suspension) {
 		document.documentElement.innerHTML = suspension;
@@ -102,6 +102,46 @@ function saveAccountToStorage(user, token) {
 			`<h1>Account restricted</h1><p>Your account has limited privileges — you can browse posts, but interactions such as tweeting, liking, retweeting, DMs, and following are disabled.</p>`,
 		);
 		user.restricted = true;
+	}
+
+	if (warning) {
+		const { createModal } = await import("../../shared/ui-utils.js");
+		const contentEl = document.createElement("div");
+		contentEl.className = "warning-modal-content";
+
+		const messageEl = document.createElement("p");
+		messageEl.className = "warning-message";
+		messageEl.textContent = warning.reason;
+
+		const okayBtn = document.createElement("button");
+		okayBtn.type = "button";
+		okayBtn.className = "warning-okay-btn";
+		okayBtn.textContent = "Okay";
+
+		contentEl.appendChild(messageEl);
+		contentEl.appendChild(okayBtn);
+
+		const { close } = createModal({
+			title: "Warning from Tweetapus",
+			content: contentEl,
+			className: "warning-modal",
+			showCloseButton: false,
+			allowEscape: false,
+			closeOnOverlayClick: false,
+		});
+
+		okayBtn.addEventListener("click", async () => {
+			okayBtn.disabled = true;
+			okayBtn.textContent = "...";
+			const result = await query("/warning/acknowledge", { method: "POST" });
+			if (result.error) {
+				okayBtn.disabled = false;
+				okayBtn.textContent = "Okay";
+				toastQueue.add(`<h1>Error</h1><p>${result.error}</p>`);
+				return;
+			}
+			close();
+		});
 	}
 
 	const accountBtn = document.querySelector(".account");
