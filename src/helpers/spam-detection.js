@@ -847,7 +847,7 @@ const getSpamAnalysis = (userId) => {
 		}
 
 		indicators.push({
-			name: "account_behavior", // Tr Cursor
+			name: "account_behavior",
 			displayName: "Account Behavior",
 			score: accountScore,
 			weight: 0.1,

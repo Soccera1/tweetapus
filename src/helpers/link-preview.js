@@ -17,7 +17,7 @@ export async function fetchLinkPreview(url) {
 			signal: controller.signal,
 			headers: {
 				"User-Agent":
-					"Mozilla/5.0 (compatible; TweetapusBot/1.0; +https://tweetapus.com)",
+					"Mozilla/5.0 (compatible; TweetapusLinkBot/0.1; +https://tiago.zip)",
 			},
 		});
 		clearTimeout(timeoutId);
@@ -67,7 +67,6 @@ export async function fetchLinkPreview(url) {
 			site_name: siteName?.trim(),
 		};
 	} catch (error) {
-		console.error("Failed to fetch link preview:", error);
 		return null;
 	}
 }
