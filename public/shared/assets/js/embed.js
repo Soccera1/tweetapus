@@ -1,28 +1,30 @@
+import { decodeAttestationObject } from "@simplewebauthn/server/helpers";
+
 (async () => {
-	const currentScript = document.currentScript;
-	if (currentScript.getAttribute("data-tweetapus-loaded") === "1") return;
-	currentScript.setAttribute("data-tweetapus-loaded", "1");
+  const currentScript = document.currentScript;
+  if (currentScript.getAttribute("data-tweetapus-loaded") === "1") return;
+  currentScript.setAttribute("data-tweetapus-loaded", "1");
 
-	const tweet = {
-		/*{tweet}*/
-	};
+  const tweet = {
+    /*{tweet}*/
+  };
 
-	const tweetFrame = document.createElement("iframe");
-	tweetFrame.style.cssText = `
+  const tweetFrame = document.createElement("iframe");
+  tweetFrame.style.cssText = `
     width: 100%;
     height: 0px;
     border: none;
     border-radius: 0px;
     overflow: hidden;
   `;
-	tweetFrame.setAttribute("scrolling", "no");
-	tweetFrame.setAttribute("frameborder", "0");
-	tweetFrame.setAttribute("width", "100%");
-	currentScript.after(tweetFrame);
+  tweetFrame.setAttribute("scrolling", "no");
+  tweetFrame.setAttribute("frameborder", "0");
+  tweetFrame.setAttribute("width", "100%");
+  currentScript.after(tweetFrame);
 
-	const doc = tweetFrame.contentDocument;
-	doc.open();
-	doc.write(`
+  const doc = tweetFrame.contentDocument;
+  doc.open();
+  doc.write(`
     <html>
       <head>
         <meta charset="UTF-8" />
@@ -31,10 +33,10 @@
           * {
             box-sizing: border-box;
           }
-          
-          body, html { 
-            margin: 0; 
-            padding: 0; 
+
+          body, html {
+            margin: 0;
+            padding: 0;
             width: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
           }
@@ -370,112 +372,116 @@
       <body></body>
     </html>
   `);
-	doc.close();
+  doc.close();
 
-	function resizeIframeToFitContent() {
-		const body = tweetFrame.contentDocument.body;
-		let maxHeight = 0;
-		const children = body.children;
-		for (let i = 0; i < children.length; i++) {
-			const rect = children[i].getBoundingClientRect();
-			const bottom = rect.top + rect.height;
-			if (bottom > maxHeight) {
-				maxHeight = bottom;
-			}
-		}
-		tweetFrame.style.height = `${Math.ceil(maxHeight)}px`;
-	}
+  function resizeIframeToFitContent() {
+    const body = tweetFrame.contentDocument.body;
+    let maxHeight = 0;
+    const children = body.children;
+    for (let i = 0; i < children.length; i++) {
+      const rect = children[i].getBoundingClientRect();
+      const bottom = rect.top + rect.height;
+      if (bottom > maxHeight) {
+        maxHeight = bottom;
+      }
+    }
+    tweetFrame.style.height = `${Math.ceil(maxHeight)}px`;
+  }
 
-	tweetFrame.addEventListener("load", () => {
-		const body = tweetFrame.contentDocument.body;
+  tweetFrame.addEventListener("load", () => {
+    const body = tweetFrame.contentDocument.body;
 
-		const escapeHtml = (str) => {
-			if (!str) return "";
-			const div = document.createElement("div");
-			div.textContent = str;
-			return div.innerHTML;
-		};
+    const escapeHtml = (str) => {
+      if (!str) return "";
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    };
 
-		const formatDate = (dateStr) => {
-			const date = new Date(dateStr);
-			const options = { month: "short", day: "numeric", year: "numeric" };
-			const formatted = date.toLocaleDateString("en-US", options);
-			const time = date.toLocaleTimeString("en-US", {
-				hour: "numeric",
-				minute: "2-digit",
-				hour12: true,
-			});
-			return `${time} • ${formatted}`;
-		};
+    const formatDate = (dateStr) => {
+      const date = new Date(dateStr);
+      const options = { month: "short", day: "numeric", year: "numeric" };
+      const formatted = date.toLocaleDateString("en-US", options);
+      const time = date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      return `${time} • ${formatted}`;
+    };
 
-		const getVerificationBadge = (verified) => {
-			if (!verified) return "";
+    const getVerificationBadge = (verified) => {
+      if (!verified) return "";
 
-			let color;
+      let color;
 
-			if (verified === "gold") color = "#d4af37";
-			else if (verified === "gray") color = "#829AAB";
-			else if (verified) color = "#AC97FF";
+      if (verified === "gold") color = "#d4af37";
+      else if (verified === "gray") color = "#829AAB";
+      else if (verified) color = "#AC97FF";
 
-			return `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.56667 5.74669C2.46937 5.30837 2.48431 4.85259 2.61011 4.42158C2.73591 3.99058 2.9685 3.59832 3.28632 3.28117C3.60413 2.96402 3.99688 2.73225 4.42814 2.60735C4.85941 2.48245 5.31523 2.46847 5.75334 2.56669C5.99448 2.18956 6.32668 1.8792 6.71931 1.66421C7.11194 1.44923 7.55237 1.33655 8.00001 1.33655C8.44764 1.33655 8.88807 1.44923 9.28071 1.66421C9.67334 1.8792 10.0055 2.18956 10.2467 2.56669C10.6855 2.46804 11.1421 2.48196 11.574 2.60717C12.006 2.73237 12.3992 2.96478 12.7172 3.28279C13.0352 3.6008 13.2677 3.99407 13.3929 4.42603C13.5181 4.85798 13.532 5.31458 13.4333 5.75336C13.8105 5.9945 14.1208 6.32669 14.3358 6.71933C14.5508 7.11196 14.6635 7.55239 14.6635 8.00002C14.6635 8.44766 14.5508 8.88809 14.3358 9.28072C14.1208 9.67336 13.8105 10.0056 13.4333 10.2467C13.5316 10.6848 13.5176 11.1406 13.3927 11.5719C13.2678 12.0032 13.036 12.3959 12.7189 12.7137C12.4017 13.0315 12.0094 13.2641 11.5784 13.3899C11.1474 13.5157 10.6917 13.5307 10.2533 13.4334C10.0125 13.8119 9.68006 14.1236 9.28676 14.3396C8.89346 14.5555 8.45202 14.6687 8.00334 14.6687C7.55466 14.6687 7.11322 14.5555 6.71992 14.3396C6.32662 14.1236 5.99417 13.8119 5.75334 13.4334C5.31523 13.5316 4.85941 13.5176 4.42814 13.3927C3.99688 13.2678 3.60413 13.036 3.28632 12.7189C2.9685 12.4017 2.73591 12.0095 2.61011 11.5785C2.48431 11.1475 2.46937 10.6917 2.56667 10.2534C2.18664 10.0129 1.87362 9.68014 1.65671 9.28617C1.4398 8.8922 1.32605 8.44976 1.32605 8.00002C1.32605 7.55029 1.4398 7.10785 1.65671 6.71388C1.87362 6.31991 2.18664 5.9872 2.56667 5.74669Z" fill="${color}"></path><path d="M6 8.00002L7.33333 9.33335L10 6.66669" stroke="var(--primary-fg)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
-		};
+      return `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.56667 5.74669C2.46937 5.30837 2.48431 4.85259 2.61011 4.42158C2.73591 3.99058 2.9685 3.59832 3.28632 3.28117C3.60413 2.96402 3.99688 2.73225 4.42814 2.60735C4.85941 2.48245 5.31523 2.46847 5.75334 2.56669C5.99448 2.18956 6.32668 1.8792 6.71931 1.66421C7.11194 1.44923 7.55237 1.33655 8.00001 1.33655C8.44764 1.33655 8.88807 1.44923 9.28071 1.66421C9.67334 1.8792 10.0055 2.18956 10.2467 2.56669C10.6855 2.46804 11.1421 2.48196 11.574 2.60717C12.006 2.73237 12.3992 2.96478 12.7172 3.28279C13.0352 3.6008 13.2677 3.99407 13.3929 4.42603C13.5181 4.85798 13.532 5.31458 13.4333 5.75336C13.8105 5.9945 14.1208 6.32669 14.3358 6.71933C14.5508 7.11196 14.6635 7.55239 14.6635 8.00002C14.6635 8.44766 14.5508 8.88809 14.3358 9.28072C14.1208 9.67336 13.8105 10.0056 13.4333 10.2467C13.5316 10.6848 13.5176 11.1406 13.3927 11.5719C13.2678 12.0032 13.036 12.3959 12.7189 12.7137C12.4017 13.0315 12.0094 13.2641 11.5784 13.3899C11.1474 13.5157 10.6917 13.5307 10.2533 13.4334C10.0125 13.8119 9.68006 14.1236 9.28676 14.3396C8.89346 14.5555 8.45202 14.6687 8.00334 14.6687C7.55466 14.6687 7.11322 14.5555 6.71992 14.3396C6.32662 14.1236 5.99417 13.8119 5.75334 13.4334C5.31523 13.5316 4.85941 13.5176 4.42814 13.3927C3.99688 13.2678 3.60413 13.036 3.28632 12.7189C2.9685 12.4017 2.73591 12.0095 2.61011 11.5785C2.48431 11.1475 2.46937 10.6917 2.56667 10.2534C2.18664 10.0129 1.87362 9.68014 1.65671 9.28617C1.4398 8.8922 1.32605 8.44976 1.32605 8.00002C1.32605 7.55029 1.4398 7.10785 1.65671 6.71388C1.87362 6.31991 2.18664 5.9872 2.56667 5.74669Z" fill="${color}"></path><path d="M6 8.00002L7.33333 9.33335L10 6.66669" stroke="var(--primary-fg)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+    };
 
-		const formatTimeRemaining = (expiresAt) => {
-			const now = new Date();
-			const expires = new Date(expiresAt);
-			const diff = expires - now;
+    const formatTimeRemaining = (expiresAt) => {
+      const now = new Date();
+      const expires = new Date(expiresAt);
+      const diff = expires - now;
 
-			if (diff <= 0) return "Final results";
+      if (diff <= 0) return "Final results";
 
-			const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-			const hours = Math.floor(
-				(diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-			);
-			const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(
+        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+      );
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-			if (days > 0) return `${days} day${days !== 1 ? "s" : ""} left`;
-			if (hours > 0) return `${hours} hour${hours !== 1 ? "s" : ""} left`;
-			return `${minutes} minute${minutes !== 1 ? "s" : ""} left`;
-		};
+      if (days > 0) return `${days} day${days !== 1 ? "s" : ""} left`;
+      if (hours > 0) return `${hours} hour${hours !== 1 ? "s" : ""} left`;
+      return `${minutes} minute${minutes !== 1 ? "s" : ""} left`;
+    };
 
-		let attachmentsHTML = "";
-		if (tweet.attachments && tweet.attachments.length > 0) {
-			const count = tweet.attachments.length;
-			const gridClass =
-				count === 1
-					? "single-attachment"
-					: count === 2
-						? "two-attachments"
-						: count === 3
-							? "three-attachments"
-							: "four-attachments";
+    let attachmentsHTML = "";
+    if (tweet.attachments && tweet.attachments.length > 0) {
+      const count = tweet.attachments.length;
+      const gridClass =
+        count === 1
+          ? "single-attachment"
+          : count === 2
+            ? "two-attachments"
+            : count === 3
+              ? "three-attachments"
+              : "four-attachments";
 
-			attachmentsHTML = `<div class="tweet-attachments ${gridClass}">`;
+      attachmentsHTML = `<div class="tweet-attachments ${gridClass}">`;
 
-			for (const attachment of tweet.attachments) {
-				attachmentsHTML += '<div class="tweet-attachment">';
+      for (const attachment of tweet.attachments) {
+        attachmentsHTML += '<div class="tweet-attachment">';
 
-				if (attachment.file_type.startsWith("image/")) {
-					attachmentsHTML += `<img src="${escapeHtml(attachment.file_url)}" alt="${escapeHtml(attachment.file_name)}" loading="lazy" />`;
-				} else if (attachment.file_type === "video/mp4") {
-					attachmentsHTML += `<video src="${escapeHtml(attachment.file_url)}" controls></video>`;
-				}
+        if (attachment.file_url.startsWith("/")) {        
+          attachment.file_url = `${new URL(tweet.link).origin}${attachment.file_url}`;
+        }
 
-				attachmentsHTML += "</div>";
-			}
+        if (attachment.file_type.startsWith("image/")) {
+          attachmentsHTML += `<img src="${escapeHtml(attachment.file_url)}" alt="${escapeHtml(attachment.file_name)}" loading="lazy" />`;
+        } else if (attachment.file_type === "video/mp4") {
+          attachmentsHTML += `<video src="${escapeHtml(attachment.file_url)}" controls></video>`;
+        }
 
-			attachmentsHTML += "</div>";
-		}
+        attachmentsHTML += "</div>";
+      }
 
-		let pollHTML = "";
-		if (tweet.poll) {
-			pollHTML = '<div class="tweet-poll"><div class="poll-options">';
+      attachmentsHTML += "</div>";
+    }
 
-			for (const option of tweet.poll.options) {
-				const safePercentage = Number.isFinite(option.percentage)
-					? Math.max(0, Math.min(100, option.percentage))
-					: 0;
-				pollHTML += `
+    let pollHTML = "";
+    if (tweet.poll) {
+      pollHTML = '<div class="tweet-poll"><div class="poll-options">';
+
+      for (const option of tweet.poll.options) {
+        const safePercentage = Number.isFinite(option.percentage)
+          ? Math.max(0, Math.min(100, option.percentage))
+          : 0;
+        pollHTML += `
 					<div class="poll-option">
 						<div class="poll-option-bar" style="width: ${safePercentage}%"></div>
 						<div class="poll-option-content">
@@ -484,12 +490,12 @@
 						</div>
 					</div>
 				`;
-			}
+      }
 
-			const safeTotalVotes = Number.isFinite(tweet.poll.totalVotes)
-				? Math.max(0, tweet.poll.totalVotes)
-				: 0;
-			pollHTML += `
+      const safeTotalVotes = Number.isFinite(tweet.poll.totalVotes)
+        ? Math.max(0, tweet.poll.totalVotes)
+        : 0;
+      pollHTML += `
 				</div>
 				<div class="poll-meta">
 					<span class="poll-votes">${safeTotalVotes} vote${safeTotalVotes !== 1 ? "s" : ""}</span>
@@ -497,34 +503,34 @@
 				</div>
 			</div>
 			`;
-		}
+    }
 
-		const safeLink = escapeHtml(tweet.link);
-		const safeAvatar = escapeHtml(tweet.author.avatar);
-		const safeName = escapeHtml(tweet.author.name);
-		const safeUsername = escapeHtml(tweet.author.username);
-		const safeContent = escapeHtml(tweet.content);
-		const safeAvatarRadius = Number.isFinite(tweet.author.avatar_radius)
-			? Math.max(0, Math.min(50, tweet.author.avatar_radius))
-			: 50;
-		const safeLikes = Number.isFinite(tweet.likes)
-			? Math.max(0, tweet.likes)
-			: 0;
-		const safeRetweets = Number.isFinite(tweet.retweets)
-			? Math.max(0, tweet.retweets)
-			: 0;
-		const safeReplies = Number.isFinite(tweet.replies)
-			? Math.max(0, tweet.replies)
-			: 0;
+    const safeLink = escapeHtml(tweet.link);
+    const safeAvatar = escapeHtml(tweet.author.avatar);
+    const safeName = escapeHtml(tweet.author.name);
+    const safeUsername = escapeHtml(tweet.author.username);
+    const safeContent = escapeHtml(tweet.content);
+    const safeAvatarRadius = Number.isFinite(tweet.author.avatar_radius)
+      ? Math.max(0, Math.min(50, tweet.author.avatar_radius))
+      : 50;
+    const safeLikes = Number.isFinite(tweet.likes)
+      ? Math.max(0, tweet.likes)
+      : 0;
+    const safeRetweets = Number.isFinite(tweet.retweets)
+      ? Math.max(0, tweet.retweets)
+      : 0;
+    const safeReplies = Number.isFinite(tweet.replies)
+      ? Math.max(0, tweet.replies)
+      : 0;
 
-		let safeOrigin;
-		try {
-			safeOrigin = new URL(tweet.link).origin;
-		} catch {
-			safeOrigin = "";
-		}
+    let safeOrigin;
+    try {
+      safeOrigin = new URL(tweet.link).origin;
+    } catch {
+      safeOrigin = "";
+    }
 
-		const tweetHTML = `
+    const tweetHTML = `
 			<div class="tweet-container" onclick="window.open('${safeLink}', '_blank')">
 				<div class="tweet-header">
 					<img src="${safeAvatar}" alt="${safeName}" style="border-radius: ${safeAvatarRadius}%;" />
@@ -551,8 +557,8 @@
 							<span>${safeLikes}</span>
 						</div>
 						${
-							safeRetweets > 0
-								? `
+              safeRetweets > 0
+                ? `
 						<div class="tweet-stat">
 							<svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
 								<path d="M2.53001 7.81595C3.49179 4.73911 6.43281 2.5 9.91173 2.5C13.1684 2.5 15.9537 4.46214 17.0852 7.23684L17.6179 8.67647M17.6179 8.67647L18.5002 4.26471M17.6179 8.67647L13.6473 6.91176M17.4995 12.1841C16.5378 15.2609 13.5967 17.5 10.1178 17.5C6.86118 17.5 4.07589 15.5379 2.94432 12.7632L2.41165 11.3235M2.41165 11.3235L1.5293 15.7353M2.41165 11.3235L6.38224 13.0882" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -560,8 +566,8 @@
 							<span>${safeRetweets}</span>
 						</div>
 							`
-								: ""
-						}
+                : ""
+            }
 						<div class="tweet-stat">
 							<svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
 								<path d="M18.7502 11V7.50097C18.7502 4.73917 16.5131 2.50033 13.7513 2.50042L6.25021 2.50044C3.48848 2.5004 1.25017 4.73875 1.2502 7.50048L1.25021 10.9971C1.2502 13.749 3.47395 15.9836 6.22586 15.9971L6.82888 16V19.0182L12.1067 16H13.7502C16.5116 16 18.7502 13.7614 18.7502 11Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -576,18 +582,18 @@
 			</div>
 		`;
 
-		body.innerHTML = tweetHTML;
+    body.innerHTML = tweetHTML;
 
-		resizeIframeToFitContent();
+    resizeIframeToFitContent();
 
-		const resizeObserver = new ResizeObserver(() => {
-			resizeIframeToFitContent();
-		});
+    const resizeObserver = new ResizeObserver(() => {
+      resizeIframeToFitContent();
+    });
 
-		for (const child of body.children) {
-			resizeObserver.observe(child);
-		}
-	});
+    for (const child of body.children) {
+      resizeObserver.observe(child);
+    }
+  });
 
-	window.addEventListener("resize", resizeIframeToFitContent);
+  window.addEventListener("resize", resizeIframeToFitContent);
 })();
