@@ -1407,9 +1407,10 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 
 	.get(
 		"/moderation-history",
-		async ({ jwt, headers }) => {
+		async ({ jwt, headers, set }) => {
 			const authorization = headers.authorization;
 			if (!authorization) {
+				set.status = 401;
 				return { error: "No authorization header" };
 			}
 
@@ -1417,11 +1418,13 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 			try {
 				const payload = await jwt.verify(token);
 				if (!payload) {
+					set.status = 401;
 					return { error: "Invalid token" };
 				}
 
 				const user = getUserByUsername.get(payload.username);
 				if (!user) {
+					set.status = 404;
 					return { error: "User not found" };
 				}
 
@@ -1450,6 +1453,7 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 				};
 			} catch (error) {
 				console.error("Moderation history error:", error);
+				set.status = 500;
 				return { error: "Failed to fetch moderation history" };
 			}
 		},
@@ -1457,23 +1461,5 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 			detail: {
 				description: "Gets the current user's moderation history",
 			},
-			response: t.Object({
-				suspensions: t.Optional(
-					t.Array(
-						t.Object({
-							id: t.String(),
-							reason: t.String(),
-							action: t.String(),
-							severity: t.Number(),
-							status: t.String(),
-							notes: t.Union([t.String(), t.Null()]),
-							created_at: t.String(),
-							expires_at: t.Union([t.String(), t.Null()]),
-							suspended_by_username: t.String(),
-						}),
-					),
-				),
-				error: t.Optional(t.String()),
-			}),
 		},
 	);

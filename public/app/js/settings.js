@@ -2447,7 +2447,8 @@ const createChangePasswordModal = () => {
 	const description = document.createElement("p");
 	description.id = "passwordModalDescription";
 	description.className = "modal-description";
-	description.textContent = "Set a password for your account";
+	description.textContent =
+		"Set a password for your account";
 
 	const form = document.createElement("form");
 	form.id = "changePasswordForm";
