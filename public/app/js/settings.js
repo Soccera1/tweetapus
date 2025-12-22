@@ -75,6 +75,11 @@ const settingsPages = [
 		content: () => createCustomCSSContent(),
 	},
 	{
+		key: "moderation-history",
+		title: "Moderation history",
+		content: () => createModerationHistoryContent(),
+	},
+	{
 		key: "others",
 		title: "Others",
 		content: () => createOthersContent(),
@@ -1213,6 +1218,115 @@ function arrayBufferToBase64(buffer) {
 	}
 	return btoa(binary);
 }
+
+const createModerationHistoryContent = () => {
+	const section = document.createElement("div");
+	section.className = "settings-section";
+
+	const h1 = document.createElement("h1");
+	h1.textContent = "Moderation history";
+	section.appendChild(h1);
+
+	const description = document.createElement("p");
+	description.className = "settings-description";
+	description.textContent =
+		"View your account's moderation history, including suspensions, restrictions, warnings, and their reasons.";
+	section.appendChild(description);
+
+	const container = document.createElement("div");
+	container.id = "moderationHistoryContainer";
+	container.className = "moderation-history-container";
+	section.appendChild(container);
+
+	const loadModerationHistory = async () => {
+		container.innerHTML = "<p>Loading moderation history...</p>";
+
+		try {
+			const data = await query("/auth/moderation-history");
+
+			if (data.error) {
+				container.innerHTML = `<p class="error-message">${data.error}</p>`;
+				return;
+			}
+
+			if (!data.suspensions || data.suspensions.length === 0) {
+				container.innerHTML =
+					"<p class='no-history-message'>No moderation actions found. Your account has a clean record!</p>";
+				return;
+			}
+
+			container.innerHTML = "";
+
+			for (const suspension of data.suspensions) {
+				const item = document.createElement("div");
+				item.className = "moderation-history-item";
+
+				const header = document.createElement("div");
+				header.className = "moderation-history-header";
+
+				const actionBadge = document.createElement("span");
+				actionBadge.className = `moderation-action-badge moderation-action-${suspension.action}`;
+				actionBadge.textContent = suspension.action.charAt(0).toUpperCase() + suspension.action.slice(1);
+				header.appendChild(actionBadge);
+
+				const statusBadge = document.createElement("span");
+				statusBadge.className = `moderation-status-badge moderation-status-${suspension.status}`;
+				statusBadge.textContent = suspension.status.charAt(0).toUpperCase() + suspension.status.slice(1);
+				header.appendChild(statusBadge);
+
+				item.appendChild(header);
+
+				const reasonSection = document.createElement("div");
+				reasonSection.className = "moderation-history-reason";
+				const reasonLabel = document.createElement("strong");
+				reasonLabel.textContent = "Reason: ";
+				reasonSection.appendChild(reasonLabel);
+				reasonSection.appendChild(document.createTextNode(suspension.reason));
+				item.appendChild(reasonSection);
+
+				if (suspension.notes) {
+					const notesSection = document.createElement("div");
+					notesSection.className = "moderation-history-notes";
+					const notesLabel = document.createElement("strong");
+					notesLabel.textContent = "Notes: ";
+					notesSection.appendChild(notesLabel);
+					notesSection.appendChild(document.createTextNode(suspension.notes));
+					item.appendChild(notesSection);
+				}
+
+				const metaSection = document.createElement("div");
+				metaSection.className = "moderation-history-meta";
+
+				const createdDate = new Date(suspension.created_at);
+				const createdText = document.createElement("div");
+				createdText.textContent = `Date: ${createdDate.toLocaleString()}`;
+				metaSection.appendChild(createdText);
+
+				if (suspension.expires_at) {
+					const expiresDate = new Date(suspension.expires_at);
+					const expiresText = document.createElement("div");
+					expiresText.textContent = `Expires: ${expiresDate.toLocaleString()}`;
+					metaSection.appendChild(expiresText);
+				}
+
+				const moderatorText = document.createElement("div");
+				moderatorText.textContent = `Moderator: @${suspension.suspended_by_username}`;
+				metaSection.appendChild(moderatorText);
+
+				item.appendChild(metaSection);
+				container.appendChild(item);
+			}
+		} catch (error) {
+			console.error("Failed to load moderation history:", error);
+			container.innerHTML =
+				"<p class='error-message'>Failed to load moderation history. Please try again later.</p>";
+		}
+	};
+
+	loadModerationHistory();
+
+	return section;
+};
 
 const createOthersContent = () => {
 	const section = document.createElement("div");

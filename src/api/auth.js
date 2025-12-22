@@ -1403,4 +1403,77 @@ export default new Elysia({ prefix: "/auth", tags: ["Auth"] })
 				password: t.String(),
 			}),
 		},
+	)
+
+	.get(
+		"/moderation-history",
+		async ({ jwt, headers }) => {
+			const authorization = headers.authorization;
+			if (!authorization) {
+				return { error: "No authorization header" };
+			}
+
+			const token = authorization.replace("Bearer ", "");
+			try {
+				const payload = await jwt.verify(token);
+				if (!payload) {
+					return { error: "Invalid token" };
+				}
+
+				const user = getUserByUsername.get(payload.username);
+				if (!user) {
+					return { error: "User not found" };
+				}
+
+				const suspensions = db
+					.query(
+						`SELECT s.*, u.username as suspended_by_username
+						FROM suspensions s
+						JOIN users u ON s.suspended_by = u.id
+						WHERE s.user_id = ?
+						ORDER BY s.created_at DESC`,
+					)
+					.all(user.id);
+
+				return {
+					suspensions: suspensions.map((s) => ({
+						id: s.id,
+						reason: s.reason,
+						action: s.action,
+						severity: s.severity,
+						status: s.status,
+						notes: s.notes,
+						created_at: s.created_at,
+						expires_at: s.expires_at,
+						suspended_by_username: s.suspended_by_username,
+					})),
+				};
+			} catch (error) {
+				console.error("Moderation history error:", error);
+				return { error: "Failed to fetch moderation history" };
+			}
+		},
+		{
+			detail: {
+				description: "Gets the current user's moderation history",
+			},
+			response: t.Object({
+				suspensions: t.Optional(
+					t.Array(
+						t.Object({
+							id: t.String(),
+							reason: t.String(),
+							action: t.String(),
+							severity: t.Number(),
+							status: t.String(),
+							notes: t.Union([t.String(), t.Null()]),
+							created_at: t.String(),
+							expires_at: t.Union([t.String(), t.Null()]),
+							suspended_by_username: t.String(),
+						}),
+					),
+				),
+				error: t.Optional(t.String()),
+			}),
+		},
 	);
