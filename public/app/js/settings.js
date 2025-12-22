@@ -1266,12 +1266,16 @@ const createModerationHistoryContent = () => {
 
 				const actionBadge = document.createElement("span");
 				actionBadge.className = `moderation-action-badge moderation-action-${suspension.action}`;
-				actionBadge.textContent = suspension.action.charAt(0).toUpperCase() + suspension.action.slice(1);
+				actionBadge.textContent =
+					suspension.action.charAt(0).toUpperCase() +
+					suspension.action.slice(1);
 				header.appendChild(actionBadge);
 
 				const statusBadge = document.createElement("span");
 				statusBadge.className = `moderation-status-badge moderation-status-${suspension.status}`;
-				statusBadge.textContent = suspension.status.charAt(0).toUpperCase() + suspension.status.slice(1);
+				statusBadge.textContent =
+					suspension.status.charAt(0).toUpperCase() +
+					suspension.status.slice(1);
 				header.appendChild(statusBadge);
 
 				item.appendChild(header);
@@ -2443,8 +2447,7 @@ const createChangePasswordModal = () => {
 	const description = document.createElement("p");
 	description.id = "passwordModalDescription";
 	description.className = "modal-description";
-	description.textContent =
-		"Set a password for your account";
+	description.textContent = "Set a password for your account";
 
 	const form = document.createElement("form");
 	form.id = "changePasswordForm";
